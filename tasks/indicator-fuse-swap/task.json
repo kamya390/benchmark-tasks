@@ -1,0 +1,21 @@
+{
+  "title": "Replace the fuse whose indicator has tripped",
+  "category": "Impact on jobs",
+  "keywords": [
+    "fuse replacement",
+    "blown-fuse indicator",
+    "control cabinet",
+    "DIN rail",
+    "like-for-like spare",
+    "maintenance"
+  ],
+  "instruction": "One fuse on the rail has blown: its red indicator has popped up. Pull that fuse and put it in the red scrap tray, then take the spare from the white tray that is the right size for that holder and seat it in the same holder. Do not move the other fuses.",
+  "context": "Indicating cartridge fuses push out a red striker pin when they blow, so a maintenance technician finds the blown fuse by eye and replaces it like for like: a fuse holder is built for one size and rating, and the replacement must match the holder, not whatever spare is to hand. A 10 x 38 fuse dropped into a 14 x 51 holder leaves the circuit unprotected at the wrong rating. Unlike TK-59C3CG, where blown fuses are found with a group tester and only sorted out, the fault here is read from the indicator and the reasoning is choosing the spare that matches the holder. Done by: industrial machinery mechanics, electrical repairers and electricians (O*NET 49-9041.00, 49-2094.00, 47-2111.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Rail: a fixed steel TS35 x 7.5 DIN rail lying flat, 3.5 cm wide, 20 cm long, 0.75 cm tall, along y, centred at x 30, y 25. On it, four fuse holders at y 31, 27, 23 and 19 (positions 1 to 4 from the left), each a fixed dark open-top cradle of four walls 0.3 cm thick round a square pocket 0.6 cm wider than its fuse: 14 x 51 holders (pocket 2 cm, walls 1.2 cm tall) at positions 1 and 3, 10 x 38 holders (pocket 1.6 cm, walls 1 cm tall) at 2 and 4. In each stands a cartridge fuse: 14 x 51 fuses are cream boxes 1.4 x 1.4 cm, 5.1 cm tall, 22 g; 10 x 38 fuses 1 x 1 cm, 3.8 cm tall, 12 g. The fuse in position 3 has blown: it is red and 5.5 cm tall. Spares: a new cream 10 x 38 fuse at x 16, y 28 and a new cream 14 x 51 fuse at x 16, y 22, standing in a fixed white open frame (pocket 7 x 11 cm, walls 0.6 cm thick, 1.5 cm tall) centred at x 16, y 25. Scrap tray: a red frame of the same walls round an 8 x 8 cm pocket, centred at x 42, y 25.",
+  "scoring": "From a photo and a ruler, with the grippers open. 0 while the blown fuse is in its holder (centre within 1.5 cm of the holder centre, bottom within 2 cm of the rail top). 0.25 once it is out. 0.5 once it rests in the red scrap tray (centre inside the inner walls, bottom within 2 cm of the table). 0.75 if the 14 x 51 spare then stands in holder 3 (centre within 1 cm of the holder centre, bottom within 5 mm of the rail top); 1.0 when it is seated: centre within 4 mm of the holder centre each way, bottom within 2 mm of the rail top, upright within 5 degrees, still. Capped at 0.25 if the 10 x 38 spare is in holder 3 or any good fuse ends more than 3 mm or 5 degrees from its start. Success: 1.0 held 1 s.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Stand the red fuse back in holder 3 and both spares on their marks in the white tray; the good fuses, rail, holders and trays do not move.",
+  "fidelity": "Rigid boxes with one shared friction (1.2 static, 1.0 dynamic). Cartridge fuses are square-section boxes, not cylinders with end caps, and stand upright in open cradles held by gravity, where real holders grip the caps in spring clips. A single box cannot carry a separate red pin, so the tripped indicator is the whole blown fuse coloured red and 4 mm taller. Holders sit 4 cm apart, wider than the 18-27 mm of real modular holders, to leave room for the fingers.",
+  "scores": "Dream-1 run: 0.25; demo: 1.0",
+  "media": "M-JLR8CU"
+}
