@@ -1,0 +1,21 @@
+{
+  "title": "Hand a bar between two arms whose cells do not overlap",
+  "category": "Impact on jobs",
+  "keywords": [
+    "workcell transfer",
+    "bimanual handoff",
+    "reach limits",
+    "machine tending",
+    "fixture loading",
+    "no buffer"
+  ],
+  "instruction": "Move the aluminium bar (a square tube) from the right cell into the fixture in the left cell, lying in both orange cradles, centred between them. Neither arm can reach both cells and there is no place to set the bar down in between: hand it over in the air from the right gripper to the left gripper, then lay it in the cradles and let go.",
+  "context": "Between two machine-tending cells a part is passed hand to hand when there is no shared conveyor or buffer stand: the upstream robot presents the part, the downstream one closes on its free end, and only then does the upstream gripper open, so the part is never unsupported or set down in the guarded space between the cells. Here each cell is outside the other arm's reach. Unlike TK-MAVBN3 (hand a small item between arms into a carton), the part is a 22 cm bar taken end to end and laid square in a two-point fixture. Unlike TK-J79PY6, where a hose is passed over a fence and left draped, the part changes hands in mid-air and must end seated in a fixture. Done by: machine tool operators and material handlers (O*NET 51-4081.00, 53-7062.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Bar: a loose aluminium square tube 22 cm long, 2 x 2 cm, 2 mm wall, 90 g, lying flat along x, centred at x 31, y -52 (right cell; the left arm reaches no further right than about y -45). Fixture (left cell; the right arm reaches no further left than about y +46): two fixed dark steel posts 2.5 cm along x, 3 cm across, 4 cm tall, centred at y 52 and x 22.5 and 39.5. On top of each, a cradle: two fixed orange walls (0.5 cm thick, 2.5 cm long along x, 0.8 cm tall) either side of a 2.8 cm channel centred at y 52. Between the cells (y -35 to 35) the table is a guarded zone with no buffer.",
+  "scoring": "From the bar's recorded poses, with the grippers open at the end. 0.25 once the whole bar is at least 3 cm above the table. 0.5 while it is off the table with its centre past y +15 (across the midline). 0.75 resting with both ends in the cradles (each end within 4 cm of a post's centre along the bar, inside the channel, its bottom within 3 mm of the post top). 1.0 seated: both bottoms within 2 mm of the post tops, centre within 1 cm of the fixture centre along the bar, square and level within 3 degrees, still. If the bar touches the table between the cells (centre within 35 cm of the midline, bottom within 5 mm of the table), the score from then on is at most 0.25. The best stage reached counts. Success: seated without a touchdown between the cells, held 1 s.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Lay the bar back flat on its mark in the right cell.",
+  "fidelity": "Rigid boxes with one shared friction (1.2 static, 1.0 dynamic). The bar is a solid box with a 2 mm-wall tube's mass and the cradles hold it by gravity rather than clamping it. Reach limits are the arms' own kinematics at table height; there is no light curtain, so a touchdown between the cells is judged from the bar's poses every step.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-UW99KF"
+}
