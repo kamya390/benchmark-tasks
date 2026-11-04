@@ -1,0 +1,20 @@
+{
+  "title": "Unload a finished part and load a raw blank into the machine nest",
+  "category": "Impact on jobs",
+  "keywords": [
+    "machine tending",
+    "CNC",
+    "work holding",
+    "load and unload",
+    "raw stock"
+  ],
+  "instruction": "The part between the jaws of the machine's nest is finished. Unload it into the tray of finished parts, then load one raw blank into the nest so it lies on the nest floor between the two jaws, its length along them. Finished parts are machined 15 mm shorter than raw blanks. Never put a raw blank with the finished parts or a finished part with the raw blanks.",
+  "context": "Machine tenders unload each finished part from the work holding, put it with finished stock and load the next raw blank, square to the jaws, for the next cycle; a blank put back with finished parts ships unmachined, and a finished part put back with raw stock gets machined again. The single nest forces the order: unload before load. Unlike TK-CUFGCQ, which swaps a named failed unit for a named spare, nothing here is named: finished and raw parts are told apart by their length (55 vs 70 mm) to find the right tray, and the blank lies across the jaws' direction and must be turned a quarter turn to fit between them. Unlike TK-DPNBZR, where a named jammed blank goes to a reject bin, the finished part must be recognised by its length and the blank turned to fit the jaws. Done by: CNC tool operators and machine feeders (O*NET 51-9161.00, 53-7063.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Nest: a fixed steel base 9 x 7 x 1.2 cm centred at x 33, y 30, with two fixed steel jaws (4 cm along x, 1.2 cm thick, 1.5 cm tall) on it, their inner faces 3.4 cm apart, centred at y 30. Parts: aluminium bars 3 x 3 cm in section; finished parts 5.5 cm long (120 g), raw blanks 7 cm long (150 g). One finished part lies on the nest floor between the jaws, its length along x. Trays: two identical fixed grey open frames (walls 0.6 cm thick, 1.5 cm tall, round a 12 x 13 cm pocket, table floor) centred at x 18, y 42 (two raw blanks, length along y, at x 15.2 and 20.8) and x 18, y 18 (one finished part, length along x, at y 14.8).",
+  "scoring": "From a top photo and a ruler, with the grippers open. In order, each step needing the ones before: 0.25 the finished part is out of the nest (centre more than 3.5 cm from the nest centre); 0.5 it rests in the finished tray (centre inside the inner walls, bottom less than 4 cm above the table); 0.75 a raw blank also rests at the nest (centre within 3.5 cm of its centre, for example lying across the jaws); 1.0 the blank is seated: bottom within 2 mm of the nest floor, centred between the jaws within 3 mm, within 1 cm of the nest centre along them, length along the jaws within 5 degrees, still. A raw blank in the finished tray or a finished part in the raw tray caps the score at 0.25. Success: 1.0 with nothing in the wrong tray, held 1 s.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Lay the finished part back between the jaws and the two blanks and the other finished part back in their trays as listed.",
+  "fidelity": "Rigid boxes with one shared friction (1.2 static, 1.0 dynamic). The nest's jaws are fixed blocks with 2 mm of clearance rather than a vise that is opened and clamped, and the machine itself (enclosure, door, spindle) is not modelled. Machined and raw parts are plain bars that differ only in length; real parts would also differ in features and finish.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-BXUWH9"
+}
