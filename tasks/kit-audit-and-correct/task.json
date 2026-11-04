@@ -1,0 +1,20 @@
+{
+  "title": "Correct a returned kit against its bill of materials",
+  "category": "Impact on jobs",
+  "keywords": [
+    "kitting",
+    "quality audit",
+    "bill of materials",
+    "rework",
+    "fasteners"
+  ],
+  "instruction": "This kit failed inspection. Its bill of materials is two bolts, two nuts and four washers, each type alone in its own white pocket. Fix the kit using the parts in it and the stock in the blue bins, without disturbing anything that is already right.",
+  "context": "Kits that fail audit are corrected at the bench rather than rebuilt: the kitter compares each pocket with the bill of materials, moves misplaced parts and tops up shortages from stock. Here the missing washer is the one sitting in the nut pocket, so the efficient fix is to move it, then add one nut; the correct bolt pocket must be left alone. Unlike TK-CDVSJF (count bolts into an empty tray), the kit starts wrong and must be corrected in place without disturbing the pocket that is already right. BEHAVIOR's household kit activities (e.g. make_a_car_emergency_kit) only gather items into a container, with no derived counts. Done by: material handlers, production kitters and inspectors (O*NET 53-7062.00, 51-9061.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Kit pockets: three fixed white open frames (walls 0.6 cm thick, 1.5 cm tall, round 9 x 7 cm pockets, table floor) centred at y 20 and x 18 (bolts), 30 (nuts) and 42 (washers). In them, standing on end: bolt pocket, two bolts at x 16 and 20; nut pocket, a nut at x 28 and a washer at x 32; washer pocket, washers at x 40 and 44 with a third stacked on the one at x 40. Bins: three fixed dark-blue frames of the same walls round 11.5 x 9 cm pockets centred at y 41 and x 15 (bolts), 27.5 (nuts) and 40 (washers), each with two spares 3.5 cm apart along x starting 3.5 cm before the bin centre. Parts: bolts grey steel rod 1.2 cm across, 4.5 cm tall, 35 g; nuts dark grey steel disc 1.8 cm across, 0.9 cm tall, 10 g; washers light steel disc 2.4 cm across, 0.6 cm thick, 6 g.",
+  "scoring": "From a top photo and a ruler, with the grippers open. A part is in a pocket when it is still, its centre inside the pocket's inner walls and its lowest point less than 5 cm above the table (standing, lying or stacked). 0.5 when the nut pocket holds exactly two nuts and nothing else; 0.5 when the washer pocket holds exactly four washers and nothing else. If the bolt pocket no longer holds exactly two bolts and nothing else, the score is capped at 0.25. The kit as returned scores 0. Success: all three pockets right, held 1 s.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Put the kit back as returned (the washer in the nut pocket, three washers in the washer pocket) and the spares on their bin marks.",
+  "fidelity": "Rigid primitives with one shared friction (1.2 static, 1.0 dynamic). Bolts are plain rods without heads or threads, nuts are discs rather than hexagons, and washers are 6 mm solid discs so a parallel gripper can pinch them. Bins and pockets are fixed open frames, and parts stand spaced out rather than piled.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-C3UJJ3"
+}
