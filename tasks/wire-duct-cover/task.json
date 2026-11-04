@@ -1,0 +1,21 @@
+{
+  "title": "Close the open run of a wire duct with a cut-to-length cover, two arms",
+  "category": "Impact on jobs",
+  "keywords": [
+    "wire duct",
+    "duct cover",
+    "control panel",
+    "panel building",
+    "bimanual",
+    "long part"
+  ],
+  "instruction": "Pick up the loose grey duct cover with both arms, keep it level, and lay it on the wire duct in the open stretch between the two dark cover pieces already fitted at its ends, so it lies on both duct walls along its whole length and overhangs both walls equally. Then let go.",
+  "context": "After wiring a control panel, panel builders close the slotted wire ducts: a cover is cut to the open length between the pieces already fitted and laid on so its edges sit over both duct walls along the whole run. A cover left riding on a fitted piece, or hanging off one wall, does not close the duct and springs off. A 45 cm cover is too long to carry level from one point, so both hands lift and lower it together. Unlike TK-AQDL7B, where a cover is centred flat on top of a module within 5 mm, the cover here has to drop straight into a gap only 8 mm longer than itself and bear on two 3 mm walls with equal overhang. Done by: electrical and electronic equipment assemblers and electricians (O*NET 51-2022.00, 47-2111.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Wire duct: fixed grey U-channel along y, 58 cm long, centred at x 34, y 0: a base 6 cm wide and 0.3 cm thick and two side walls 0.3 cm thick reaching 4 cm above the table, their outer faces 6 cm apart. Installed cover pieces: two fixed dark boxes 7 x 6.1 x 1.2 cm lying on the wall tops, one at each end (y 22.9 to 29 and -22.9 to -29), leaving the duct open for 45.8 cm. Loose cover: a grey PVC box 7 cm wide (x), 45 cm long (y), 1.2 cm thick, 120 g, lying flat on the table centred at x 21, y 0.",
+  "scoring": "From a photo and a ruler, with the grippers open. An end is down when it lies on both duct walls inside the open run: its end face within 8 mm of the duct centreline across it and within 2.5 mm of resting height on the wall tops (not up on a fitted piece). 0.25 once the whole cover is at least 3 cm above the table. 0.5 with one end down, at rest; 0.75 with both ends. 1.0 fitted: both ends down, centre within 4 mm of the duct centreline (equal overhang), square within 2 degrees, still. The best stage reached counts. Success: fitted, held 1 s.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Lay the loose cover back flat on its mark.",
+  "fidelity": "Rigid boxes with one shared friction (1.2 static, 1.0 dynamic). The duct walls are solid, without the finger slots, and no wires are in the duct. The cover is a flat bar with no snap lips: it rests on the wall tops by gravity, so equal overhang stands in for both lips being engaged. The fitted end pieces are fixed.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-U7R4QD"
+}
