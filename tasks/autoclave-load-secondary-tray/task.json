@@ -1,0 +1,21 @@
+{
+  "title": "Load liquid bottles into an autoclave in a secondary tray, clear of the walls",
+  "category": "Impact on jobs",
+  "keywords": [
+    "laboratory",
+    "autoclave",
+    "sterilisation",
+    "secondary containment",
+    "loading",
+    "clearance"
+  ],
+  "instruction": "Load the two media bottles into the open autoclave. Liquids may go in only inside a secondary tray: stand both bottles on the white tray first, then put the loaded tray on the rack inside the chamber. Nothing may touch the chamber: keep the tray and the bottles at least 2.5 cm from every wall.",
+  "context": "Lab biosafety and autoclave SOPs require liquids to be sterilised in a secondary container or tray that catches boil-over and broken glass, and the load must not touch the chamber walls: steam has to reach every surface, and items against the hot wall can crack or scorch. Lab staff build the load on the bench and move it into the chamber as one unit. The robot must sequence it (bottles into the tray before the tray goes in) and place inside an enclosure with clearance on all four sides. Unlike TK-VQ82DD (store bottles by type in fixed containment trays) and LabUtopia's single-beaker Heat and Drying Beaker tasks, the bottles travel in their tray into an enclosure that must be cleared all round. Done by: medical and clinical laboratory technicians, biological technicians (O*NET 29-2012.00, 19-4021.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Autoclave: four fixed steel walls 0.8 cm thick, 9 cm tall, round a 20 x 16 cm chamber centred at x 38, y 30, with a fixed load rack filling the chamber floor, its top 4 cm above the table (the walls rise 5 cm above it). Bench mat: fixed, black, 18 x 8 cm, 2 mm thick, centred at x 22, y 42, with two loose glass media bottles (4 cm across, 6 cm tall, 80 g) standing on it at x 16 and x 25. Secondary tray: a loose white block 12 cm along x, 7 cm across, 2 cm tall (120 g) on the table centred at x 18, y 25.",
+  "scoring": "From a top photo and a ruler, with the grippers open. A bottle is on the tray when it stands within 8 degrees of upright, still, its centre over the tray and its bottom within 4 mm of the tray top. 0.25 for each bottle on the tray; 0.25 when the tray lies flat (within 5 degrees) and still on the rack, inside the chamber, with both bottles on it; 0.25 more when the tray and both bottles are at least 2.5 cm from every wall. A bottle inside the chamber but not on the tray caps the score at 0.25. Possible scores: 0, 0.25, 0.5, 0.75, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Stand both bottles back on the bench mat on their marks and lay the tray on its mark; the chamber, rack and mat do not move.",
+  "fidelity": "Rigid primitives with one shared friction (1.2 static, 1.0 dynamic). The tray is a flat block with no rim, so the bottles stand on it by friction; bottles are plain cylinders with no caps or liquid. The chamber is shallow and open on top with no lid, door seal, steam or heat; the rack is a solid slab, not a wire basket.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-DS4TN7"
+}
