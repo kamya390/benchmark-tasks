@@ -1,0 +1,21 @@
+{
+  "title": "Move the perforated floor tile to the loaded rack's inlet, swapping it with a solid tile",
+  "category": "Impact on jobs",
+  "keywords": [
+    "data center",
+    "raised floor",
+    "airflow management",
+    "perforated tile",
+    "cold aisle",
+    "cooling"
+  ],
+  "instruction": "Perforated floor tiles (the light ones) let cold air up in front of a rack, so they belong in front of racks that are loaded with servers. Swap the tile in front of the empty rack with the tile in front of the loaded rack that has a solid tile (the dark one), using the white tile cart as a place to set a tile down. Lay each tile flat on its pedestal and leave the tile in front of the middle rack alone.",
+  "context": "In raised-floor data centers the cooling air reaches the racks through perforated tiles in the cold aisle, and airflow-management guidance (such as ASHRAE's and the major vendors' best-practice notes) is to put perforated tiles only in front of racks drawing load and solid tiles elsewhere: a perforated tile at an empty rack wastes cold air and starves the loaded ones. Facilities technicians move tiles with a lifter as racks are installed and removed. The skill is reading which rack is loaded and reasoning which tiles must trade places, with a buffer spot for the swap. Unlike RoboDojo swap_blocks (swap two named blocks through an empty mat) and BEHAVIOR-1K laying_tile_floors, the two tiles to swap are not named but follow from the racks' load. Done by: data-center facilities and HVAC technicians; computer network support specialists (O*NET 49-9021.00, 15-1231.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Raised floor: a fixed grey subfloor 10 x 27 cm centred at x 33, y 25, with three fixed steel pedestals (6 x 6 cm, 0.8 cm tall) centred at x 33 and y 33.5 (spot A), 25 (spot M), 16.5 (spot B). Tiles: three boxes 7 x 7 cm, 2 cm thick, 200 g, each resting on a pedestal, with 1.5 cm gaps between them: dark solid tile at A, light perforated tiles at M and B. Racks: fixed black open-top cabinets (walls 0.5 cm thick, 5 cm tall, round a 7 x 6.4 cm interior) centred at x 44.5 behind each spot; racks A and M each hold three fixed dark server chassis (6.6 x 1.8 x 4 cm) with green lights, rack B is empty. Tile cart: a fixed white deck 11 x 11 cm, 0.4 cm thick, centred at x 17, y 25.",
+  "scoring": "From the episode's recorded poses, with the grippers open at the end. A tile is laid on a spot when it is still, flat within 3 degrees, square within 5 degrees (any quarter turn), its centre within 6 mm of the spot and its bottom within 2 mm of the pedestal top. 0.5 for the perforated tile from spot B laid on spot A, in front of loaded rack A; 0.5 for the solid tile laid on spot B, in front of empty rack B. If the middle tile ends more than 4 mm or 4 degrees from its start, the score is capped at 0.25. Possible scores: 0, 0.25, 0.5, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Lay the solid tile back on spot A and the perforated tiles on spots M and B; the pedestals, racks, servers and cart are fixed.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). A tile (real 600 mm square, about 15 kg) is a 70 mm plain box of 200 g lifted by its edges, with finger gaps instead of a suction lifter; the perforation is not modelled, only shown by the tile's colour, and airflow is not simulated. Racks are low open cabinets so the camera sees whether servers are installed.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-SNNKLX"
+}
