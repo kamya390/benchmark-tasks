@@ -1,0 +1,22 @@
+{
+  "title": "Bend a sheet's flange to 90 degrees in a hand brake",
+  "category": "Impact on jobs",
+  "keywords": [
+    "sheet metal",
+    "hand brake",
+    "box and pan folder",
+    "bending",
+    "clamping order",
+    "non-prehensile pushing",
+    "bimanual"
+  ],
+  "instruction": "Bend the sheet's flange up to 90 degrees on the hand brake, then put the finished bracket on the grey tray.",
+  "context": "On a hand brake (box-and-pan or finger folder) the sheet is clamped under the clamping bar with the scribed bend line at the bar's nose before the bending leaf is raised; brake makers' manuals and sheet-metal texts make this step one, and the leaf is lowered again before the clamp is released. Raised against an unclamped blank, the leaf lifts the whole sheet: the bend lands off the line or the sheet is thrown. Nothing in the scene shows the order, and physics enforces it: the blank rides up. The skill is running a two-member forming machine in its required order and setting a part's bend angle through the machine, then handling the formed part by its new flange. Unlike PR #180 (close a cam clamp on a blank, the clamp is the goal) and PR #207 (lower one hinged cover slowly), the clamp is only the prerequisite and the outcome is a 90 deg bend made by a second hinged member. Done by: sheet metal workers; press brake setters and operators (O*NET 47-2211.00, 51-4031.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Brake bed: a fixed steel block 10 (x) x 26 x 4 cm, front edge (the bend line) at x 30, centred on y 0. Bending leaf: a 250 g steel bar 6 x 24 x 1 cm hinged along the bed's front top edge, lying flush with the bed and reaching toward the robot (0-135 deg, Coulomb friction 0.08 N m, so it stays where it is left), with two red steel handles 1.5 x 1.5 x 8 cm upright at its free edge, y +-10. Clamping bar: a 300 g aluminium bar 4 x 24 x 1.2 cm, nose 0.5 mm behind the bend line, sliding vertically between two black steel guide posts with 7 N friction; it starts 13 mm up (its upper stop), with a black knob 2 x 2 x 2 cm at y -10. Blank: aluminium sheet 15 cm wide, drawn 3 mm thick: a base 8 cm deep (49 g) on the bed against a black steel back gauge, and a 5 cm flange (30 g) lying on the leaf, joined at the scribed line by a friction hinge (0.08 N m). Tray: a fixed grey ABS tray 14 x 20 cm with an 8 mm rim at x 31, y -25.",
+  "scoring": "From the parts' poses (on a real rig: a protractor and the trial video). Latched for the trial: if the leaf is ever above 10 deg while the clamping bar is more than 3 mm above the sheet, or the base rides 4 mm off the bed or tilts 4 deg while the leaf is above 10 deg, the score is 0 from then on. The bend counts only if the leaf formed it (leaf and flange both at 80 deg or more at one moment). 1.0: flange at 87-93 deg to the base, leaf back below 10 deg, the bracket flat on the tray floor inside the rim, both parts still and let go (grippers 2.5 cm clear), held 1 s. 0.5: flange at 87-93 deg and leaf below 10 deg, not on the tray. 0.25: flange bent 45 deg or more by the leaf. Capped at 0.25 if the flange was ever bent past 100 deg. Scored at the last step. Possible scores: 0, 0.25, 0.5, 1.0.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Flatten the blank and lay it back on the bed against the gauge (on a real rig: a fresh blank), lower the leaf flush and raise the clamping bar to its upper stop; the bed, gauge, posts and tray do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). Plastic bending is a friction hinge at the bend line (the bend stays where formed, no springback); the clamp's cam lock is slider friction; the leaf's counterweight is hinge friction. The bar's square nose stops the flange at ~92.5 deg. The sheet is drawn 3 mm thick for stable contact, with the mass of 1.5 mm sheet. Joints via mechkit.py.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-PH5UZH"
+}
