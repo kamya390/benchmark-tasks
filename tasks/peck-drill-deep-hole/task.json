@@ -1,0 +1,21 @@
+{
+  "title": "Drill a deep hole in pecks, clearing the chips",
+  "category": "Impact on jobs",
+  "keywords": [
+    "machining",
+    "drill press",
+    "peck drilling",
+    "chip clearing",
+    "sprung quill",
+    "feed control"
+  ],
+  "instruction": "Drill the hole in the steel block down to the depth stop, then bring the drill back up.",
+  "context": "For holes deeper than about three drill diameters, machinists peck-drill: feed about one diameter, retract the drill fully out of the hole to clear the chips, and repeat to depth. Machinery's Handbook and drill makers' guidance give the rule; a continuous plunge packs the flutes with chips, the torque climbs and the drill snaps in the hole, scrapping the part. The instruction names only the goal (a 30 mm hole, 5 drill diameters); the skill is applying the unstated process rule as a cyclic feed-and-retract pattern on a sprung quill, keeping each feed within 1.5 diameters of the last full retraction, then leaving the drill up. Unlike PR #545 (set a drill-press depth stop and prove it with a button-driven spindle) and PR #776 (clamp a part before one plunge), the feed is driven by hand under a chip-clearing rule; a single plunge, the obvious move, snaps the drill. Done by: machinists; drilling and boring machine tool setters and operators (O*NET 51-4041.00, 51-4032.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Workpiece: a fixed 5 x 4 x 4 cm steel block centred at x 34, y -20, held between two fixed green cast-iron vise jaws. Drill press: a fixed green cast-iron column and head behind the block; in front of the head the steel quill (150 g with its chuck) slides vertically on a return spring (30 N/m, 3.5 N up at its top stop) with 1 N friction. Its lower stop is the depth stop, 30 mm below the block's top. A 6 mm high-speed-steel drill (10 g, 4.5 cm) is held in the chuck, its tip 8 mm above the block at the start. A red steel feed knob 3 x 3 x 1.5 cm on a 6 cm black stem sticks out from the quill toward the robot (x 27.5); pushing it down feeds the drill; let go, the spring returns it. A chrome depth scale stands beside the quill.",
+  "scoring": "From the quill's and the drill's poses (on a real rig: the quill's depth scale on the video). Depth = the drill tip below the block's top. Latched for the trial: if the depth ever exceeds by more than 9 mm the deepest depth reached before the drill's last full retraction (tip at least 2 mm above the block), the drill snaps (it is released and stays in the hole) and the score is 0 from then on. Otherwise, with the drill tip at least 5 mm above the block, the quill still and let go (both grippers 2.5 cm clear): 1.0 if the hole reached 29 mm or more (the depth stop), 0.5 for 15 mm or more, 0.25 for 8 mm or more; 0 otherwise. Success: 1.0 held 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Let the quill return to its top stop and refit the drill in the chuck (on a real rig: a new drill and a fresh block, or a bore plug and a depth-scale check); the block, vise and press do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). No cutting or chip model: the hole is a pre-formed 10 mm bore, and chip packing is emulated by a rule (a feed over 9 mm past the last full retraction) that releases the drill's chuck bond, so the bit stays in the hole. The capstan feed is a knob on the quill pushed straight down; the spindle does not turn. Spring slider and bond via mechkit.py.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-6RJGV6"
+}
