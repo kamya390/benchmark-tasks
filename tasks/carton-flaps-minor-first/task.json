@@ -1,0 +1,22 @@
+{
+  "title": "Close a shipping carton's four flaps so it is ready for taping",
+  "category": "Impact on jobs",
+  "keywords": [
+    "warehouse packing",
+    "shipping carton",
+    "regular slotted carton",
+    "hinged flaps",
+    "layer order",
+    "non-prehensile pushing",
+    "bimanual"
+  ],
+  "instruction": "Close the carton: fold all four flaps down flat so it is ready to be taped shut.",
+  "context": "Hand packers close a regular slotted carton (FEFCO 0201, the standard shipping box) the same way every time: the two short end (minor) flaps fold in first, then the two long (major) flaps fold down over them and meet at the centre seam, where the tape strip runs. Folded the other way, a minor flap ends up on top of a major one, the seam cannot be taped flat and the carton bulges. The skill is planning the layering of four hinged boards and pushing each one shut in that order, without grasping them. Unlike pilot TK-S2WMM8 (fold a carton's flaps closed, no layering rule), TK-9JFBH4 (lower one hinged cover slowly), TK-KGE8FA (hold one pocket flap open) and RLBench close_box (one hinged lid), four interdependent flaps must close in a fixed order that shows in the result; unlike the return-pack task (pad, card, pad), the layers are hinged panels, not loose parts. Done by: hand packers and packagers; stockers and order fillers (O*NET 53-7064.00, 53-7065.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Carton: a fixed brown regular slotted carton of double-wall corrugated board, 12 cm deep (x) by 22 cm wide by 8 cm tall, walls 0.5 cm thick, centred at x 26, y 0; the long side walls stand 0.5 cm above the end walls, where their creases are. Packed goods: a fixed block of boxed products (paperboard) filling it to 1 mm below the rim. Flaps: four 3 mm single-wall corrugated-board flaps hinged at the wall tops, each starting 100 degrees open (10 degrees past upright, leaning outward) against its stop. Two long flaps, 5.55 x 20.7 cm, 20 g, on the near (x 20.25) and far (x 31.75) walls, meet at x 26 when closed with a 4 mm seam gap; two short flaps, 10.4 x 5.5 cm, 15 g, on the left (y 10.75) and right (y -10.75) end walls. Each crease has light damping (0.02 N m s/rad) and no spring: a flap rests open on its stop or closed under its own weight.",
+  "scoring": "From the flap boards' poses. A flap is flat when its board is within 10 degrees of level, still, and neither gripper's TCP is within 2.5 cm of it. A long flap lies on top of a short flap when, at the point halfway out along both boards where they overlap, its underside is no more than 1.5 mm below the short flap's top side. 0.25 for any two flaps flat; 0.5 for both short flaps flat with a long flap flat on top of both; 1.0 for all four flat with both long flaps on top of both short flaps and their free edges at most 10 mm apart at the seam. If at any moment of the trial a long flap was within 10 degrees of level while a short flap was not, the trial is capped at 0.25, even if the flaps are later reopened and closed correctly. Scored on the final state. Possible scores: 0, 0.25, 0.5, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Stand all four flaps back up, open 100 degrees against their stops; the carton and the goods do not move.",
+  "fidelity": "Rigid boxes with one shared friction (1.2 static, 1.0 dynamic). Each flap is a rigid 3 mm board on a PhysX revolute joint (mechkit.py, in this folder) with viscous damping but no spring or crease memory, so a flap pushed past upright falls shut under its own weight instead of springing back. Real board bends at the crease; here the long flaps' crease line is set 5 mm above the short ones' so they can lie over them. No tape, no contact-force cap.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-UTAR4M"
+}
