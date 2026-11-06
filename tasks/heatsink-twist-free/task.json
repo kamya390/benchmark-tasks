@@ -1,0 +1,21 @@
+{
+  "title": "Take a heatsink off a processor without pulling the processor out of its socket",
+  "category": "Impact on jobs",
+  "keywords": [
+    "computer repair",
+    "heatsink removal",
+    "thermal compound",
+    "processor socket",
+    "loading mode",
+    "wrist twist"
+  ],
+  "instruction": "Take the heatsink off the processor and put it on the grey mat. The processor stays in its socket.",
+  "context": "Dried thermal compound holds a cooler strongly against a straight pull but gives way far more easily in twist. Cooler makers' and system service guides tell the technician to twist the cooler gently to break the seal before lifting it: on sockets that do not clamp the processor (ZIF/PGA sockets, loose bench parts) a straight pull can bring the processor out stuck to the cooler, bending pins and damaging the socket. LGA server sockets clamp the processor under a load plate, so the setting here is workstation and bench repair and IT asset recovery. The skill is choosing how to load a joint: twist first, then lift. Unlike TK-WSHWFM (seat a heatsink straight down without sliding it) and TK-UQKVFV (unscrew a threaded cap), the twist here breaks an adhesive joint, and nothing in the scene shows the order: a pull first scores 0. Done by: computer, ATM and office machine repairers; computer user support specialists (O*NET 49-2011.00, 15-1232.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Board: a fixed green FR-4 circuit board 20 x 16 x 0.2 cm flat on the table, centred at x 32, y 22. Socket: a fixed black glass-filled nylon frame on the board, four walls 0.4 cm thick and 0.3 cm tall round a 4.1 x 4.1 cm opening centred at x 32, y 22. Processor: a 4 x 4 x 0.4 cm, 30 g part (FR-4 substrate under a nickel-plated copper lid) seated in the socket, held there with 6 N against a pull. Heatsink: an aluminium cooler 6 x 6 cm, 3.5 cm tall, 250 g (a 0.6 cm base plate with seven 0.2 cm fins along x), sitting square on the processor and stuck to its lid by dried silicone thermal compound (it tears at 25 N of pull; in twist about the vertical it yields and lets go past a 4 deg turn, about 0.14 N*m). ESD mat: a fixed grey static-dissipative rubber mat 12 x 12 cm, 3 mm thick, centred at x 32, y 7.",
+  "scoring": "From the episode's recorded poses (the trial video on a real rig). 1.0: the heatsink at rest, flat (under 10 deg), its centre within 3.5 cm of the mat's centre and resting on the mat, let go (both grippers 2.5 cm clear), success when held 1 s. 0.5: the heatsink off the processor (its bottom 1 cm above the lid, or its centre 5 cm from the socket) but not on the mat as above. 0.25: the heatsink still on the processor but turned at least 5 deg about the vertical relative to it. Otherwise 0. Pulled processor: if the processor's bottom ever rises 3 mm above its seat, or its centre moves 5 mm off the socket's centre, or it tips 10 deg, the score is 0 for the rest of the trial, even if it is pressed back. Scored at the last step. Possible scores: 0, 0.25, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Seat the processor in the socket, set the heatsink square on it and re-bond it (on a real rig: a fresh layer of thermal putty, or a magnet-held processor coupon and a putty-bonded heatsink); the board, socket and mat do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The compound is a breakable bond: a 25 N pull tears it, and a twist about the vertical lets it go past 4 deg (a torsion spring, about 0.14 N*m); tilting does not. The socket's hold is a 6 N breakable bond to the bench; the socket walls stop the processor turning. No pins, lever or paste flow. The outcome is judged from simulator poses every step.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-B6HMZ2"
+}
