@@ -1,0 +1,21 @@
+{
+  "title": "Check a press's light curtain with its test rod before the shift",
+  "category": "Impact on jobs",
+  "keywords": [
+    "machine guarding",
+    "safety light curtain",
+    "presence-sensing device",
+    "test rod",
+    "start-of-shift check",
+    "power press"
+  ],
+  "instruction": "Do the start-of-shift check of the press's light curtain with the black test rod, then put the rod back in its holder.",
+  "context": "A safety light curtain stops a press when anything breaks its invisible sensing plane, and it must be checked at every shift start (OSHA 1910.217 practice for presence-sensing devices; IEC 61496 type 4 curtains). Curtain makers' manuals give the test-piece check: pass the specified test rod slowly through the whole height of the protected zone, held across the plane, along three paths: close to the emitter, midway, and close to the receiver (some makers word it as a zig-zag). A single poke tests one spot; a blind spot near a column goes unseen. The instruction names only the check: the paths and the full-height sweep are the procedure the policy must know. Unlike #172 (move only the cartons that sit in a photo-eye's beam), here a sensing plane is swept to a prescribed coverage pattern and nothing is moved out of it; unlike #827 (touch one point from four angles), coverage across a plane is scored. Done by: press operators and setters (O*NET 51-4031.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Light curtain (fixed): two powder-coated aluminium columns, 2.5 x 2.5 cm and 17 cm tall, centred at y -4 and at x 14 (emitter) and x 36 (receiver), each with a dark lens strip on its inner face from 4.5 to 15.5 cm above the table; the sensing plane is y = -4 between them, protected zone 4.5 to 15.5 cm high. Press (fixed, behind the plane): a cast-iron bolster plate 22 x 20 x 2 cm centred at x 25, y 7.5, with a tool-steel lower die 12 x 8 x 2.5 cm on it. Test rod (loose, 55 g): a black acetal bar 1.4 x 1.4 cm, 20 cm long, lying along y in a fixed ABS holder of two saddles (1.5 cm tall, 3 cm wide slots) at x 25, its centre at y -19.",
+  "scoring": "From the episode's recorded poses (the trial video on a real rig). At every step the point where the rod's axis pierces the plane y = -4 is logged when the rod passes through the plane, points within 30 deg of the plane's normal and moves up or down slower than 0.25 m/s; consecutive points are joined. Paths: within 4 cm of the emitter's lens, within 4 cm of the centre line, within 4 cm of the receiver's lens. A path is done once its logged heights cover 85 % of the 11 cm zone. Score: 0.25 per path done, plus 0.25 if, at the end, at least one path is done and the rod lies in its holder (centre within 1.5 cm along and 8 mm across home, on the saddles, level, along y within 10 deg), still and let go (both grippers 2.5 cm clear). Success: 1.0 held 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 0.75, 1.0.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Lay the test rod back in its holder; the curtain columns, press and holder do not move. On a real rig the curtain's own stop signal can be logged as a cross-check of the video.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The curtain is not simulated as a sensor: its plane and zone are geometry, and the score reads the rod's pose against them every step. The test rod is a square bar (a round one would roll off the table), and the press and curtain are scaled to the arms' reach (11 cm zone, 22 cm between columns). No machine stop or indicator lights.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-NGQ9JC"
+}
