@@ -1,0 +1,22 @@
+{
+  "title": "Change a drive belt by sliding the motor in to slacken it, then tension the new belt",
+  "category": "Impact on jobs",
+  "keywords": [
+    "maintenance",
+    "belt drive",
+    "V-belt replacement",
+    "centre distance",
+    "motor slide base",
+    "re-tensioning",
+    "mechanism adjustment"
+  ],
+  "instruction": "Replace the worn red belt on this drive with the new black belt from the rests, put the worn belt in the red bin, and leave the drive ready to run.",
+  "context": "Belt makers' installation instructions are the same for every drive: shorten the centre distance (slide the motor in on its base) until the old belt comes off freely and the new one goes on by hand, never roll or pry a belt over the pulley flanges (that breaks its tensile cords), then move the motor back out to re-tension it. Here the worn belt is trapped: its loop is 3.5 mm too short to pass either flange until the motor is slid in at least 7 mm, and with about 2 cm of slack it must also be centred before it lifts clear. The skill is seeing that a mechanism must be adjusted on purpose to make a removal and a fitting possible, then setting it back. Unlike PR #700 (one hand holds a sprung idler while the other locks it on a belt already fitted) and PR #820 (swap a pulley and refit its screws), the belt itself is changed and nothing is held while another hand works. Done by: industrial machinery mechanics; millwrights (O*NET 49-9041.00, 49-9044.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Drive (centre line y -24): a fixed painted-steel channel from x 20 to 45 with two steel deck rails whose tops are 4 cm above the table, 4.6 cm apart. Driven pulley (fixed, zinc-plated steel): an octagonal hub 4 cm across at x 40 rising 2.2 cm above the deck, with a 4.8 cm, 0.5 cm thick retaining flange on top. Motor pulley: the same hub and flange at x 24 on a 300 g steel slide base under the deck that carries a grey motor body (4.5 x 6 x 5 cm, at x 13.75) outside the channel; the base slides along x on a friction slideway (1.5 N to move it, stays where it is left), from 0.5 cm away from the driven pulley to 3 cm toward it. Belts: rigid rubber loops, 20.1 x 6.4 cm inside, 0.8 cm wall, 1.4 cm tall, 40 g. The worn red belt lies on the deck round both hubs (1 mm of play, each flange overlapping its end by 3.5 mm). The new black belt lies on two dark steel rests 4 cm tall, centred at x 32, y -38.5. Bin: a fixed red polypropylene tray, 25 x 12 cm inside, walls 3 cm, centred at x 31, y -8.5.",
+  "scoring": "From the episode's recorded poses, at the end. Let go = neither gripper's tool point within 2.5 cm of the part; still = under 1 cm/s. Slack d = how far the motor pulley has slid in from its start (from the slide base's pose). A belt is round the hubs when both pulley axes are inside its inner rectangle and its lowest point is under the flanges' top; seated when also on the deck (bottom within 4 mm), level within 5 deg, still and let go. In the bin = wholly inside its walls, on its floor, still, let go. 1.0: red belt in the bin, black belt seated, d at most 1.5 mm (tensioned), the motor let go and still. 0.5: red in the bin and black seated, drive slack. 0.25: red in the bin. Otherwise 0. If a belt ever goes onto or off the hubs while d is under 7 mm (forced over a flange), the trial is capped at 0.25. Possible scores: 0, 0.25, 0.5, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Slide the motor base back to its start mark (d = 0), lay the red belt on the deck round both hubs and the black belt on its rests; the channel, driven pulley, rests and bin do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The belts are rigid loops (no stretch), so one can neither be forced over a flange nor sag; the forced-over-flange cap only matters on a real rig. The motor base is a PhysX prismatic joint with Coulomb friction (mechkit.py). The drive is a flat-belt mock-up: shafts upright, belt on a deck, octagonal hubs, no V-groove, belt tension not measured beyond the centre distance.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-UCTCZL"
+}
