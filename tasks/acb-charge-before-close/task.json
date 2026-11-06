@@ -1,0 +1,23 @@
+{
+  "title": "Close an air circuit breaker by hand when its motor operator is out of service",
+  "category": "Impact on jobs",
+  "keywords": [
+    "data center",
+    "electrical switchgear",
+    "air circuit breaker",
+    "stored-energy mechanism",
+    "manual charging",
+    "status indicator",
+    "repeated strokes",
+    "bimanual"
+  ],
+  "instruction": "This de-energised training breaker's motor operator is out of service. Close the breaker by hand.",
+  "context": "Air circuit breakers (IEC 60947-2 power breakers, the mains and feeders of data-centre switchboards) close from a stored-energy spring that a motor normally recharges. Makers' operating manuals give the manual procedure for when the motor is out of service: pump the charging handle through full strokes until the indicator shows the spring charged, then press the close (I) button; pressed with the spring discharged, the button does nothing. The instruction does not say the spring must be charged: the policy must read the indicator and know the mechanism. Unlike #256 (pump a chamber to a stated pressure, the pumping spelled out) and #273 (hold a spring-return control switch until a lamp lights, one actuation), the prerequisite is hidden and the job is a run of full lever strokes followed by a separate actuation. Done by: electricians; electrical repairers, powerhouse, substation and relay (O*NET 47-2111.00, 49-2095.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Breaker (fixed): a grey painted steel facia 26 cm wide (y -13 to 13) and 15.5 cm tall, its front face at x 38, with the breaker body (painted steel) behind it to x 53.6. Upper left: a green ABS close button marked I (2.2 cm square, 2 cm proud, at y 7, 12.5 cm up; it pushes in up to 1 cm against a 40 N/m spring) and a red ABS open button marked O (fixed) at y 10.2. Two 3 x 2 cm windows 7 cm up: main contacts at y 5.5 (green flag = open, red = closed) and closing spring at y -0.5 (white flag = discharged, yellow = charged). Charging handle at y -7.5: a black steel lever, 50 g, 9.4 cm long with a raised grip at its end, pivoted 1.2 cm in front of the facia 10.5 cm up, held level by a return spring (0.25 N m/rad, preloaded against its stop); it swings down up to 65 degrees. Start: breaker open, spring discharged.",
+  "scoring": "From the indicator flags' poses (as a photo of the facia shows them) and the handle's angle over the trial. A full charging stroke is the handle pressed down past 50 degrees and let back up within 10 degrees of level; after five, the spring is charged (the charge flag drops from white to yellow). The I button pressed 5 mm or more while the spring is charged closes the breaker (the contact flag drops from green to red; the charge flag drops on to white). 1.0: the contact flag shows red with both grippers' tool points more than 2.5 cm from the handle and the I button, both still. 0.5: closed but a gripper still on the handle or button (or either moving), or the spring charged and the breaker not closed. 0.25: at least two full strokes counted. Otherwise 0; pressing I with the spring discharged does nothing. Scored on the final state. Possible scores: 0, 0.25, 0.5, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Open the breaker and discharge its closing spring (on a real mock-up: reset the ratchet counter and both indicator flags); the handle springs back level by itself.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The breaker is scaled down. The handle is a PhysX revolute joint with a light return spring: a real charging handle needs far more force, so a real rig would use a mock-up with a ratchet counter. Five full strokes charge the spring by rule; the indicator flags are plates on vertical slides held by glued pawls that the rule releases. The O button is fixed (not modelled).",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-HKLH79"
+}
