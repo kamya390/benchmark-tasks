@@ -1,0 +1,21 @@
+{
+  "title": "Free a bottle jammed in a capper's infeed starwheel",
+  "category": "Impact on jobs",
+  "keywords": [
+    "food and beverage packaging",
+    "filling line",
+    "jam clearing",
+    "starwheel",
+    "back-driving a mechanism",
+    "reject bin"
+  ],
+  "instruction": "The capper's infeed has jammed on a bottle and the line is stopped and locked out. Take the jammed bottle out of the starwheel and put it in the red reject bin.",
+  "context": "On filling and capping lines a container pinched between a starwheel pocket and its guide rail is cleared with the machine stopped and locked out, by turning the starwheel back by hand, against the flow, until the pocket opens, then lifting the container out. Pulling it out against the pinch breaks glass (cut hands, a line clearance) or cracks the change part; turning the wheel forward wedges it harder. The direction has to be worked out from the flow arrows and the guide that closes in along the flow. Unlike TK-DA2CEU (push a peg past a hidden obstruction that must be tipped out) and TK-DPNBZR (clear a press jam by an instructed selector sequence), here the mechanism itself traps the part and must be back-driven in the one correct direction, which nobody states. Done by: packaging and filling machine operators and tenders (O*NET 51-9111.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Deck: a fixed stainless steel plate 29 x 29 x 0.4 cm centred at x 31.5, y -11.5. Starwheel: a blue UHMW-PE four-pocket wheel (four lobes 8 cm long and 1.6 cm wide on a 4 cm hub, 1.5 cm thick, 250 g) on a fixed steel shaft at x 30, y -13, its underside 3 cm above the deck, turning on a friction bearing (0.06 N*m). Guide: six fixed stainless steel rail segments (3.8 cm long, 0.8 cm thick, 5 cm tall) round the far side of the wheel, 8.6 to 11.2 cm from the shaft, wide where bottles come in and close in along the flow. Three white painted-steel chevron plates on the deck outside the guide point clockwise round the wheel (the flow). Bottle: a white HDPE 4 x 4 cm French-square bottle, 14 cm tall with its blue PP cap, filled (150 g), standing in the pocket at x 33.7, y -6.6, pinched against the guide (it holds against 6 N until the wheel is turned back 6 deg). Reject bin: a fixed red polypropylene bin, 12 x 12 x 6 cm, centred at x 19, y -33. A grey steel isolator with a red padlock and yellow tag sits on the deck's far corner.",
+  "scoring": "From the episode's recorded poses (on a real rig: the wheel's index mark against a degree scale, and video of the bottle). Latched 0 for the rest of the trial if the bottle moves 3 mm or tips 5 deg from its jam pose before the wheel has been turned back (anticlockwise, against the flow) by 6 deg, or if the wheel is ever turned 3 deg forward with the flow. Otherwise: 1.0 with the bottle upright (under 15 deg) and its whole footprint inside the bin on its floor, let go (both grippers 2.5 cm clear) and still, success when held 1 s; 0.5 with it upright, let go and still at least 5 cm from its jam pose but not in the bin; 0.25 while the wheel is turned back 6 deg or more; else 0. Scored at the last step. Possible scores: 0, 0.25, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Turn the wheel back to its index (0 deg), stand the bottle back in the pocket against the guide and re-wedge it (on a real rig: a 2 mm interference fit, or a 6 N magnet under the pocket); the deck, guide, chevrons, shaft, isolator and bin do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The starwheel is a rigid body on a PhysX revolute joint with Coulomb bearing friction (0.06 N*m). The pinch is a breakable bond (6 N) between bottle and deck that is switched off once the wheel is 6 deg back; there is no elastic wedging. The pocket is square-sided, the guide straight segments; no capper turret or conveyor.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-QHU4K9"
+}
