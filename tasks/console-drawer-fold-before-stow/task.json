@@ -1,0 +1,21 @@
+{
+  "title": "Stow a rack console drawer back into the rack",
+  "category": "Impact on jobs",
+  "keywords": [
+    "data center",
+    "rack-mount KVM console",
+    "LCD console drawer",
+    "hinge on a slide",
+    "rack clearance",
+    "non-prehensile pushing"
+  ],
+  "instruction": "Stow the rack console: put the drawer back into the rack.",
+  "context": "Rack-mount LCD consoles (a KVM keyboard tray with a fold-down screen) are pulled out on rails to use, then stowed. Their manuals say to fold the screen down flat onto the keyboard before sliding the drawer back in: raised, it strikes the equipment mounted above, which cracks the panel or breaks its hinge. The instruction gives only the goal; the robot must see that the raised screen cannot clear the unit above, fold it, then push the drawer home. The skill is stowing a hinge carried on a slide, where the hinge's pose decides whether the slide can move. Unlike PR #573 (take a pen off a laptop keyboard before closing its lid), no object is in the way: the lid must fold because of the rack's clearance, and then the joint carrying it must travel; unlike the anti-tip-foot task (deploy a stabiliser before drawing a server out), the constraint is clearance against fixed equipment. Done by: computer, ATM and office machine repairers; network support specialists (O*NET 49-2011.00, 15-1231.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), heights above the table. Rack front (fixed): two painted steel posts (2 x 2 x 11.8 cm) at x 33-35, y +14 and -14; a 1U unit above (painted steel, 26 deep x 24 wide, from 7.5 to 11.9 cm up, front face at x 33) and the equipment below (up to 3.2 cm). Console drawer (free, 400 g, on rails along x with 2 N of drag): a black ABS keyboard tray 16 deep x 24 wide x 1.5 cm, top 5 cm up, with a 1.2 cm steel front bezel 2.5 cm tall; stowed, the bezel front is at x 29.5; it starts pulled out 15.7 cm to its stop (bezel front x 13.8), its rear edge 2 cm in front of the rack face. Screen (free, 120 g): an LCD panel 13 tall x 22 wide x 0.6 cm (glass on an aluminium back) hinged at the tray's rear edge, standing open at 95 degrees; the hinge has 0.12 N m of friction (more than the panel's weight torque), so it stays at any angle. The tray's top is 2.5 cm below the unit above.",
+  "scoring": "From the drawer's and the screen's poses every step. Strike: if any point of the screen panel comes within 3 mm of the 1U unit above (in front of or under its front face), the trial scores 0 from then on, even if the drawer is pulled back out and stowed properly. Otherwise, with both grippers' TCPs at least 3 cm from the drawer and the screen and both still: 1.0 for the screen flat (within 4 degrees of the keyboard) and the drawer within 5 mm of its stop (stowed); 0.5 for the screen flat and the drawer at least half way in; 0.25 for the screen flat; otherwise 0. Scored on the final state. Possible scores: 0, 0.25, 0.5, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Pull the drawer out to its stop and raise the screen to 95 degrees (5 degrees past upright); the rack posts and units do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The drawer is a PhysX prismatic joint and the screen a revolute joint carried by it (mechkit.py); rail drag and hinge stiffness are Coulomb joint friction. The screen cannot pass through the unit above (real collision); the damage itself is a geometric contact check (within 3 mm), not a force model. Rack scaled to the arms' reach: 26 cm deep units, 2.5 cm clearance.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-L2MBC9"
+}
