@@ -1,0 +1,21 @@
+{
+  "title": "Open a concentric knockout to the connector's size and fit the connector",
+  "category": "Impact on jobs",
+  "keywords": [
+    "electrical installation",
+    "junction box",
+    "concentric knockout",
+    "conduit connector",
+    "trade size",
+    "irreversible step"
+  ],
+  "instruction": "Fit the black conduit connector into the knockout on top of the junction box.",
+  "context": "Steel boxes come with concentric knockouts: a centre slug inside break-out rings, so one opening serves several conduit trade sizes. Electricians open one only as far as the fitting needs, centre slug first, then one ring at a time, trying the fitting between steps. An opening knocked out past the fitting's size cannot be closed again: it needs reducing washers, and code rules limit bonding through a concentric knockout ring (the NEC's bonding rules for concentric knockouts and its rule that unused openings be closed). The fitting is never used to punch the knockout. The skill is changing a fixture step by step and irreversibly, and stopping at the right step, with the push on the right ring. Unlike #30 (pick the pin that fits a hole, which can be undone), the hole itself is enlarged here and one step too many fails the trial; unlike #696 (stop tightening at snug), the stop is chosen from sizes seen, not from feel. Done by: electricians (O*NET 47-2111.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table, scaled about 3x for the gripper. Junction box (fixed): galvanised steel, 20 x 20 cm, 10 cm tall, centred at x 33, y 20, its top plate 0.3 cm thick with a 17.4 cm square opening filled by one concentric knockout of 0.3 cm steel, flush with the top: a centre slug 5 cm square (20 g), an inner ring from 5.4 to 11 cm (40 g) and an outer ring from 11.4 to 17 cm (60 g), each held by break-off tabs that let go at a 10 N (slug) or 15 N (rings) push; pieces pushed out fall into the box. Connector (loose, 80 g): black-finished zinc die-cast, a 9 x 9 x 3 cm body, a 14 x 14 x 0.6 cm flange on it and a 5 x 5 x 3 cm hub on top, standing on a fixed green rubber mat 16 x 16 cm centred at x 17, y 1.",
+  "scoring": "From the episode's recorded poses (the trial video on a real rig). A piece is out once it has moved 2 mm from its place and its top is 8 mm below the box top. 1.0: slug and inner ring out, the connector seated (its bottom within -2/+3 mm of the height where the flange bears on the box top, tilted under 5 deg, centred within 1.2 cm), still and let go (both grippers 2.5 cm clear), success when held 1 s. 0.5: slug and inner ring out, connector not seated. 0.25: only the slug out. Otherwise 0. The score is 0 for the rest of the trial once the outer ring moves 2 mm (opening too big), or once any piece comes loose while the connector's bottom is within 1.5 cm above the box top and 6 cm of the knockout's centre (knockout forced with the fitting). Scored at the last step. Possible scores: 0, 0.25, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Take the connector out and stand it on the mat; fish the slug and rings out of the box and set them back flush in the opening (on a real rig: a printed box top with magnet-held slug and rings, or a fresh box blank); the box and mat do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The break-off tabs are breakable bonds to the box (10 N slug, 15 N rings), so a firm push frees a piece and it falls into the box; real tabs also need prying or twisting. The connector is one rigid part with no thread or locknut; the flange bears on the outer ring. Scaled about 3x (5 / 11 / 17 cm openings) for the gripper's 2 x 3.8 cm closed-finger footprint.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-LUXRFF"
+}
