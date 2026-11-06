@@ -1,0 +1,21 @@
+{
+  "title": "Mount a spring-loaded rack rail between two posts at the marked rack position",
+  "category": "Impact on jobs",
+  "keywords": [
+    "data center",
+    "rack and stack",
+    "server rail kit",
+    "bimanual",
+    "spring-loaded",
+    "peg in hole"
+  ],
+  "instruction": "Mount the slide rail between the two rack posts at the rack position marked by the orange tab, then let go.",
+  "context": "Server rail kits are tool-less: each rail telescopes to the depth between a rack's front and rear posts, and spring-loaded ends push square pins into the posts' EIA-310 holes. Install guides have the technician pull the rail in to fit between the posts, line up the front end with the chosen rack unit and the rear end with the same unit, then let the spring drive both pins home. A rail one hole off at one end is skewed, and the server binds or drops out. Only the front post is marked; the matching rear hole must be found. Unlike TK-8WZPBE (squeeze the spring legs of one cage fastener into one square opening) and TK-ANESXU (extend a handle on a fixed base to a mark and pin it), here a loose sprung span is shortened by two hands at once, carried between fixed posts and engaged at both ends at the same height; unlike the 'Lay a long DIN rail into both standoff cradles' task, the part changes length and locks in. Done by: computer, ATM and office machine repairers (O*NET 49-2011.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Rack frame (fixed): two painted steel posts, 0.4 cm thick, 3 cm wide (x) and 16 cm tall, standing across y with their inner faces at y 13 and -13 (26 cm apart) and centred at x 34; the front post is on the right (y -13), the rear post on the left. Each post has one column of six square holes, 1.4 x 1.4 cm, centred at x 34 and at 4, 6, 8, 10, 12 and 14 cm above the table. An orange anodised aluminium tab (1 x 0.4 x 0.8 cm) on the front post's near edge sits beside its third hole (8 cm up). Rail (loose, 150 g, lying flat along y centred at x 22, y 0): a zinc-plated steel outer member 2 cm wide, 16 cm long, 1.4 cm tall (100 g) with a square steel pin (0.6 x 0.6 cm, 1 cm long) on its left end, and a steel inner member 1.2 x 16 x 1 cm (50 g) that slides out of it to the right on a spring (10 N/m, 0.3 N preload against its stop, damped) and carries the same pin on its right end. The rail is 30 cm end to end at rest and can be pulled in to 21 cm; seated between the posts it is 26 cm.",
+  "scoring": "From the episode's recorded poses, at the end. A member is let go when no gripper's tool point is within 2.5 cm of it. A pin is home in a hole when its tip is at least 5 mm past the post's inner face and its centre is within 5 mm of the hole's centre across and up. With both members let go and still: 1.0 with the front pin home in the hole marked by the orange tab and the rear pin home in the rear post's hole at the same height, the rail level within 1.5 degrees; 0.5 with both pins home in matching holes at another height, level; 0.25 with only one pin home, or both home at different heights (a skewed rail); otherwise 0, and 0 whenever a gripper still holds the rail or it is moving. Possible scores: 0, 0.25, 0.5, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Lift the rail out (pull both ends in), let the spring push it back to 30 cm, and lay it flat on its mark in front of the rack; the posts and tab do not move.",
+  "fidelity": "Rigid boxes with one shared friction (1.2 static, 1.0 dynamic). The telescoping rail is two rigid members on a PhysX prismatic joint with a linear spring and damper; the pins are plain square studs with no latch tab, so the spring preload alone keeps them home. The rack is scaled down (26 cm post spacing, 20 mm hole pitch, 14 mm holes) and turned side-on to the arms for reach.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-TSNMV4"
+}
