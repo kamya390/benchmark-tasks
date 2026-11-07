@@ -1,0 +1,21 @@
+{
+  "title": "Transfer one pipette volume with an air-displacement pipette",
+  "category": "Impact on jobs",
+  "keywords": [
+    "laboratory",
+    "air-displacement pipette",
+    "forward pipetting",
+    "first stop",
+    "blowout",
+    "two-stage plunger"
+  ],
+  "instruction": "Transfer one pipette volume of the blue sample from the reservoir into the empty tube, then stand the pipette back in its stand.",
+  "context": "Air-displacement pipettes have a two-stage plunger: a soft first stop, then a stiff second stop for blowout. Pipette makers' manuals and ISO 8655 practice teach forward pipetting: press to the first stop before the tip enters the liquid, immerse a few mm, release slowly, withdraw; in the tube press to the first stop, then to the second, and withdraw before releasing. Pressing to the second stop before aspirating overdoses; pressing in the liquid makes bubbles; pressing a loaded pipette elsewhere spills; laying it down runs liquid into the shaft. The instruction names only the transfer: the stroke depth for each phase is the technique the policy must know. Unlike #117 (pipette dye into three cups) and TK-A2LXP9 (fill tubes to a line), which use squeeze-bulb transfer pipettes with no stops, here a sprung two-stop plunger must be pressed to the right stop in each phase while the other arm carries the pipette. Done by: biological and clinical lab technicians (O*NET 19-4021.00, 29-2011.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Pipette (free, 168 g in all) standing in its stand at x 17, y 10: a grey ABS body 2 x 2 cm with a blue grip cap (top 12 cm above the tip's end), a 5 cm shoulder that rests on the stand's rim, and a 3.5 cm polypropylene tip. Its plunger (8 g ABS) carries the blue push button on a side arm 15 cm to the right of the body; it travels 12 mm against a soft spring (0.25 to 0.49 N) to the first stop, where it meets the orange blowout collar (10 g), and 8 mm more against the collar's stiff spring (1.0 to 1.8 N). Stand (fixed): black ABS sleeve 3.2 cm inside, 4 cm tall. Reservoir (fixed): white polypropylene trough 7 x 6 cm inside, 3 cm tall, at x 32, y 12; blue sample surface 2 cm up (blue band), sight gauge on its right side. Tube (fixed): white polypropylene, 3.2 cm square inside, 4 cm tall, in a steel rack at x 24.5, y 15, white EMPTY tag over a blue window on its front.",
+  "scoring": "From the episode's recorded poses (the trial video on a real rig), every step. Aspirated: with the tip in the reservoir below the sample surface, the button let up to within 2 mm of the top after being down 10 mm or more. Flags: drawn at the second stop (button down more than 15.5 mm as the tip went in); pressed in the liquid (pressed 3 mm more while the tip was in); spilled (loaded and pressed 3 mm anywhere but in the tube); shaft (loaded and tilted over 45 deg). Dispensed: button down 10 mm or more with the tip in the tube, then the tip taken out; blowout if it reached 17 mm; let up in the tube if it came back under 5 mm before the tip left. Score: 0 if nothing dispensed, spilled or shaft; 0.25 if drawn at the second stop or pressed in the liquid; 0.5 if no blowout, let up in the tube or a second volume; else 1.0 with the pipette upright in its stand (tip within 1 cm of the sleeve axis, shoulder on the rim, under 10 deg), let go (both grippers 2.5 cm clear) and still, held 1 s, or 0.75 otherwise. Scored at the last step.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Stand the pipette in its stand with the button up; glue the reservoir's level marker and the tube's EMPTY tag back in place. Reservoir, stand and rack do not move. On a real rig the reservoir and tube would hold dyed water and the delivered volume be weighed, as a cross-check.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). No liquid is simulated: aspiration and dispensing are read from the plunger's travel and the tip's position, and the visible effect is emulated: the reservoir gauge's blue marker drops when a volume is drawn, the tube's white EMPTY tag drops when one is dispensed. Plunger and blowout collar are sprung sliders. The pipette is scaled to the arms and its button sits on a side arm so a second arm can press it.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-J36HQF"
+}
