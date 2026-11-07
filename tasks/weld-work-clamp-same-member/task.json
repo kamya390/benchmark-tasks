@@ -1,0 +1,22 @@
+{
+  "title": "Clamp the welder's work lead to the cracked arm, not across its pivot",
+  "category": "Impact on jobs",
+  "keywords": [
+    "welding",
+    "weld repair",
+    "work clamp",
+    "ground clamp",
+    "current path",
+    "heavy equipment",
+    "spring clamp"
+  ],
+  "instruction": "The crack marked orange on the lift arm is going to be welded. Put the welder's work clamp on for the repair, then let go.",
+  "context": "Before a repair weld on machinery, the welder attaches the work (ground) clamp to the part being welded, as close to the weld as practical, on bare metal. Welding current flows from the arc to the clamp through whatever lies between: clamped across a pin joint it passes through the pin and bushings (or bearings, hydraulic cylinders), and the arcing pits them. Equipment makers' weld-repair instructions, ANSI Z49.1 and welder makers' manuals state this; nothing in the scene says it. The nearest fin is on the base frame, across the pivot: only the fin on the lift arm keeps the current in the arm. The skill is tracing a current path through a mechanism, then operating a spring clamp: squeeze its handles to open it, set it over a plate, release it so it bites. Unlike TK-EYUAP3 (jump leads: the clamp spots and order are stated), the right spot is not stated. Done by: welders, cutters, solderers and brazers; mobile heavy equipment mechanics (O*NET 51-4121.00, 49-3042.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Base frame (fixed): a grey painted steel block 14 x 9 x 2 cm centred at x 20, y -18, with two clevis ears at x 28; a 1.2 cm steel pivot pin through bronze bushings in the ears (axis along y, 3.25 cm up) carries the lift arm. Frame fin: a bare steel plate 8 x 0.8 x 4 cm standing on the block, centred at x 20, y -18 (top 6 cm up). Lift arm: a yellow painted steel beam 26 x 4.4 x 2.5 cm, 400 g, from the pivot forward to x 54, resting on its lift cylinder's rod end (fixed, steel) and held at the pivot by friction (0.5 N m, it can rock 3 deg). On it: a bare steel fin 8 x 0.8 x 4 cm centred at x 36 (top 8.5 cm up) and an orange paint band across the beam at x 44 marking the crack. Work clamp: a red painted steel spring clamp 3 cm deep, two halves (120 g and 80 g) on a pivot with a torsion spring, copper teeth, black handles 7.3 cm across at rest; squeezing the handles to about 4 cm opens the teeth about 18 mm, and closed on an 8 mm plate the teeth press with about 3 N. It starts hanging on its bracket: a grey painted steel fin 6 x 0.8 x 4 cm on a post at x 28, y -33.",
+  "scoring": "From the two clamp halves' poses (the trial video on a real rig). The clamp is on a fin when its pivot is over the fin's top edge (within 6 mm of its mid-plane, 4 to 22 mm above the edge, at least 8 mm in from its ends) with the jaws open 5 to 20 deg (teeth closed on the 8 mm plate). 1.0: on the lift arm's fin, both grippers 2.5 cm clear of both halves, both still; success when held 1 s. 0.5: on the lift arm's fin but still held or moving. 0: on the frame's fin, still on its bracket, or anywhere else. Scored at the last step. Possible scores: 0, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Hang the work clamp back on its bracket fin with its jaws closed on it; the frame and lift arm do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The clamp is two free bodies on a PhysX revolute joint with a torsion spring; the lift arm's pivot is a revolute joint with friction. No welding current is simulated: where it would flow is the rule, not physics. The work lead cable is not modelled. Scored from simulator poses every step.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-LPDCJZ"
+}
