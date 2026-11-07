@@ -1,0 +1,22 @@
+{
+  "title": "Close a car's bonnet so it latches, without pressing or slamming it",
+  "category": "Impact on jobs",
+  "keywords": [
+    "automotive service",
+    "bonnet",
+    "hood latch",
+    "gravity closure",
+    "release timing",
+    "energy window",
+    "no pressing"
+  ],
+  "instruction": "Close the car bonnet.",
+  "context": "Vehicle owner's manuals and service practice say to close a bonnet by lowering it to a short height above the latch and letting it drop so it latches by its own weight: do not press it down (the panel dents) and do not slam it, then check it is latched. A bonnet resting on its catch but not latched can fly up at speed, the hazard behind hood-latch recalls. Here the bonnet rests ajar on the catch. Its weight alone cannot snap the catch, carrying it down slowly leaves it ajar, pushing it shut is a press, and a drop from high up drives the striker past a deeper over-travel catch: a slam. The skill is choosing a release height inside an energy window, then letting go and keeping hands off. Unlike TK-9JFBH4 (close a hinged cover without slamming it: only an upper bound, met by carrying it down), the closure needs a lower energy bound and a hands-off release. Done by: automotive service technicians and mechanics; automotive service attendants (O*NET 49-3023.00, 53-6031.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table; a scaled-down car front end in front of the right arm, centred on y -10. Bonnet: a red painted steel panel 28 x 22 x 0.4 cm, 300 g, hinged along its rear edge (axis along y at x 48, 6.5 cm up), its front edge at x 20, with a black steel release tab 6.5 x 2.6 x 1 cm sticking out of the middle of the front edge. Fenders (fixed, red painted steel) on both sides and a grey scuttle behind the hinge; with the bonnet latched its top is flush with the fenders. Latch, 3 cm behind the front edge: a zinc-plated steel striker post with a foot (2 x 1.6 x 0.4 cm) hanging 4 cm under the bonnet; in front of it a zinc-plated steel catch (a sprung slide, preload 1.2 N, 150 N/m) whose 60 deg ramp the foot must push back 4 mm before the catch snaps over it; behind it a black over-travel catch (preload 1.5 N) set 4 mm deeper; under the foot a black rubber buffer on a sprung slide (preload 3 N, 400 N/m). Start: the bonnet resting ajar on the catch, about 4 deg open (front edge 2 cm high).",
+  "scoring": "From the poses of the bonnet and the latch parts (a photo shows whether the catch is over the striker foot and whether the bonnet sits below the fender line). Latched: the catch's edge at least 1.5 mm over the foot with the foot below it. Slammed: the over-travel catch over the foot the same way, at any time in the trial (it holds the bonnet below flush). Pressed: at any time a gripper's tool point within 2 cm above the panel's top face while the bonnet is within 8 deg of closed, or the catch first engaging with a gripper within 2.5 cm of the bonnet. 1.0: latched, never pressed or slammed, both grippers 2.5 cm clear of the bonnet, the bonnet still; success when held 1 s. 0.5: latched but slammed, or latched but still held or moving. 0: not latched (ajar or open), or pressed at any time. Scored at the last step. Possible scores: 0, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Push the catch back and lift the bonnet off it, then lower it gently so it rests ajar on the catch; the over-travel catch and buffer return by their springs.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The bonnet is a PhysX revolute joint; the catches and the buffer are prismatic joints with preloaded springs, the latch is plain contact. In sim a drop from about 16 to 38 deg latches, from 13 deg or less it stays ajar, and from 48 deg it slams. The panel does not dent; pressing is judged from the grippers' positions. Scored from simulator poses every step.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-NCQX2A"
+}
