@@ -1,0 +1,23 @@
+{
+  "title": "Drive a bearing onto its shaft through the inner ring, never through the balls",
+  "category": "Impact on jobs",
+  "keywords": [
+    "millwright",
+    "machinery maintenance",
+    "bearing mounting",
+    "interference fit",
+    "fitting sleeve",
+    "load path",
+    "brinelling",
+    "tool use"
+  ],
+  "instruction": "Fit the new bearing down onto the shaft until it sits against the shoulder, then let go.",
+  "context": "Bearing makers' mounting guides give one rule for pressing a bearing onto a shaft: the mounting force goes into the ring with the interference fit, here the inner ring, through a fitting sleeve whose end bears only on that ring. Force on the outer ring passes through the balls and dents (brinells) the raceways: the new bearing is scrap. The obvious face to press is the large outer ring, and the shaft stands above the bearing, so the inner ring is reached only with the sleeve tool (or pads placed on it alone). The skill is choosing the path an axial force takes through a part with a fragile internal joint, and using a tool to apply it. Unlike PR #40 (line a bearing up and press it along a shaft past a detent), the bearing here is already started on its shaft and the ability under test is choosing to drive it through the inner ring with the sleeve tool. Done by: millwrights, industrial machinery mechanics (O*NET 49-9044.00, 49-9041.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Base: a fixed grey cast-iron block 11 x 11 x 1.5 cm centred at x 31, y 16, with a steel shoulder collar (5.2 cm across, 1 cm tall, top 2.5 cm above the table) and a 4 cm steel shaft standing to 10.8 cm above the table. Bearing (chrome steel, deep-groove ball type, 4 cm bore, 8 cm outside, 1.8 cm wide): started on the shaft with its underside 3 cm above the shoulder. Its inner ring (45 g) slides on the shaft only under more than 2.5 N (the press fit) and stops on the shoulder; its outer ring (30 g) is held only through the balls and pressed-steel cage (a dark band 3 mm below both faces), which let go at 1.2 N. Fitting sleeve (loose, 45 g): a blue nylon tube 4.8 cm bore, 5.4 cm outside, 9.5 cm long with a steel impact cap, standing on a white ABS locating peg at x 24, y 29; its end bears only on the inner ring.",
+  "scoring": "From the parts' poses. Travel: how far the inner ring has moved down the shaft. Brinelled: the outer ring moved more than 2 mm or 2 deg relative to the inner ring at any moment of the trial; the score is then 0 for the rest of it. 1.0: not brinelled, the inner ring within 2 mm of the shoulder (travel at least 2.8 cm), the bearing and the sleeve still and let go of (neither gripper's TCP within 2.5 cm of either ring or the sleeve). 0.5: not brinelled and travel at least 1.5 cm. Otherwise 0. Scored on the final state. Possible scores: 0, 0.5, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Fit a new bearing, started 3 cm above the shoulder (on a real rig: a slip-fit bearing on a friction sleeve, with the outer ring held to the inner by a calibrated breakaway clip); stand the sleeve back on its peg.",
+  "fidelity": "Rigid boxes and cylinders, one shared friction (1.2 static, 1.0 dynamic). The press fit is a PhysX prismatic joint with 2.5 N Coulomb friction (mechkit.py, in this folder) and the balls a breakable bond (1.2 N); real fitting forces are kN, scaled here to what the arm can push. Damage is all or nothing: no raceway dents, noise or partial brinelling. Rings and sleeve are octagons of boxes. No contact-force cap.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-6FCJ73"
+}
