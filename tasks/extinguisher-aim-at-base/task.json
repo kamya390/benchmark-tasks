@@ -1,0 +1,21 @@
+{
+  "title": "Put out a waste-bin fire with a portable extinguisher",
+  "category": "Impact on jobs",
+  "keywords": [
+    "fire safety",
+    "portable fire extinguisher",
+    "PASS technique",
+    "aimed discharge",
+    "sweep coverage",
+    "tamper pin"
+  ],
+  "instruction": "The waste bin is on fire. Put the fire out with the extinguisher, then set the extinguisher down on the grey mat.",
+  "context": "Employers whose staff are expected to use portable extinguishers must train them (OSHA 29 CFR 1910.157(g)); fire services and extinguisher labels teach PASS: Pull the pin (it breaks the tamper seal and frees the lever), Aim at the base of the fire, not the flames, Squeeze the lever, Sweep side to side until it is out, and keep the label's distance. A small unit empties in about 10 s, so agent sprayed into the flames is wasted and the fire keeps burning. The instruction names only the goal: the pin, where to aim, the sweep and the stand-off are the technique the policy must know. Unlike #754 (stand the right extinguishers by their hazards; nothing is discharged) and TK-CVLUE7 (spray plants by pressing a bottle's lever), here the hand-held unit must be aimed at a target band below the visible flames and swept across the whole width after a safety pin is pulled. Done by: warehouse, facility, data-centre and kitchen staff (e.g. O*NET 53-7062.00, 33-9032.00, 35-2014.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Grey rubber mat 12 x 12 x 0.3 cm at x 26, y -6. Extinguisher (free, 330 g in all) standing on the mat: red-painted steel cylinder 6 x 6 x 8 cm, black ABS valve head and grip block on top (14 cm tall in all), a fixed black nozzle pointing forward 30 deg down from 8.8 cm up; a steel carry handle bar runs 11 cm out to the left from the head, and above it a 20 g steel squeeze lever (12 cm, pad at its end), spring-held 15 deg open. A 10 g steel safety pin with a yellow pull ring crosses between bar and lever 8 cm from the pivot and stops the lever at about 11 deg; it slides out toward the arms against 0.2 N of friction. Waste bin (fixed): galvanised steel, 12 x 10 cm inside, 4.5 cm tall, near wall inner face at x 40, centred y -8, filled with crumpled paper to 2.5 cm. Fire: three orange flame blocks (10 g, 4.5 cm tall) at x 47.5, one per third of the bin's width.",
+  "scoring": "From the episode's recorded poses (the trial video on a real rig). The unit discharges while the pin is out 3.5 cm or more and the lever is within 8 deg of closed, for at most 10 s in all. Every step of discharge the nozzle's axis is followed to the paper's surface: it counts on a third of the bin when it clears the near rim and lands on the paper between the near wall and the flames' far side. After 1.2 s on a third, that third is out (its flame block topples and lies flat on the paper). Too close: the nozzle under 6 cm from the near rim (horizontally) while discharging. Score: 0.25 per third out (at most 0.5 if ever too close); 1.0 with all three out, never too close, and the unit standing upright on the mat (within 10 deg), lever let up, let go (both grippers 2.5 cm clear) and still, held 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 0.75, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Push the pin back in, stand the extinguisher on the mat with its lever up, stand the three flame blocks back up on the paper and re-bond them; the bin and mat do not move. On a real rig the flames would be a water-mist or LED fire trainer whose sensor reads where the agent lands.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). No agent or fire is simulated: discharge is emulated by a ray along the nozzle axis to the paper's surface, and the visible effect is each flame block toppling once its third has had 1.2 s. The lever is a sprung hinge, the pin a slider with 0.2 N friction (no tamper seal). The unit is scaled to the arms (14 cm, 0.33 kg, 6 cm minimum stand-off) and its lever reaches out so a second arm can squeeze it.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-6UEYWJ"
+}
