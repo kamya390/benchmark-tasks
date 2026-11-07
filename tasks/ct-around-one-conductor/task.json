@@ -1,0 +1,22 @@
+{
+  "title": "Fit a split-core current sensor so it measures the circuit's current",
+  "category": "Impact on jobs",
+  "keywords": [
+    "data center",
+    "electrical",
+    "current transformer",
+    "split-core sensor",
+    "energy monitoring",
+    "hinged jaw",
+    "orientation"
+  ],
+  "instruction": "This circuit runs from the grey breaker panel on the left to the PDU on the right. Fit the split-core current sensor so that it measures the current the PDU draws, then let go.",
+  "context": "Branch-circuit and energy monitoring in data centres uses split-core current sensors (CTs) clipped around live circuits. Sensor and power-meter installation guides say: close the core around ONE current-carrying conductor (the line), never around a whole cable or line and neutral together, because their currents cancel and it reads about zero; fit it with its arrow (P1 to P2, IEC 61869-2) toward the load; close the jaw fully. The instruction states only the goal, so the robot must pick the black line conductor (US colour code) over the white neutral, turn the sensor so its arrow faces the PDU, and swing the hinged jaw shut around that one core. Unlike PR #539 (fit a split cable guide around a cable for protection) and PR #296 (short a CT's test terminals), the sensor must enclose exactly one conductor and face the load. Done by: electricians (O*NET 47-2111.00); data-centre facility technicians.",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), heights above the table. Circuit (fixed): a grey painted-steel breaker panel (9 deep x 6 wide x 15 tall) at x 30, y +22 and a black steel rack PDU of the same size at y -22; between them two PVC-insulated copper single cores (1.6 cm square section, 38 cm long) run level along y, centres 9 cm up: the black line conductor at x 28 and the white neutral at x 32.4 (2.8 cm clear gap). Sensor (free, 300 g, grey ABS with a ferrite core): a rectangular frame of 1.2 cm bars, 1.6 cm deep, window 8.4 wide x 2.8 cm tall (6.0 cm over both cores, so it fits around both), a 3 x 2.4 x 2.2 cm housing on top with a white polarity arrow; its near side bar and bottom bar are one hinged jaw (15 g, 0.0065 N m hinge friction, enough to keep it shut) that hangs swung open at its rest angle, 38 degrees; the jaw's side bar runs up past the top bar's end and hinges at its top outer corner. A 3 mm notch under the top bar seats it on a core. It starts hanging by that notch on a steel parking peg at x 19, y -13.5, 11.3 cm up, arrow pointing away from the arms (+x).",
+  "scoring": "From the sensor's and the jaw's poses. A conductor is enclosed when its centreline crosses the sensor's plane inside the window rectangle (in the sensor's frame); the jaw is shut at 5 degrees or less; the arrow is good within 25 degrees of the direction toward the PDU (-y). With the sensor and jaw let go (both grippers' TCPs at least 2.5 cm from them) and still: 1.0 for the jaw shut around the line conductor only with the arrow good; 0.5 for the same with the arrow off (reversed); 0.25 for the jaw shut around the neutral only, or the sensor hanging on the line only with its jaw open; 0 for the jaw shut around both conductors (reads zero) or anything else. Scored on the final state; every failure shows in the end state, so nothing is latched. Possible scores: 0, 0.25, 0.5, 1.0. Success: score 1, held 1 s.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Let the jaw hang open at its rest angle (38 degrees) and hang the sensor by its notch on the parking peg, arrow pointing away from the arms; the conductors, panel and PDU do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The jaw is a PhysX revolute joint (mechkit.py) with Coulomb friction; no latch, so 'closed' is the jaw within 5 degrees. Cores are rigid square rods (real cables are round and flexible). Scaled about 3x for the gripper: real branch CTs have 1-3 cm windows. The reading is not simulated; enclosure and arrow are checked geometrically from the poses.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-2TBA35"
+}
