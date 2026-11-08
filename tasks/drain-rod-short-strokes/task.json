@@ -1,0 +1,22 @@
+{
+  "title": "Rod out a blocked drain pipe without kinking the drain rod",
+  "category": "Impact on jobs",
+  "keywords": [
+    "plumbing",
+    "drain clearing",
+    "drain rod",
+    "buckling",
+    "short strokes",
+    "re-grasping",
+    "flexible tool"
+  ],
+  "instruction": "The grey pipe is blocked. Push the clog out of the far end of the pipe with the drain rod that is started in it, then let go of the rod.",
+  "context": "Plumbers and maintenance workers clear a blocked line by feeding a flexible drain rod or cable into it. Drain-cleaning tool makers' instructions and trade training say to feed it in short strokes with the hand close to the opening: a long unsupported length outside the pipe bows under the push and kinks, and a kinked rod must be cut back or replaced and can break off in the line. The instruction names only the goal; the skill is seeing that a slender member under compression fails by buckling, so where it is held decides whether the push works, and re-gripping just behind the mouth stroke after stroke (or guiding the rod there with the other hand). Unlike PR #541 (a fish tape pulled back hand over hand, in tension), PR #1101 (a rod fed in to feel where a duct is blocked) and PR #980 (a drill fed in pecks to clear chips), a slender rod is pushed against a load and its free length decides if it kinks. Done by: plumbers and pipefitters; maintenance workers (O*NET 47-2152.00, 49-9071.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Floor board: fixed 3 mm plywood, 22 x 65 cm, centred at x 35, y 8.5. Pipe: fixed grey PVC drain pipe of square section on the board along y at x 30, 22 cm long, bore 1.1 cm wide by 1.6 cm tall, 3 mm walls; its mouth at y 7 and its outlet at y -15, over a fixed 8 cm steel catch trough. Clog: a 0.9 x 2 x 1.2 cm plug of congealed fat and wipes (15 g), 3.4 cm inside the mouth, that slides down the bore against 0.4 N of friction. Drain rod: nine 3.2 cm black polypropylene segments (8 x 12 mm section, 2.5 g each) joined by sprung steel couplings (0.006 N m/rad) that bend only sideways, and an orange ABS T-handle (10 g, 5 cm crossbar) at the tail. The tip segment starts inside the mouth, just short of the clog; the rest lies on the board, its outer six couplings set 6 degrees each (coil set), so the tail curves 6 cm toward +x and the handle lies near x 36, y 33.",
+  "scoring": "From the parts' poses (on a real rig: the rod's bends and the clog at the outlet, on video). Latched for the trial: if any coupling is ever bent more than 40 degrees (a kinked rod), the score is 0 from then on. Otherwise, with p = how far the clog has moved toward the outlet / 16.4 cm (the distance that puts its front face at the outlet): 1.0 for p >= 0.97 with neither gripper's TCP within 2.5 cm of any rod part and the rod and clog still; 0.5 for p >= 0.6; 0.25 for p >= 0.25; 0 otherwise. Success: 1.0 held 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 1.0.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Pull the rod back out, put the clog back 3.4 cm inside the mouth and lay the rod back with its tip just inside the mouth and its tail in its curve; the board and pipe do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic). The rod is nine rigid segments on spring hinges (mechkit.py, in this folder) that bend only in the horizontal plane, so it buckles sideways on the board; a real rod also bends up and twists. The clog is a block on a friction slide down the bore (0.4 N Coulomb drag) instead of compressible debris. Kinking is a 40 degree bend at one coupling, scored, not a plastic hinge.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-K6F8ZX"
+}
