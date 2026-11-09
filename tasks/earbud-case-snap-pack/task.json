@@ -1,0 +1,23 @@
+{
+  "title": "Snap two wireless earbuds home in their charging case, latch the lid and tray the case",
+  "category": "Impact on jobs",
+  "keywords": [
+    "consumer electronics",
+    "retail packing",
+    "wireless earbuds",
+    "charging case",
+    "snap fit",
+    "detent",
+    "push home",
+    "lid catch"
+  ],
+  "instruction": "Pack the earbuds in their case and put the closed case in its tray.",
+  "context": "On earbud final-pack lines each bud must be fully home in its charging well before the lid is shut. Work instructions have the packer push each bud straight down until its catch clicks, shut the lid until its catch holds, then tray the case; pressing the lid onto a proud bud drives it in askew. Here both buds sit proud on sprung catches that click only under a straight push; a lid closed onto a proud head meets it at about 35 deg, the bud jams and the lid can never latch. Unlike #221 (jar lid blocked from inside: take the contents out, re-close), nothing is removed. Unlike #20 (push one loose plug home), two catches, a latching lid and a tray place come in a forced order. Unlike #1192, there is no handed choice: each bud is already in its own well. Unlike #839 and #32 (close a case lid until its clasp catches), the closure is blocked by the case's own unseated contents. Done by: electronic equipment assemblers; packers and packagers (O*NET 51-2022.00, 53-7064.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Packing nest (fixed, blue moulded ABS) at x 30, y -10: a 1 cm plinth with a pocket 0.75 mm larger than the case each way, 2 cm deep. In it stands a black ABS charging case, 2.4 cm front to back, 5.4 cm wide, 3.4 cm tall, 45 g. Its lid (dark grey ABS, 8 g, 2.4 x 5.4 x 1.05 cm) is hinged along the rear top edge on a friction hinge and stands open at 115 deg; its recess clears seated bud heads by 0.6 mm. A snap catch at the lid's front pushes the lid back up while it is under 4.25 deg (about 1.5 N at the front edge) until it is pressed to 0.5 deg, then holds it shut. Two white earbuds (5 g each; head 1.6 x 1.7 x 1.4 cm on a 0.7 cm stem) sit in their own wells, 2.4 cm apart along the case, both 4.5 mm proud. Each well has a sprung catch: about 2.5 N drives a bud down; within 1.5 mm of home the catch snaps it home and holds it. Retail tray (fixed, clear PET) at x 22.5, y -19: one pocket with 3 mm play each way, 1 cm deep.",
+  "scoring": "From the poses of the case, lid and buds (on a real rig: each head's height over the rim, the lid's gap, where the case stands). Bud home: its catch clicked (pushed to within 1.5 mm of home) and its head within 0.4 mm of home. Lid latched: pressed to within 0.5 deg of shut so the catch engaged, and within 1 deg of shut now. In tray: the case's bottom centre within 3.5 mm of the pocket centre, on the pocket floor (2 mm), tilted under 4 deg. Fail, latched for the trial (score 0): the lid drove a proud bud down (lid touching the head while the bud moved 0.3 mm, which jams it), or the lid came within 1.5 deg of shut over a bud that is not home. Score: 0.2 per bud home; with both home, +0.2 for the lid latched; with that, +0.4 for the case in the tray. Halved unless both grippers are 2.5 cm clear of every part and everything is still. 1.0 is success, held for 1 s. Scored at the last step. Possible scores: 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Release each bud's catch and lift it back to 4.5 mm proud, open the lid to its 115 deg stop, and stand the case back in the packing nest. A jammed bud is a reject on a real line: replace it.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic), real sizes. Buds are 5 g bodies on prismatic joints with 2.5 N Coulomb friction (the catch's ridge); per-step rules snap a bud home once pushed within 1.5 mm, and hold a bud where it jammed once the lid drives it 0.3 mm. The lid is a friction hinge; its catch is a per-step ridge under 4.25 deg and a hold once pressed to 0.5 deg. No magnets, no deformation; scored from poses.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-TDSACR"
+}
