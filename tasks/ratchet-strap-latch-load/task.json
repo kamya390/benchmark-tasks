@@ -1,0 +1,24 @@
+{
+  "title": "Ratchet a tie-down strap taut round a crate and latch its handle before the deck is jolted",
+  "category": "Impact on jobs",
+  "keywords": [
+    "cargo securement",
+    "load restraint",
+    "delivery driver",
+    "ratchet strap",
+    "tie-down",
+    "lever ratchet",
+    "pawl",
+    "detent latch",
+    "hard stop"
+  ],
+  "instruction": "Strap the crate down to the deck.",
+  "context": "Drivers and loaders secure each item before a vehicle moves. Cargo-securement rules and ratchet makers' operating instructions agree: take up the strap with full strokes of the ratchet handle until it is tight, then close the handle flat until it locks. A handle left up can be knocked or flung open to its release position and let the strap go, and a slack strap lets the load shift when the vehicle brakes. Here the crate stands on a deck section with a slack strap round it; after the robot lets go, the deck runs into a hard stop. Unlike #1026 (turn a tourniquet windlass to a gauge mark, then clip the rod), tension comes from repeated lever strokes held by a pawl, the lock is that same handle pressed flat past its detent, and the proof is a physical jolt. Unlike #890 (ratchet strokes drive a bolt) and #256 (pump strokes to a pressure), the job ends by latching the operating lever. Done by: light truck drivers; freight and material movers (O*NET 53-3033.00, 53-7062.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. A deck section (steel chequer plate 24 x 24 x 1 cm, 20 kg, on a slide along x, 2 mm over the table) centred at x 29, y -11. On it a wooden (pine) crate, 5.5 cm front to back, 10 cm wide, 14 cm tall, 1 kg, centred at x 28.3, y -7.5, stands against a painted plywood stake board 12 cm tall. A ratchet tie-down (polyester webbing, modelled as a rigid band 3 cm wide, 100 g) runs from a steel anchor stake on the crate's left, along its side 4 mm clear, across its far face, and back along its right side into a steel lever ratchet bolted to the deck at x 26.2, y -14.5, 9 cm up. The band stands 12 mm off the crate's far face. The ratchet handle (steel lever, 60 g, on a vertical pin) carries a red PVC-sleeved grip post 1.2 x 1.2 x 3.6 cm at 6.4 cm from the pin; it stands 40 deg open (0 is shut flat along the strap, toward the robot; it opens away from the crate).",
+  "scoring": "From the poses of the deck, crate, band and handle (on a real rig: the band's gap to the crate, the strap wound on the mandrel, the handle's angle, the crate's position on the deck). Each full stroke (handle out past 75 deg, then back under 35 deg) winds 5 mm; tension = 8 N per mm wound beyond the band meeting the crate; taut = 50 N or more (4 strokes). Latched: pressed to within 1 deg of shut, and within 1.5 deg now. The trip: once both grippers have been 3 cm clear of the crate, strap and handle and everything still for 1 s, the deck runs 15 cm into its stop at about 0.38 m/s; it is over 1 s after the stop. Fail, latched for the trial (score 0): the handle opened to 150 deg (strap let out), the crate moved over 3 mm or 2 deg before the trip, or over 2.5 mm or 2 deg on the deck during it. Score: 0.25 for taut; with that, +0.25 for latched; with both, +0.5 once the trip is over. Halved unless both grippers are 2.5 cm clear of the crate, strap and handle and they are still. 1.0 is success, held for 1 s. Scored at the last step. Possible scores: 0, 0.125, 0.25, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Pull the ratchet's release and pay the strap out to 12 mm off the crate, set the handle 40 deg open, stand the crate against the stake board and run the deck back onto its rear stop.",
+  "fidelity": "Rigid boxes, one shared friction (1.2/1.0). The strap is a rigid band on a slider with an 8 kN/m spring (webbing stretch); a per-step pawl rule winds 5 mm per full handle stroke. The handle is a friction hinge; a per-step detent rule pushes it out below 12 deg until pressed within 1 deg, then holds it latched; opened to 150 deg it frees the strap. The jolt: the deck, a 20 kg slider body, runs into its end stop; an unlatched handle's friction is off for 0.4 s after.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-N5AZ5A"
+}
