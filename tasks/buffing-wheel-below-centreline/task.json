@@ -1,0 +1,21 @@
+{
+  "title": "Polish both faces of a blank on a running buffing wheel without letting it snatch",
+  "category": "Impact on jobs",
+  "keywords": [
+    "metal finishing",
+    "bench buffer",
+    "buffing wheel",
+    "work rest",
+    "drag direction",
+    "machine safety"
+  ],
+  "instruction": "Polish both faces of the aluminium blank on the buffing wheel, then stand it back in its rack.",
+  "context": "Polishers present work to a buffing wheel below its centreline, on the face running down toward the work rest, with the part's edge on the rest: the wheel's drag then pushes the part onto the rest. Held higher, or anywhere the rest cannot take the drag, the same drag snatches the part out of the hand and throws it, a common buffing injury; rests are kept within 3 mm of the wheel (29 CFR 1910.215). Here the drag is contact friction: on the rest below the centreline the blank stays put, above it the blank is twisted out of the grip. Unlike #452 (wait for a grinder to stop before reaching), the wheel is running throughout. Unlike #671 (set tool-rest gaps) and #871 (mount a wheel), nothing is adjusted: the skill is where on a moving surface to press. Unlike #674 (hold a smoother still on a turntable), the held part must be braced against a support, not just held still. Done by: hand grinding and polishing workers; shoe repairers; jewellers (O*NET 51-9022.00, 51-6041.00, 51-9071.01).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Bench buffer: a fixed grey cast-iron double-ended buffer, motor 12 x 16 x 13 cm on a 16 x 20 cm base, centred at x 36, y 0, its spindle along y 10 cm above the bench. Wheels: two 15 cm, 2.5 cm wide spiral-sewn cotton buffs dressed with tan polishing compound (300 g each) at y -20 and y +20, running at 2 rev/s with their front faces moving down toward the arms. Work rests: a fixed steel plate 6 x 6 x 0.6 cm on a steel post under the front of each wheel, top 3.7 cm above the bench, back edge 3 mm from the wheel. Blank: a 6061 aluminium flat bar 10 x 4 x 1 cm (108 g), standing on its long edge, faces toward and away from the buffer, in a fixed steel rack (two 11 x 1 x 1 cm bars 2 mm clear of each face) centred at x 19, y -20; the face away from the buffer (face B) has a small dark scribed mark near one end.",
+  "scoring": "From the episode's recorded poses (the trial video on a real rig). A face counts as polished after 3 s in total lying on a wheel's rim (its plane within 4 mm inside to 2.5 mm outside the rim's radius, square to the spindle, the contact line inside the face). Latched 0 for the rest of the trial: the blank turns more than 25 deg in the gripper holding it while a corner is within 2 cm of a wheel's rim (snatched), or it moves faster than 0.5 m/s (flung). Otherwise 0.25 per polished face; 1.0 with both faces polished and the blank back in its rack (centre within 6 mm across and 2 cm along the slot, upright within 10 deg, on the bench, either face forward), let go (both grippers 2.5 cm clear) and still, success when held 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Stand the blank back in its rack, face B away from the buffer; the wheels keep running (on a real rig: restart the buffer); the buffer, rests and rack do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic), also between blank and wheel. Each wheel is a 36-sided rigid buff on a PhysX revolute joint with a velocity drive (2 rev/s, 0.5 N*m*s/rad), not 1,750 rpm; Coulomb drag does not depend on speed. No cloth give, compound, heat or finish: polish is contact time. The snatch is the blank slipping round in the finger pads under the drag (tried in sim). Judged from simulator poses every step.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-NGY8UW"
+}
