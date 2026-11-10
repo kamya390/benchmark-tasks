@@ -1,0 +1,23 @@
+{
+  "title": "Give a manikin two breaths with a bag-valve mask, lifting the jaw into the mask",
+  "category": "Impact on jobs",
+  "keywords": [
+    "emergency medicine",
+    "resuscitation",
+    "bag-valve mask",
+    "airway",
+    "jaw lift",
+    "mask seal",
+    "one-hand pinch",
+    "bimanual"
+  ],
+  "instruction": "Give the training manikin two breaths with the bag-valve mask.",
+  "context": "Resuscitation guidelines and training curricula teach bag-valve-mask ventilation as 'bring the face to the mask': one hand lifts the jaw up into the mask with the fingers under the jawbone while thumb and finger hold the mask (the E-C hold), pressing evenly so the cushion seals all round; pushing the mask down onto the face drives the jaw back and closes the airway. The other hand squeezes the bag over about a second and watches the chest rise. Here a slack, sprung jaw closes the airway unless lifted, the cushion leaks unless all four segments are pressed in, and the chest rises only for bag stroke given through a sealed, open airway. Unlike #1243 (hold a grease coupler onto a nipple while the other hand pumps), pressing the held part down is the failure here: the seal comes from one pinch with no net push on the patient. Unlike #409, the breath needs a mask seal. Done by: EMTs and paramedics, nurses, respiratory therapists (O*NET 29-2042.00, 29-2043.00, 29-1141.00, 29-1126.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), heights above the table. A child-size airway and ventilation training manikin (skin-tone PVC over foam, fixed) lies face up along y, face midline at x 33.5, crown toward the left (+y), chin toward -y; its face is 8.5 cm up. Lower jaw: a 15 g PVC shell hinged 3 cm up at y 4, below the ear; its chin plate (7 cm wide) carries the mask's lower rim and a ledge under the chin (the jawbone's lower border) 4.4 cm up. A 0.05 N m/rad spring holds it slack on a stop 1.5 deg below neutral; it lifts to +1.5 deg. Bag-valve mask resting loosely on the face: clear polycarbonate shell 9 x 9.8 cm, 28 g, a 22 mm connector on top; its cushion is four 1.2 cm silicone segments (5 g) at x +-2.4, y -5.5 (bridge of the nose and cheeks) and y -12.5 (chin), each sliding up to 10 mm up into the shell on a spring (0.36 N preload, 120 N/m). Torso (fixed, cotton shirt) beyond the neck, y -17 to -34, 5 cm tall; a 30 g chest plate (8 x 8 cm) on it rises up to 2.5 cm. Self-inflating bag (green PVC) in a steel bracket at x 30, y 20: a fixed back half and a 15 g front wall that squeezes in up to 22 mm on a spring (45 N/m, 0.2 N preload); 7.6 cm across, 4.4 cm tall, 4 cm deep.",
+  "scoring": "Read every control step from part poses (on a real trainer: each cushion segment's gap, the jaw's angle, the bag wall's travel, the chest plate's height). Sealed: all four segments pressed in at least 2.5 mm. Airway open: the jaw at or above neutral (0 deg). A squeeze starts when the bag wall goes in 6 mm and ends when it is back under 3 mm. The chest plate is lifted 0.75 mm per mm of bag stroke given while sealed and open (up to 15 mm) and drops when the squeeze ends. A breath counts when its squeeze ends with the chest having risen at least 10 mm and the airway never shut during it (a jaw driven below neutral mid-squeeze loses that breath). Score: 0.4 per breath (0.4, 0.8); with two or more, 1.0 when both grippers are 2.5 cm clear of the mask, its segments, the jaw, the bag wall and the chest plate and all of them are still. 1.0 is success, held for 1 s. Scored at the last step. Possible scores: 0, 0.4, 0.8, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Lift the mask off and rest it back on the face, centred, let the jaw fall onto its slack stop, let the bag refill and the chest plate settle.",
+  "fidelity": "Rigid boxes, one shared friction (1.2 static, 1.0 dynamic); child-size head, forces scaled to the sim arm. Jaw, cushion segments and bag wall are sprung joints driven only by contact. No air: a per-step rule moves the chest plate's spring set point by bag stroke given while all four segments seal and the jaw is at or above neutral, drops it when the bag is let go, and voids a breath if the jaw drops mid-squeeze. Scored from poses.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-Z89VLW"
+}
