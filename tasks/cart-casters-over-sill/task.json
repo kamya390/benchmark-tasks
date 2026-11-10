@@ -1,0 +1,21 @@
+{
+  "title": "Get a loaded cart over a raised sill by tipping it back onto its big wheels, not ramming its casters",
+  "category": "Impact on jobs",
+  "keywords": [
+    "material handling",
+    "platform cart",
+    "threshold",
+    "casters",
+    "tip back",
+    "warehouse"
+  ],
+  "instruction": "Roll the loaded cart into the bay, up against its back stop, with the carton still on it, then let go. Do not lift the cart clear of the floor.",
+  "context": "Workplace-safety guidance on trolleys, roll cages and platform trucks, and porter training, say the same about thresholds, lift sills and dock-plate lips: take them square on and lift the small leading wheels over the edge by tipping the trolley back on its large wheels, then drive the large wheels up. Small casters driven into a step stop dead, jolt the load off and break. The skill is getting a wheeled load over a step its leading wheels cannot climb by pitching it about its big wheels, instead of pushing harder. Unlike #1175 (tip a wheelchair up a kerb with its foot tipping lever), this cart has no tipping lever and a swivelling handle, so the gripper must pitch it back through the handle grip while a loose carton rides on the deck; unlike #412 (lay planks across a dock gap) nothing bridges the step. Done by: hand laborers and freight, stock and material movers; stockers and order fillers; orderlies (O*NET 53-7062.00, 53-7065.00, 31-1132.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table; the bay and cart are centred on y -10, in front of the right arm. Bay: a fixed steel platform 1 cm high and 16 cm wide from x 32 to 47, its near edge a square sill with a yellow-painted nosing, and a steel back stop 6 cm tall at x 47. Cart: a blue painted-steel deck 14 x 10 cm, 4.4 cm above the floor (130 g with its frame), on two rear rubber wheels 5.6 cm across (12-sided, 12 g each, on free axles 6.2 cm either side of the centre line) and two front rubber casters 1.5 cm across (4 g each, 8 cm ahead of the rear axle); its rear axle starts at x 20.3, the casters 3 cm short of the sill. Push handle: an orange 20 g steel bar 11 cm long on two posts at the rear, swivelling on the posts at 11 cm above the floor. Carton: a corrugated cardboard box 7 x 7 x 5 cm, 60 g, on the deck 3.5 cm ahead of the rear axle.",
+  "scoring": "From the episode's recorded poses (the trial video on a real rig). A wheel is on the platform when its centre is at least 5 mm past the sill and its lowest point within 4 mm of the platform top. Latched for the trial, score 0 from then on: all four wheels more than 4 mm off the ground at once (lifted clear); the deck pitched over 25 deg or rolled over 15 deg (tipped); the carton's bottom more than 15 mm off the deck, its centre off the deck outline, or it tilted 20 deg (load lost). Otherwise, at the last step: 1.0 with all four wheels on the platform, the deck's front within 10 mm of the back stop and square to it within 10 deg, the cart and carton let go (no gripper's tool point within 2.5 cm) and still (deck, handle and carton moving under 0.3 mm and 0.5 deg per step), success when held 1 s; 0.6 with all four wheels on the platform; 0.3 with both casters on it; else 0. Possible scores: 0, 0.3, 0.6, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Roll the cart back off the platform (tip it back over the sill) and set it square on its mark with the casters 3 cm short of the sill, the handle level, and the carton centred on the deck; the platform and stop do not move.",
+  "fidelity": "Rigid boxes, one shared friction (1.2/1.0). Each wheel is a 12-sided disc built from six boxes on a free PhysX revolute axle, so it rolls with a small bump per face; the casters are fixed-direction (no swivel), and the handle swivels on its posts. No caster breakage: a rammed caster just stops at the sill. The cart is about one third of real size.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-28T7F5"
+}
