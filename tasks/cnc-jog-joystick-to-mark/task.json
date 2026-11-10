@@ -1,0 +1,23 @@
+{
+  "title": "Jog a desktop CNC router's cutter over a cross mark with its spring-centred joystick",
+  "category": "Impact on jobs",
+  "keywords": [
+    "CNC router",
+    "machine setup",
+    "jog pendant",
+    "joystick",
+    "rate control",
+    "servo axis",
+    "touch-off",
+    "crash avoidance"
+  ],
+  "instruction": "Jog the router's cutter over the cross mark.",
+  "context": "Before a cut, CNC operators jog the spindle over a mark or work zero from the machine's pendant. On many desktop routers the jog control is a spring-centred proportional joystick: the tilt sets the feed speed and the axis ramps up and down at its set acceleration, so it runs on after the stick is let go. Operator training says to slow down on the approach, creep the last millimetres, and never jog at full speed toward a clamp, since a crash breaks the cutter and can damage the spindle. Here the gantry is servo-held, so the stick is the only way to move it, and a toe clamp sits 10 mm past the mark. Unlike #1122, where handwheel angle is table position, here stick tilt sets speed and the stick springs back to stop, so the robot has to ease off before the mark. Unlike #1328 (tap RAISE/LOWER to match a speed, then close on time), the job is to stop a moving axis on a target. Done by: CNC tool operators; machinists (O*NET 51-9161.00, 51-4041.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Jog pendant (painted steel console 10 x 10 x 4 cm) at x 30, y -20: a spring-centred stick (black steel shaft with an orange rubber knob, 3 cm cube, 35 g in all) on a pivot 4.6 cm up, knob centre 9 cm above the pivot; it tilts 20 deg each way, forward and back. Desktop router at x 25-52, y 4-28: aluminium side rails on an MDF spoilboard; an aluminium gantry (600 g) with the spindle and a 6 mm end mill, its tip 1 cm above the work, on the rails' line at x 30, y 16. Plywood workpiece (14 x 10 x 1.2 cm) fixed on the bed, centred at x 40, y 16, with an inked cross mark at x 42, y 16. A steel toe clamp (3 x 2.4 x 2 cm, 60 g, with its T-bolt head) bolted to the work, its back face 1 cm past the mark, its top 1 cm above the cutter's tip.",
+  "scoring": "From the poses of the gantry, the stick and the clamp (on a real rig: the cutter's position over the mark, the stick's tilt, the clamp's position). Crash, latched for the trial (score 0): the cutter came within 0.6 mm of the clamp, or the clamp was knocked loose (moved over 2 mm). Score 0 while the gantry moves (over 5 mm/s) or a gripper is within 3 cm of it. Otherwise, by the cutter tip's distance from the mark in plan: 0.25 within 10 mm, 0.5 within 4 mm, 0.75 within 2 mm; 1.0 within 2 mm with the stick let go (back within 2 deg of centre, both grippers 3 cm clear of it) and still. 1.0 is success, held for 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 0.75, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Jog the gantry back so the cutter is 12 cm behind the mark (x 30), check the stick is centred, and check the clamp is tight on the work. A clamp that was struck is re-tightened and the cutter is replaced.",
+  "fidelity": "Rigid boxes, one shared friction (1.2/1.0). The stick is a hinge with a 0.25 N*m/rad centring spring and light friction. The jog controller is a per-step software rule, as on a real machine: tilt sets the axis speed (2 deg dead band, full 40 mm/s from 14 deg), ramped at 80 mm/s^2, integrated within soft limits, sent to the gantry's slider as a stiff position and speed servo (3 N/mm). The clamp is held by a joint that breaks at 4 N. Cutter modelled square.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-G4V3WF"
+}
