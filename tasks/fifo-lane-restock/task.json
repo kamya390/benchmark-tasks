@@ -1,0 +1,20 @@
+{
+  "title": "Restock a flow lane first-in, first-out",
+  "category": "Impact on jobs",
+  "keywords": [
+    "FIFO",
+    "stock rotation",
+    "flow rack",
+    "line-side logistics",
+    "material handling"
+  ],
+  "instruction": "Restock this lane with the two blue cartons so all four places are full, first in, first out. The orange cartons are the older lot.",
+  "context": "Line-side flow lanes are restocked first in, first out, so older lots and shorter shelf lives are used before newer stock. Here the front place is empty and the quick move, dropping a new carton into it, puts the new lot ahead of the old one; both older cartons must first be moved up one place each, so the lane reads older, older, newer, newer from the front stop. Unlike #41 (one older can brought to the front of a two-place lane) two older cartons must be shuffled forward in the lane before the new lot goes in behind them, and unlike #864 there is no spring pusher to hold back. Done by: stockers and order fillers, material handlers (O*NET 53-7065.00, 53-7062.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Lane: two fixed steel guide rails (30 x 0.6 x 1 cm) along x, centred at x 30 and y 37.55 and 28.45, and a fixed steel front stop (0.6 x 9.7 x 3 cm) across the lane's near end, its rear face at x 15, centred on y 33. The four places in the lane are centred at x 18.8, 26.3, 33.8 and 41.3 (place 1 at the front stop), y 33. Cartons: closed corrugated cardboard cartons 6 cm along the lane, 7.5 cm across it, 6 cm tall, 150 g. Two orange cartons stand in places 2 and 3; place 1 and place 4 are empty. Two blue cartons stand on the table at x 23, y 20 and x 32, y 20.",
+  "scoring": "From a top photo and a ruler. A carton fills a place when it stands upright (tilt under 8 degrees), still and let go (no gripper's tool point within 2.5 cm) on the table between the rails (centre within 1 cm of the lane's centreline) with its centre within 1.5 cm of the place centre along the lane. Reading from the front stop, each place earns 1/4 if it holds the right lot (orange, orange, blue, blue), stopping at the first empty or wrong place. A blue carton in place 1 scores 0. Scored at the last step. Success: all four, held 1 s.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Stand the orange cartons back in places 2 and 3 and the blue cartons on their table marks.",
+  "fidelity": "Rigid boxes with one shared friction (1.2 static, 1.0 dynamic). The lane is a flat table with low guide rails rather than an inclined roller flow rack, so cartons are carried into place instead of rolling forward, and the lots are told apart by carton colour rather than printed lot labels.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-98NATU"
+}
