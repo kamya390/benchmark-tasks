@@ -1,0 +1,23 @@
+{
+  "title": "Torque a busbar lug bolt with a click-type torque wrench",
+  "category": "Impact on jobs",
+  "keywords": [
+    "electrical installation",
+    "switchgear",
+    "busbar",
+    "cable lug",
+    "torque wrench",
+    "click wrench",
+    "break-over",
+    "overtightening"
+  ],
+  "instruction": "Torque the lug bolt with the torque wrench on it. The wrench is already set to the bolt's torque. Then let go.",
+  "context": "Electricians and switchgear assemblers torque busbar and lug bolts to the maker's value with a calibrated torque tool; the US electrical code (NEC 110.14(D)) has required one where a value is marked since 2017. Click-wrench instructions say: pull steadily at the grip and stop the moment the wrench clicks. The wrench does not limit torque, it only signals it: pulling on through the click keeps tightening, and an over-torqued stud stretches or the lug cracks. Here the wrench's detent breaks over at its set torque with a visible 6 deg kink and nothing stops the pull after it; the bolt yields at twice the set torque. Unlike #696 (snug a union nut by feel) and #1405 (a counted extra turn), nothing about the bolt says stop: the tool does, once. Unlike #1026 and #1379 (bring a gauge into a band, then lock or hold it), the cue is a one-shot event, not a reading to watch. Done by: electricians; electrical equipment assemblers (O*NET 47-2111.00, 51-2022.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). A copper busbar (12 x 2.5 x 0.6 cm) on two glass-polyester insulators 2.4 cm tall runs from x 30 to 42 at y -9. A tinned-copper cable lug sits on it, a black PVC-insulated cable leading off forward; its steel bolt (vertical) is at x 33, y -9, run down snug. A click-type torque wrench (chrome-vanadium steel) lies flat on the bolt, 5.7 cm above the table: ratchet head and socket (150 g) on the bolt head; handle (100 g, 14 x 12 mm tube) on a pivot in the head 4.5 cm from the bolt, held in line by a sprung detent; black rubber grip, 7 cm long, 18 x 18 mm, centred 21.5 cm from the bolt; the handle points toward the right arm (-y). Tightening pulls the grip toward the robot. The bolt starts to turn at 1 N at the grip and its torque rises 0.044 N*m per degree; the wrench is set to 0.43 N*m (2 N at the grip), reached 4.9 deg past snug; at 0.86 N*m (4 N), 14.8 deg past snug, the bolt yields.",
+  "scoring": "From the poses of the wrench head and handle (on a real rig: the bolt's turn from snug against a paint mark, and the handle's kink in the video). Clicked: the handle bent 1.5 deg on its pivot, so the detent broke over (latched). Fail, latched for the trial (score 0): the bolt turned 14.8 deg or more past snug (yielded, at twice the set torque), or was turned back more than 3 deg from its tightest. Score: 1.0 for torqued: clicked and the bolt at least 3.4 deg past snug; otherwise 0.25 if the bolt is at least 1.5 deg past snug. Halved unless both grippers are 2.5 cm clear of the wrench and the bolt and grip are still (under 0.05 deg and 0.3 mm per control step). 1.0 is success, held for 1 s. Scored at the last step. Possible scores: 0, 0.125, 0.25, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Back the bolt off and run it down snug by hand (fit a new bolt if it yielded); set the wrench on it in line, the handle pointing toward the right arm.",
+  "fidelity": "Rigid boxes, one shared friction (1.2/1.0). The bolt is a hinge with Coulomb friction; a per-step rule raises that friction with the turn (joint clamp-up), flat past the yield. The detent is a sprung hinge (13 N*m/rad); a per-step rule drops it to a light reset spring once it bends 1.5 deg (the cam breaking over), the handle swings to a 6 deg stop, and it re-arms when back within 0.5 deg. Forces are scaled down to the soft sim arm. The head's ratchet is not modelled.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-D9BYYH"
+}
