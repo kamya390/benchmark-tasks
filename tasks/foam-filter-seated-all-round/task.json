@@ -1,0 +1,23 @@
+{
+  "title": "Refit a small engine's foam air-filter element so it seals all round",
+  "category": "Impact on jobs",
+  "keywords": [
+    "small engine",
+    "air cleaner",
+    "foam filter element",
+    "deformable",
+    "soft body",
+    "interference fit",
+    "press fit",
+    "maintenance"
+  ],
+  "instruction": "Fit the clean foam filter element into the air-cleaner base so the cover can go on, then let go.",
+  "context": "Small-engine service guides and owners' manuals say a foam air-filter element is cut slightly oversize so its edges seal against the housing: refitted, it must sit fully down with its edges tucked in all round, never folded or riding on the rim, or unfiltered dust reaches the carburettor and wears the engine. Mechanics work the edges in round the perimeter with their fingertips. Here the element is a real soft body (FEM foam, 3 mm oversize each side) laid on the base: a fingertip press near an edge squeezes that edge down the wall, while presses in the middle only dish it, cock it and leave an edge on the rim. Unlike #7 (press a cord into a channel, starting at its fixed end), a block wider than its pocket must be compressed into it edge by edge round a closed perimeter, under a press-force limit. Unlike #946, nothing is squeezed to pass a hole and released. Done by: outdoor power equipment and other small engine mechanics; motorcycle mechanics (O*NET 49-3053.00, 49-3052.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), everything square to the table. Engine block stand-in (fixed, grey painted cast aluminium) 16 x 20 x 3 cm at x 30, y -10. On it the air-cleaner base (fixed, black glass-filled nylon): a 4 mm floor and 6 mm walls round a pocket 8 x 6 cm and 2.5 cm deep, centred at x 30, y -10. The filter element (orange open-cell polyurethane foam, 8.6 x 6.6 x 2.2 cm, 10 g) is laid on top of the base, centred over the pocket: 3 mm oversize on every side, so its middle sags into the pocket and its edges rest on the rim.",
+  "scoring": "From the element's mesh node positions (on a real rig: where the element's edges and top stand against the housing). The perimeter is split into 12 sectors, 3 per wall; a sector is seated when every node in a band from 12 mm inside its wall to 16 mm outside it is inside the wall and at least 1 mm below the rim. Proud: the highest node more than 1 mm above the rim. Fail, latched for the trial (score 0): any node more than 5 mm below the pocket floor (the element has left the housing). Score: 0.25 with 6 of 12 sectors seated, 0.5 with 10, 1.0 with all 12 seated and nothing proud. Halved unless both grippers are 3 cm clear of every node and every node is still (under 2 cm/s, from node displacement between control steps). 1.0 is success, held for 1 s. Scored at the last step. Possible scores: 0, 0.125, 0.25, 0.5, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Lift the element out, let it recover its shape, and lay it back on the base centred over the pocket.",
+  "fidelity": "The element is a PhysX FEM volume (about 265 tet-mesh nodes; E 30 kPa, Poisson 0.2, friction 1.0; density raised to 80 kg/m3 for solver stability). Its mesh is generated in code; no step rules or scripted mechanisms. Housing rigid, real sizes. Real filter foam is oiled and slightly stiffer; the 3 mm interference and the fingertip force limit (arm compliance, a few N) set the behaviour. Scored from mesh nodes.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-FMRXKP"
+}
