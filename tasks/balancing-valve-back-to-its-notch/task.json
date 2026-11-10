@@ -1,0 +1,23 @@
+{
+  "title": "Clean a coil's strainer and put its balancing valve back in the notch it was in",
+  "category": "Impact on jobs",
+  "keywords": [
+    "HVAC",
+    "hydronic coil",
+    "balancing valve",
+    "strainer",
+    "maintenance",
+    "detent",
+    "restore setting",
+    "memory"
+  ],
+  "instruction": "Swap the strainer's clogged screen for the clean one in the rack, then put the coil back in service.",
+  "context": "On hydronic coils a lever balancing valve often doubles as the strainer's isolation valve. Its notch is the balance the commissioning crew set; a technician cleaning the strainer shuts it, swaps the screen, and must return the lever to that same notch, not wide open, or the coil steals flow from the rest of the circuit. This valve has no memory stop and its notches carry no numbers, so the setting must be noted before it is shut. Line pressure holds the strainer cap until the valve is shut. Unlike #992 (told to close a valve counting turns and reopen it by half), nothing here asks for a setting: the robot must notice the one it is about to lose and restore it unprompted after a different job. Unlike #482 (told to put back what it moved), the restored thing is a detent setting, not an object's place. Done by: HVAC mechanics; building maintenance workers (O*NET 49-9021.00, 49-9071.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). A copper supply pipe (3.4 cm, modelled square) runs along y at x 34, 4 cm up, on cast-iron stands, ending in an aluminium fan-coil fin block at x 47.5. Lever butterfly valve (cast-iron body) at x 34, y -10: a steel lever (150 g) with a red vinyl grip from 7.5 to 15 cm out swings level 10.5 cm above the table over a zinc notch plate with 10 unnumbered ticks every 10 deg; 0 deg points the lever at the robot (shut), 90 deg lays it along the pipe (wide open). It starts at the third notch, 30 deg. Bronze basket strainer at x 34, y 10: a 3.8 cm bore, rim 7.2 cm up, holding a cartridge (brass cap 4.4 x 4.4 x 2.4 cm on a rust-clogged stainless screen 3 x 3 x 6 cm, 100 g). A clean cartridge hangs in a painted steel rack at x 23.5, y 20.5. Grey polypropylene drip tray (11 x 11 cm inside, 3 cm walls) at x 21.5, y 6.",
+  "scoring": "From the poses of the lever and both cartridges (on a real rig: the lever's notch on a top photo, where each cartridge is). Spray, latched for the trial (score 0): a cartridge lifted out of the bore while the valve is over 2 deg open, or the valve opened over 5 deg with no cartridge in the bore. Clean cartridge seated: within 7 mm of the bore axis (the bore allows 5 mm play), cap within 2.5 mm of resting on the rim, tilted under 6 deg, both grippers 2.5 cm clear of it. Score: 0.25 for it seated; with it, 0.5 once the valve is over 5 deg open; 0.75 with the lever within 3 deg of a notch one notch or less from 30 deg; 1.0 at the 30 deg notch with the clogged cartridge on the tray floor inside its walls, grippers 2.5 cm clear of the cartridges and 3 cm clear of the lever, everything still. 1.0 is success, held for 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 0.75, 1.0.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Shut the valve, put the clogged cartridge back in the strainer and the clean one in the rack, empty the tray, then set the lever back in the third notch (30 deg).",
+  "fidelity": "Rigid boxes, one shared friction (1.2/1.0), real sizes; pipe and screens modelled square. The lever is a hinge with a 0.8 N*m/rad spring whose set point a per-step rule moves to the nearest 10 deg notch (a spring detent: about 0.6 N at the grip clicks it on). Line pressure on the cap is a fixed joint a per-step rule frees while the valve is within 2 deg of shut and re-engages if it is reopened over the old cartridge. Spray is scored, not simulated.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-5PAN74"
+}
