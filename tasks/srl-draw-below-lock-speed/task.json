@@ -1,0 +1,23 @@
+{
+  "title": "Draw a self-retracting lifeline out below its lock speed and hook it on the harness D-ring",
+  "category": "Impact on jobs",
+  "keywords": [
+    "fall protection",
+    "working at height",
+    "self-retracting lifeline",
+    "speed brake",
+    "harness",
+    "D-ring",
+    "snap hook",
+    "tie-off"
+  ],
+  "instruction": "Hook the lifeline's snap hook onto the D-ring of the harness on the training torso, then let go.",
+  "context": "Workers who tie off to a self-retracting lifeline (SRL) draw its line out to the dorsal D-ring of their harness and clip on. SRL user instructions warn that the speed brake that arrests a fall also locks when the line is drawn out fast: draw it out slowly and steadily; if it locks, let the line back a little to free the brake, then draw again; never let an extended line wind back freely, which damages the unit and the hook. Here the brake locks above 0.15 m/s of payout and holds until the line is let back 10 mm; a line let go before it is hooked flies back (score 0). Unlike #948 (a recoil starter that must be pulled fast), the limit is a speed ceiling, enforced by a lock that has to be recovered from. Unlike #801 (restrain a cord reel's rewind), the crux is the payout, not the rewind. Done by roofers, structural iron and steel workers and wind turbine technicians (O*NET 47-2181.00, 47-2221.00, 49-9081.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left). Anchor rig (fixed, painted steel): a 4 x 28 x 4 cm beam on legs along y at x 30, its axis 10 cm above the table, carrying a yellow ABS SRL housing (7.5 x 12 x 13 cm) whose outlet faces -y at y 1.5. The line: grey polyester webbing, 1.6 cm wide, ending in an orange moulded nylon grip (3 x 6 x 3.4 cm); line and grip 100 g, wound in with the grip against the outlet. Snap hook: zinc-plated steel, 30 g, 7.5 cm long, on a pivot at the grip's end, lying level along -y; its bill (a 16 deg ramp under the nose ending in a tooth that leans back) hangs 1 cm below its body. Training torso (fixed, navy vinyl-covered foam form, 16 x 9 x 16 cm) with its back at y -32.5, wearing a red polyester webbing harness; its steel dorsal D-ring (bar 5 cm wide, 8 mm square) stands 5 cm off the back with its top 2 mm below the line's axis; the hook's tooth reaches behind it at 19 cm of payout, its nose meets the back at 20 cm. Retract spring: 0.8 N wound in, 4 N/m. Speed brake: locks above 0.15 m/s of payout; frees once the line is let back 10 mm.",
+  "scoring": "From the poses of the line and the hook (on a real rig: the payout, and where the hook sits on the ring). Fail, latched for the trial (score 0): the line ever winds in faster than 0.30 m/s (averaged over a 50 ms control step) while more than 2 cm is out, i.e. it was let go. Otherwise, at the last step: 0.25 with the line drawn out at least 10 cm; 0.5 with the hook's bill past the D-ring (its centre beyond the bar's far face); 0.75 with the hook on the ring: the bill behind the bar, its foot at least 3 mm below the bar's top, within 3 mm of the bar, and the hook within 20 deg of level; 1.0 with that, both grippers 2.5 cm clear of the line and the hook, and both still. 1.0 is success, held for 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 0.75, 1.0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Let the line wind in under control until the grip rests on the outlet, lay the hook level, and draw 5 cm slowly to check the brake is free.",
+  "fidelity": "Rigid boxes, one shared friction (1.2/1.0). The webbing is a rigid strap on a slider with a 4 N/m retract spring preloaded 0.8 N. The speed brake is a per-step rule: payout above 0.15 m/s (real SRLs lock near 1.4 m/s; scaled to arm speeds) switches the slider to a stiff one-way drive until the line is let back 10 mm. The hook's spring gate is not modelled: its bill rides over the D-ring bar and drops behind it. Scored from poses.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-HDAC88"
+}
