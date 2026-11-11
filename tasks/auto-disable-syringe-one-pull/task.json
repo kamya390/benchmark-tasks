@@ -1,0 +1,24 @@
+{
+  "title": "Draw one dose into an auto-disable syringe in a single pull: no push-back, no overdraw",
+  "category": "Impact on jobs",
+  "keywords": [
+    "auto-disable syringe",
+    "vaccination",
+    "immunization",
+    "vial",
+    "plunger",
+    "one-way lock",
+    "dose line",
+    "bimanual",
+    "irreversible"
+  ],
+  "instruction": "Draw a 0.5 ml dose from the vial into the auto-disable syringe and leave the syringe in the vial.",
+  "context": "Vaccinators give immunization injections with auto-disable (AD) syringes, which WHO and UNICEF recommend because they cannot be reused. The plunger travels back once: in many designs, pushing it forward before the injection (to expel air or correct an overdraw) engages a clip and the syringe must be thrown away, so the dose is drawn in one smooth pull that stops on the dose line, with the barrel held steady on the vial. Here the clip engages after a 0.02 ml push-back or at the 0.6 ml end stop, and the needle grips the stopper more weakly than the seal grips the barrel, so pulling the plunger alone pulls the syringe out of the vial. Unlike #1095 (draw 10 ml to a mark, where an overdraw can be pushed back), there is no correction: one monotonic pull must end in a 0.05 ml band. Done by: registered nurses; licensed practical nurses; medical assistants (O*NET 29-1141.00, 29-2061.00, 31-9092.00).",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left); the syringe lies level along y at x 30, its axis 5.5 cm above the bench. Vial holder: blue painted aluminium cradle on a 12 x 11 cm base plate (y 6.8-17.8). Vaccine vial: glass, 5.2 cm across, 6.2 cm long, paper label, aluminium crimp cap, grey rubber stopper facing -y at y 7.3. AD syringe (enlarged polypropylene training model, so the finger pads fit): square barrel 3.6 x 3.6 cm, 16 cm long (y -9.7 to 6.3, 40 g), its needle in to the hub (2 cm in the stopper); a 1 cm viewing slot along its top with graduations every 0.1 ml (6 mm), the 0.5 ml line red; a 7.6 cm finger flange at its rear. Plunger (30 g): black rubber seal seen through the slot at the 0 ml line, rod, 2.4 cm square grip block (y -15.3 to -10.7) and a 5 x 5 cm thumb plate. Seal friction 1.0 N; the needle's grip in the stopper 0.4 N.",
+  "scoring": "From the barrel's and plunger's poses (on a real rig: the seal against the graduations and the hub at the vial cap, in the video). Draw = the plunger's travel in the barrel (0.5 ml = 30 mm). Latched 0 for the trial: the AD clip engaged (the plunger moved forward more than 1.2 mm, 0.02 ml, from its furthest draw, or reached the 0.6 ml end stop), or the needle came out of the stopper (syringe pulled back more than 20 mm). Otherwise 0 below 0.05 ml drawn; 0.25 drawn but outside 0.45-0.55 ml; 0.5 inside that band; 1.0 inside the band with the needle at least 10 of its 20 mm still in the stopper, both grippers 2.5 cm clear of barrel and plunger, and both still; success when held 1 s. Scored at the last step. Possible scores: 0, 0.25, 0.5, 1.0.",
+  "run_limit": "800 steps (40 seconds at 20 Hz)",
+  "reset_notes": "Fit a fresh syringe (plunger fully in, clip unarmed), push its needle through the vial's stopper up to the hub, and lay it level in line with the vial.",
+  "fidelity": "Rigid boxes, one shared friction; syringe enlarged (36 mm barrel), forces scaled to the soft arm. Barrel-on-vial and plunger-in-barrel are PhysX prismatic joints with Coulomb friction (kit stick-spring model; needle 0.4 N, seal 1.0 N), damping, a hub stop and a 36 mm end stop. The AD clip is a per-step rule: a 1.2 mm push-back or the end stop locks the plunger joint (40 kN/m) for the episode. Needle out (20 mm) frees the barrel. No fluid: dose = plunger travel.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-PHU4CQ"
+}
