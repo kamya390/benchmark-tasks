@@ -68,4 +68,4 @@ ffmpeg -y -i ~/yam-eval/flywheel-stop-by-brake-lever-demo/frames/<run>/scene-0-e
 
 ## Reset between trials
 
-Put the clamp nut back on the hub; the lever returns by its spring; spin the wheel up to 12 rad/s and cut its drive as the trial starts (sim: a velocity drive for the first 1.2 s, then off).
+With the wheel at rest (tachometer at zero), screw the clamp nut back on finger-tight; the lever returns by its spring. Remove the lock, spin the wheel past 12 rad/s, open and lock out the drive's disconnect, try-start to verify it stays dead, and start the trial as the coasting wheel passes 12 rad/s (sim: a velocity drive for the first 1.2 s, then off).
