@@ -1,9 +1,9 @@
 """On the station table, in front of the left arm, a short length of grey square-section PVC drain pipe lies on a
 plywood floor board, running from the left (its open mouth) to the right (its outlet over a steel catch trough).
-The pipe is blocked 2 cm inside the mouth by a plug of congealed fat and wipes. A flexible sectional drain rod is
+The pipe is blocked 3.6 cm inside the mouth by a plug of congealed fat and wipes. A flexible sectional drain rod is
 already started in the mouth: nine black segments joined by sprung couplings, with an orange T-handle at its tail.
 The part of the rod outside the pipe lies on the board in a loose curve (the rod's coil set). The job is to push
-the clog out of the far end of the pipe with the rod, then let go of it. Scored from the poses at the end.
+the whole clog out of the far end of the pipe with the rod, then let go of it. Scored from the poses at the end.
 
 The rod's couplings are spring hinges (mechkit.py, in this folder): the rod bends only sideways, on the board.
 A slender rod pushed from far back buckles: the free length between the hand and the mouth bows out and kinks long
@@ -117,7 +117,9 @@ CLOG_KG = 0.015
 CLOG_REAR = MOUTH_Y - TIP_IN - 0.002  # its rear face, 2 mm ahead of the rod tip
 CLOG_DRAG = 0.4  # N: Coulomb friction of the packed plug
 CLOG_TRAVEL_MAX = 0.230
-GOAL = (CLOG_REAR - CLOG[2]) - OUTLET_Y  # 0.164 m: the clog's front face out at the outlet
+GOAL_FRONT = (CLOG_REAR - CLOG[2]) - OUTLET_Y  # 0.164 m of travel: the clog's leading face reaches the outlet plane
+GOAL = CLOG_REAR - OUTLET_Y  # 0.184 m: its trailing face reaches the outlet plane, so the whole 2 cm clog is out
+BANDS = ((GOAL_FRONT, 0.75), (0.110, 0.5), (0.046, 0.25))  # (clog travel in m, score), checked from the top
 
 PVC = (0.55, 0.57, 0.58)
 PLY = (0.78, 0.66, 0.47)
@@ -176,7 +178,9 @@ SCORE_OVER = "end"
 
 # -- scoring ---------------------------------------------------------------------------------------------------
 # Measured from the parts' poses: the angle between neighbouring rod segments (a photo of the rod shows a kink), and
-# how far the clog has been driven down the pipe (it shows at the outlet when it is out).
+# how far the clog has been driven down the pipe. On a real rig the clog's travel inside the opaque pipe is read with
+# a probe rod marked in mm, slid in from the outlet until it touches the clog's leading face: travel = 16.4 cm minus
+# the probe's inserted depth (see task.json "scoring").
 
 KINK_DEG = 40.0
 _KINK_KEY = "drain_rod_kinked"
@@ -194,44 +198,47 @@ def _kinked(objects) -> bool:
 
 
 kit.on_step(_kinked)  # checked every control step in sim, not only when the scorer looks
+kit.on_step(lambda objects: _MEM.__setitem__("clog_travel", _travel(objects)))  # read by the demo (below) only
 
 
-def _progress(objects) -> float:
-    """Fraction of the way from the clog's start to the outlet."""
-    return kit.q(objects, "clog_slide") / GOAL
+def _travel(objects) -> float:
+    """Metres the clog has been driven down the bore from its start."""
+    return float(kit.q(objects, "clog_slide"))
 
 
 def score(objects) -> float:
-    """0 for the whole trial once any rod coupling has bent past 40 degrees (a kinked rod). Otherwise, by how far the
-    clog has been driven toward the outlet (p = travel / 16.4 cm): 0.25 for p >= 0.25, 0.5 for p >= 0.6, and 1.0
-    for p >= 0.97 with neither gripper within 2.5 cm of any rod part and the rod and clog still."""
+    """0 for the whole trial once any rod coupling has bent past 40 degrees (a kinked rod). Otherwise, by the clog's
+    travel t down the pipe: 1.0 once the WHOLE clog is out (t >= 18.4 cm: its trailing face past the outlet plane)
+    with neither gripper within 2.5 cm of any rod part and the rod and clog still; 0.75 for t >= 16.4 cm (its leading
+    face at the outlet, or all of it out but the rod still held or moving); 0.5 for t >= 11 cm; 0.25 for
+    t >= 4.6 cm; 0 otherwise."""
     if _kinked(objects):
         return 0.0
-    p = _progress(objects)
-    if p >= 0.97:
+    t = _travel(objects)
+    if t >= GOAL:
         let_go = all(released(objects[n]) for n in ROD_PARTS)
         still = all(objects[n].resting() for n in (*ROD_PARTS, "clog"))
         if let_go and still:
             return 1.0
-    if p >= 0.6:
-        return 0.5
-    return 0.25 if p >= 0.25 else 0.0
+    return next((s for need, s in BANDS if t >= need), 0.0)
 
 
 def success(objects) -> bool:
-    """The clog out at the outlet, the rod never kinked, let go and still; holds for 1 s."""
+    """The whole clog out past the outlet, the rod never kinked, let go and still; holds for 1 s."""
     return score(objects) >= 1.0
 
 
 def distance(objects) -> float:
-    """Metres the clog still has to travel to the outlet."""
-    return float(max(0.0, GOAL - kit.q(objects, "clog_slide")))
+    """Metres the clog still has to travel until its trailing face is out at the outlet."""
+    return float(max(0.0, GOAL - _travel(objects)))
 
 
 # -- the scripted demo ------------------------------------------------------------------------------------------
-# Open loop from the pipe's fixed geometry; it reads no joint or simulator state. The left arm grips the rod just
-# behind the mouth (fingers closing across it), pushes it 22 mm in, opens, slides back 22 mm and grips again: the
-# rod's free length between the pads' leading edge and the mouth is never more than 25 mm (under one segment).
+# Planned from the pipe's fixed geometry. The left arm grips the rod just behind the mouth (fingers closing across
+# it), pushes it 22 mm in, opens, slides back 22 mm and grips again: the rod's free length between the pads' leading
+# edge and the mouth is never more than 25 mm (under one segment). How far each stroke drives the clog varies (the
+# pads slip on some strokes), so the demo reads one piece of sim state, the clog's travel (allowed for scripted
+# demos), at the start of each stroke: once the whole clog is 8 mm past the outlet it stops feeding and lifts away.
 
 YAW = -math.pi / 2  # the left arm's fingers close along x, across the rod
 TIP = 0.013  # pad tips below the TCP
@@ -240,34 +247,62 @@ GZ = FL + 0.002 + TIP  # pad tips 2 mm above the board
 NEAR_Y = MOUTH_Y + PAD_HALF + 0.003  # end of a stroke: the pads' leading edge 3 mm behind the mouth
 STROKE = 0.022
 FAR_Y = NEAR_Y + STROKE  # start of a stroke: 25 mm of rod free in front of the pads
-N_STROKES = 13
-OPEN = -0.016  # 32 mm between the pads: 12 mm clear each side of the 8 mm rod
+MAX_STROKES = 19  # at most; it stops once the clog is out (a debug run needed 17: the pads slip on some strokes)
+STOP_TRAVEL = GOAL + 0.008  # the clog's trailing face 8 mm past the outlet plane
+OPEN = -0.010  # 20 mm between the pads: 6 mm clear each side of the 8 mm rod, so the pads close gently and evenly
 GRIP = FINGER_CLOSED  # 8 mm squeeze on the 8 mm rod
 UP = FL + 0.090
+HOVER = (PX, FAR_Y, UP)  # where the arm waits, open, once it has stopped feeding
+
+
+def _feeding(k: int) -> bool:
+    """Decided once per trial when stroke ``k`` starts: feed on unless the clog is already out (latched)."""
+    key = ("demo_feed", k)
+    if key not in _MEM:
+        prev = _MEM.get(("demo_feed", k - 1), True)
+        travel = _MEM.get("clog_travel")  # None offline: the plan then shows every stroke
+        _MEM[key] = bool(prev) and (travel is None or travel < STOP_TRAVEL)
+    return _MEM[key]
+
+
+class _StrokeWaypoint(Waypoint):
+    """A waypoint of stroke ``k``: as planned while the demo is feeding, else a hold at HOVER with the pads open."""
+
+    def __init__(self, k, duration, pos, finger, label, yaw):
+        self._k, self._pos, self._finger = k, pos, finger
+        super().__init__(duration, pos, finger, label, yaw)
+
+    pos = property(lambda self: self._pos if _feeding(self._k) else HOVER,
+                   lambda self, v: setattr(self, "_pos", v))
+    finger = property(lambda self: self._finger if _feeding(self._k) else OPEN,
+                      lambda self, v: setattr(self, "_finger", v))
 
 
 def demo():
-    """The left arm feeds the rod in thirteen 22 mm strokes, each gripped 2.2-4.4 cm behind the mouth: close, push at
-    about 1.4 cm/s, open, slide back, close again; then it lets go and lifts away. The right arm stays still. 67.4 s."""
+    """The left arm feeds the rod in 22 mm strokes, each gripped 2.2-4.4 cm behind the mouth: close, push at about
+    1.4 cm/s, open, slide back, close again. When a stroke is due and the whole clog is already 8 mm out of the
+    outlet, it lifts clear instead and holds there (the rest of the plan), then parks. The right arm stays still.
+    At most 19 strokes, 87.1 s; a trial that needs them all ends in success at about 1,740 steps."""
     w = [
-        Waypoint(2.5, (PX, FAR_Y, UP), OPEN, "over the rod behind the mouth", YAW),
-        Waypoint(1.5, (PX, FAR_Y, GZ + 0.015), OPEN, "descend", YAW),
-        Waypoint(0.8, (PX, FAR_Y, GZ), OPEN, "down beside the rod", YAW),
+        Waypoint(2.0, (PX, FAR_Y, UP), OPEN, "over the rod behind the mouth", YAW),
+        Waypoint(1.0, (PX, FAR_Y, GZ + 0.015), OPEN, "descend", YAW),
+        Waypoint(0.6, (PX, FAR_Y, GZ), OPEN, "down beside the rod", YAW),
     ]
-    for k in range(1, N_STROKES + 1):
-        w += [
-            Waypoint(0.7, (PX, FAR_Y, GZ), GRIP, f"stroke {k}: grip", YAW),
-            Waypoint(0.3, (PX, FAR_Y, GZ), GRIP, f"stroke {k}: settle", YAW),
-            Waypoint(1.6, (PX, NEAR_Y, GZ), GRIP, f"stroke {k}: push 22 mm", YAW),
-            Waypoint(0.3, (PX, NEAR_Y, GZ), GRIP, f"stroke {k}: settle", YAW),
-            Waypoint(0.6, (PX, NEAR_Y, GZ), OPEN, f"stroke {k}: open", YAW),
+    for k in range(1, MAX_STROKES + 1):
+        steps = [
+            (0.9, (PX, FAR_Y, GZ), GRIP, "grip"),
+            (0.3, (PX, FAR_Y, GZ), GRIP, "settle"),
+            (1.6, (PX, NEAR_Y, GZ), GRIP, "push 22 mm"),
+            (0.2, (PX, NEAR_Y, GZ), GRIP, "settle"),
+            (0.4, (PX, NEAR_Y, GZ), OPEN, "open"),
         ]
-        if k < N_STROKES:
-            w += [
-                Waypoint(0.3, (PX, NEAR_Y, GZ + 0.006), OPEN, f"stroke {k}: lift off", YAW),
-                Waypoint(0.6, (PX, FAR_Y, GZ + 0.006), OPEN, f"stroke {k}: slide back", YAW),
-                Waypoint(0.3, (PX, FAR_Y, GZ), OPEN, f"stroke {k}: down", YAW),
+        if k < MAX_STROKES:
+            steps += [
+                (0.2, (PX, NEAR_Y, GZ + 0.006), OPEN, "lift off"),
+                (0.5, (PX, FAR_Y, GZ + 0.006), OPEN, "slide back"),
+                (0.2, (PX, FAR_Y, GZ), OPEN, "down"),
             ]
+        w += [_StrokeWaypoint(k, d, pos, f, f"stroke {k}: {label}", YAW) for d, pos, f, label in steps]
     w += [
         Waypoint(1.2, (PX, NEAR_Y, UP), OPEN, "lift clear", YAW),
         Waypoint(1.5, (0.22, 0.20, UP + 0.05), OPEN, "park", YAW),
@@ -295,25 +330,31 @@ def self_test():
         return states
 
     start = st()
-    done = st(GOAL + 0.004, GOAL + 0.006)
+    done = st(GOAL + 0.012, GOAL + 0.014)  # the whole clog 1.2 cm clear of the outlet
+    front_out = st(GOAL_FRONT + 0.005, GOAL_FRONT + 0.007)  # leading face 5 mm out, 1.5 cm of the clog still inside
     grip_tcp = np.array([PX, NEAR_Y, GZ])  # the left TCP still on the rod at the mouth
     kinked = st(0.002, 0.0, {"coupling6": 52.0, "coupling7": 38.0})
     cases = {  # name: (sequence of states in one trial, gripper TCPs, final score)
         "start": ([start], [], 0.0),
-        "clog 5 cm in (p 0.30)": ([start, st(0.05, 0.05)], [], 0.25),
-        "clog 11 cm in (p 0.67)": ([start, st(0.11, 0.11)], [], 0.5),
-        "clog 15 cm in (p 0.91), let go": ([start, st(0.15, 0.15)], [], 0.5),
-        "clog out at the outlet, let go, still": ([start, st(0.08, 0.08), done], [], 1.0),
-        "clog out, a gripper still on the rod": ([start, done], [grip_tcp], 0.5),
-        "clog out, gripper lifted 9 cm above the rod": ([start, done], [np.array([PX, NEAR_Y, UP])], 1.0),
-        "clog out, rod still sliding": ([start, st(GOAL + 0.004, GOAL + 0.006, moving=(SEGS[3],))], [], 0.5),
+        "clog moved 4.5 cm": ([start, st(0.045, 0.045)], [], 0.0),
+        "clog moved 5 cm": ([start, st(0.05, 0.05)], [], 0.25),
+        "clog moved 10.5 cm": ([start, st(0.105, 0.105)], [], 0.25),
+        "clog moved 12 cm": ([start, st(0.12, 0.12)], [], 0.5),
+        "clog moved 15 cm, let go": ([start, st(0.15, 0.15)], [], 0.5),
+        "leading face 5 mm past the outlet, trailing face inside, let go, still": ([start, front_out], [], 0.75),
+        "old full-credit state: leading face 5 mm short of the outlet": (
+            [start, st(GOAL_FRONT - 0.005, GOAL_FRONT - 0.003)], [], 0.5),
+        "trailing face 1 mm short of the outlet, let go, still": ([start, st(GOAL - 0.001, GOAL + 0.001)], [], 0.75),
+        "whole clog out, let go, still": ([start, st(0.08, 0.08), done], [], 1.0),
+        "whole clog out, a gripper still on the rod": ([start, done], [grip_tcp], 0.75),
+        "whole clog out, gripper lifted 9 cm above the rod": ([start, done], [np.array([PX, NEAR_Y, UP])], 1.0),
+        "whole clog out, rod still sliding": ([start, st(GOAL + 0.012, GOAL + 0.014, moving=(SEGS[3],))], [], 0.75),
         "naive: pushed from the handle, rod kinked": ([start, kinked], [], 0.0),
         "kinked, then straightened and the clog pushed out": ([start, kinked, st(0.05, 0.05), done], [], 0.0),
         "kinked the other way (-45 deg) late in the trial": (
             [start, st(0.12, 0.12), st(0.12, 0.12, {"coupling2": -45.0}), done], [], 0.0),
         "bent 38 deg at a coupling but never kinked": (
             [start, st(0.06, 0.06, {"coupling8": 38.0}), done], [], 1.0),
-        "clog 1 cm short of the outlet (p 0.94)": ([start, st(GOAL - 0.010, GOAL - 0.008)], [], 0.5),
     }
     try:
         for name, (seq, tcps, want) in cases.items():
@@ -332,7 +373,20 @@ def self_test():
         _MEM.clear()
         assert score(done) == 1.0, "reset"
         assert abs(_bends(start)["coupling5"] - SET_DEG) < 1e-6 and abs(_bends(start)["coupling2"]) < 1e-6
-        assert distance(start) > 0.16 and distance(done) == 0.0
+        assert abs(distance(start) - 0.184) < 1e-9 and distance(front_out) > 0.0 and distance(done) == 0.0
+        # the demo feeds while the clog is in, then holds clear for every later stroke
+        _MEM.clear()
+        plan = demo()["left"]
+        strokes = [x for x in plan if isinstance(x, _StrokeWaypoint)]
+        assert all(x.pos[2] == GZ or x.pos[2] == GZ + 0.006 for x in strokes)  # offline: every stroke as planned
+        _MEM.clear()
+        _MEM["clog_travel"] = GOAL - 0.010
+        assert strokes[0].pos[2] == GZ and _feeding(1)
+        _MEM["clog_travel"] = STOP_TRAVEL + 0.001
+        assert _feeding(1) and not _feeding(2) and strokes[-1].pos == HOVER and strokes[-1].finger == OPEN
+        _MEM["clog_travel"] = 0.0
+        assert not _feeding(3), "stopping is latched"
+        assert abs(GOAL - 0.184) < 1e-9 and abs(GOAL_FRONT - 0.164) < 1e-9 and GOAL + 0.02 < CLOG_TRAVEL_MAX
     finally:
         globals()["_tcps"] = _tcps_live
         _MEM.clear()
