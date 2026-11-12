@@ -9,7 +9,8 @@ Both tissues are real soft bodies (PhysX surface-deformable cloth, about 700 mes
 not rigid parts, and nothing in the box is scripted: pull the top tissue up and the film slit squeezes it against
 the next one, so friction drags the next tissue's edge up through the slit after it; once the top one's end has
 passed, the film holds the next one standing there, ready. The same squeeze drags on the box: it weighs only 40 g,
-so if nobody holds it down, pulling the tissue lifts the box off the table with it and tips it.
+so if nobody holds it down, pulling the tissue drags the slit end up and the box tips about its far end; the jaws
+slip off the sheet and the tissue stays in.
 
 The job: take one tissue out and put it on the tray, leaving the box where it is with the next tissue ready to pull.
 
@@ -115,9 +116,16 @@ SUCCESS_HOLD_S = 1.0
 SCORE_OVER = "end"
 
 # -- scoring, from the box's pose and the tissues' mesh nodes ---------------------------------------------------
-LIFT_TOL = 0.005  # the box's bottom never more than 5 mm off the table ...
-TILT_TOL = 5.0  # ... nor tilted more than 5 deg, at any step (latched)
-SPOT_TOL = 0.015  # at the end, the box within 1.5 cm of where it stood
+# Latched for the trial (score 0) only for consequential events, at any step:
+TIP_DEG = 45.0  # the box tipped over: tilted more than 45 deg
+OFF_LIFT = 0.050  # the box off the table: its lowest corner more than 5 cm above the table (carried up with the sheet)
+OFF_DROP = 0.020  # ... or its bottom more than 2 cm below the table top (fallen off the edge)
+# (the second tissue spilled out of the box too: none of its nodes left inside, see next_out)
+# A brief lift or tilt below those that settles costs nothing: the box's FINAL placement is judged instead.
+SPOT_TOL = 0.015  # at the end, the box within 1.5 cm of where it stood ...
+YAW_TOL = 10.0  # ... turned less than 10 deg ...
+UPRIGHT_TOL = 5.0  # ... upright (tilted less than 5 deg) ...
+REST_TOL = 0.005  # ... and resting on the table (lowest corner within 5 mm of it)
 READY_H = 0.010  # the next tissue stands at least 10 mm above the lid ...
 IN_FRAC = 0.25  # ... with at least a quarter of its nodes still under the lid (it is still in the box)
 TRAY_FRAC = 0.80  # on the tray: 80 % of the tissue's nodes over the tray's floor, none higher than ...
@@ -131,7 +139,7 @@ _TEST_TCPS = None  # self-test stand-in for the TCPs
 def _mem() -> dict:
     m = mk.MEMORY.get(M)
     if m is None:
-        m = mk.MEMORY[M] = {"lifted": False, "two_out": False}
+        m = mk.MEMORY[M] = {"tipped": False, "off_table": False, "two_out": False}
     return m
 
 
@@ -144,6 +152,12 @@ def _box_frame(objects):
 def box_tilt_deg(objects) -> float:
     _, r = _box_frame(objects)
     return float(math.degrees(math.acos(max(-1.0, min(1.0, r[2, 2])))))
+
+
+def box_yaw_deg(objects) -> float:
+    """How far the box has turned about the vertical from its start (deg)."""
+    _, r = _box_frame(objects)
+    return float(abs(math.degrees(math.atan2(r[1, 0], r[0, 0]))))
 
 
 def box_lift(objects) -> float:
@@ -210,23 +224,35 @@ def still(objects) -> bool:
             and float(np.linalg.norm(b.lin_vel)) < STILL)
 
 
+def box_in_place(objects) -> bool:
+    """The box's final placement: within 1.5 cm of its spot, turned < 10 deg, upright (< 5 deg) and resting on the
+    table (lowest corner within 5 mm of it)."""
+    pos, _ = _box_frame(objects)
+    return bool(math.hypot(pos[0] - XB, pos[1] - YB) <= SPOT_TOL and box_yaw_deg(objects) <= YAW_TOL
+                and box_tilt_deg(objects) <= UPRIGHT_TOL and abs(box_lift(objects)) <= REST_TOL)
+
+
 def score(objects) -> float:
-    """0, latched, once the box has been lifted (its lowest corner > 5 mm off the table) or tilted > 5 deg, or the
-    next tissue has left the box too. 0 at the end if the box stands more than 1.5 cm from its spot or tilted > 5
-    deg, or the top tissue is not out. Otherwise 0.25 (top tissue out), + 0.25 if it lies on the tray, + 0.5 if the
-    next tissue stands >= 10 mm above the lid with a quarter of it still under the lid. Halved unless both grippers
-    are 3 cm clear of the tissues and the box and everything is still."""
+    """0, latched, only after a consequential event: the box tipped over (tilted > 45 deg), off the table (lowest
+    corner > 5 cm above it, or bottom > 2 cm below its top), or the next tissue spilled out of the box too. A brief
+    lift or tilt short of those that settles costs nothing. 0 at the end unless the box is back in place (within
+    1.5 cm of its spot, turned < 10 deg, tilted < 5 deg, resting on the table) and the top tissue is out. Otherwise
+    0.25 (top tissue out), + 0.25 if it lies on the tray, + 0.5 if the next tissue stands >= 10 mm above the lid with
+    a quarter of it still under the lid. Halved unless both grippers are 3 cm clear of the tissues and the box and
+    everything is still."""
     m = _mem()
-    if box_lift(objects) > LIFT_TOL or box_tilt_deg(objects) > TILT_TOL:
-        m["lifted"] = True
+    if box_tilt_deg(objects) > TIP_DEG:
+        m["tipped"] = True
+    pos, _ = _box_frame(objects)
+    if box_lift(objects) > OFF_LIFT or pos[2] < TOP - OFF_DROP:
+        m["off_table"] = True
     if next_out(objects):
         m["two_out"] = True
     if DEBUG and mk._EP.get("env") is not None and mk._EP.get("step", 0) % 10 == 0:
         _debug(objects)
-    if m["lifted"] or m["two_out"]:
+    if m["tipped"] or m["off_table"] or m["two_out"]:
         return 0.0
-    pos, _ = _box_frame(objects)
-    if math.hypot(pos[0] - XB, pos[1] - YB) > SPOT_TOL or not first_out(objects):
+    if not box_in_place(objects) or not first_out(objects):
         return 0.0
     base = 0.25 + (0.25 if on_tray(objects, "tissue_1") else 0.0) + (0.5 if next_ready(objects) else 0.0)
     ok = released(objects) and still(objects)
@@ -257,7 +283,8 @@ def _debug(objects) -> None:
 
 
 def success(objects) -> bool:
-    """Top tissue on the tray, next one ready, box on its spot and never lifted, let go and still; held 1 s."""
+    """Top tissue on the tray, next one ready, box back in place and never tipped or off the table, let go and
+    still; held 1 s."""
     return score(objects) >= 1.0 - 1e-9
 
 
@@ -350,15 +377,18 @@ def self_test():
         q[:, 1] = np.where(q[:, 1] > 0.007 + up, q[:, 1] - up, q[:, 1])
         return q + o
 
-    def state(p1, p2, box_dz=0.0, box_tilt=0.0, box_dxy=(0.0, 0.0), moving=False):
-        h = math.radians(box_tilt) / 2
-        qb = (math.sin(h), 0.0, 0.0, math.cos(h))
-        st = kit.fake_states(moved={"box": ((XB + box_dxy[0], YB + box_dxy[1], TOP + box_dz), qb)})
-        shift = np.array([box_dxy[0], box_dxy[1], box_dz])
+    def state(p1, p2, box_dz=0.0, box_tilt=0.0, box_dxy=(0.0, 0.0), box_yaw=0.0, moving=False):
+        h, y = math.radians(box_tilt) / 2, math.radians(box_yaw) / 2  # tilt about x, then turn about z
+        qt, qy = (math.sin(h), 0.0, 0.0, math.cos(h)), (0.0, 0.0, math.sin(y), math.cos(y))
+        rb = mk.quat_to_mat(qy) @ mk.quat_to_mat(qt)
+        qb = mk.mat_to_quat(rb)
+        bpos = np.array([XB + box_dxy[0], YB + box_dxy[1], TOP + box_dz])
+        st = kit.fake_states(moved={"box": (tuple(bpos), tuple(qb))})
         v = np.zeros_like(p1)
         if moving:
             v[:, 2] = -0.05
-        st["tissue_1"], st["tissue_2"] = sk.fake(TISSUE_1, p1, v), sk.fake(TISSUE_2, p2 + shift)
+        # the next tissue sits in the box and moves with it
+        st["tissue_1"], st["tissue_2"] = sk.fake(TISSUE_1, p1, v), sk.fake(TISSUE_2, (p2 - o) @ rb.T + bpos)
         return st
 
     def lin(a, b, n=4):
@@ -381,11 +411,27 @@ def self_test():
         "on the tray, still settling": ([(r1, r2, {}), (tray, up2, {"moving": True})], [], 0.5),
         "pulled half out, end still in the box": ([(r1, r2, {}), (r1 + np.array([0.0, -0.02, 0.005]), up2, {})],
                                                    [], 0.0),
-        "nobody held the box: lifted 13 mm with the tissue, fell back": (
-            [(r1, r2, {}), (out_held, up2, {"box_dz": 0.013, "box_tilt": 8.5}), (tray, up2, {})], [], 0.0),
-        "box tipped 6 deg mid-pull (one side lifted)": (
-            [(r1, r2, {}), (out_held, up2, {"box_tilt": 6.0}), (tray, up2, {})], [], 0.0),
+        "brief lift: box rode up 6 mm with the sheet, then settled on its spot": (
+            [(r1, r2, {}), (out_held, up2, {"box_dz": 0.006}), (tray, up2, {})], [], 1.0),
+        "brief tilt: box tilted 6 deg mid-pull, then settled on its spot": (
+            [(r1, r2, {}), (out_held, up2, {"box_tilt": 6.0}), (tray, up2, {})], [], 1.0),
+        "box rode up 13 mm and tilted 8.5 deg, fell back onto its spot": (
+            [(r1, r2, {}), (out_held, up2, {"box_dz": 0.013, "box_tilt": 8.5}), (tray, up2, {})], [], 1.0),
+        "brief lift, but the box settled 3 cm off its spot": (
+            [(r1, r2, {}), (out_held, up2, {"box_dz": 0.006}), (tray, up2, {"box_dxy": (0.0, -0.03)})], [], 0.0),
         "box dragged 3 cm off its spot": ([(r1, r2, {}), (tray, up2, {"box_dxy": (0.0, -0.03)})], [], 0.0),
+        "box left turned 15 deg on its spot": ([(r1, r2, {}), (tray, up2, {"box_yaw": 15.0})], [], 0.0),
+        "box left leaning 8 deg (propped up)": ([(r1, r2, {}), (tray, up2, {"box_tilt": 8.0, "box_dz": 0.01})],
+                                                  [], 0.0),
+        "tips over: box on its side (90 deg) at the end": (
+            [(r1, r2, {}), (out_held, up2, {"box_tilt": 90.0, "box_dz": 0.06}), (tray, up2,
+                                                                               {"box_tilt": 90.0, "box_dz": 0.06})],
+            [], 0.0),
+        "tips over (60 deg), then set back upright on its spot (latched)": (
+            [(r1, r2, {}), (out_held, up2, {"box_tilt": 60.0}), (tray, up2, {})], [], 0.0),
+        "box carried 6 cm up off the table with the sheet, then dropped back on its spot (latched)": (
+            [(r1, r2, {}), (out_held, up2, {"box_dz": 0.06}), (tray, up2, {})], [], 0.0),
+        "box knocked off the table": ([(r1, r2, {}), (tray, up2, {"box_dz": -0.30})], [], 0.0),
         "both tissues pulled out (pinched together), both on the tray": (
             [(r1, r2, {}), (tray, on_the_tray(r2, 0.01), {})], [], 0.0),
         "next one dragged out, then stuffed back in (latched)": (
@@ -403,11 +449,20 @@ def self_test():
             assert abs(got - want) < 1e-9, (name, got, want, first_out(state(p1, p2, **kw)),
                                             next_height(state(p1, p2, **kw)))
             assert success(state(p1, p2, **kw)) == (want >= 1.0), name
+        for name, key in (("tips over (60 deg), then set back upright on its spot (latched)", "tipped"),
+                          ("box carried 6 cm up off the table with the sheet, then dropped back on its spot (latched)",
+                           "off_table"), ("box knocked off the table", "off_table"),
+                          ("both tissues pulled out (pinched together), both on the tray", "two_out")):
+            mk.new_episode()
+            _TEST_TCPS = []
+            for p1, p2, kw in cases[name][0]:
+                score(state(p1, p2, **kw))
+            assert _mem()[key] and sum(_mem().values()) == 1, (name, _mem())  # zeroed for the right reason
         mk.new_episode()
         _TEST_TCPS = []
-        score(state(out_held, up2, box_dz=0.02))
+        score(state(out_held, up2, box_tilt=60.0))
         mk.new_episode()
-        assert score(state(tray, up2)) == 1.0, "a new trial forgets the last one's lift"
+        assert score(state(tray, up2)) == 1.0, "a new trial forgets the last one's tip-over"
     finally:
         mk.new_episode()
         _TEST_TCPS = None

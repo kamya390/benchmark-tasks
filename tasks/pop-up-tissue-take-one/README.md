@@ -19,10 +19,12 @@ python tasks/pop-up-tissue-take-one/pop_up_tissue_take_one.py
 ```
 
 It asserts the scoring rules on hand-built states and replays every arm's demo plan through the kinematics at 20 Hz
-(every joint inside the URDF limits, IK error under 0.5 mm). Expected output:
+(every joint inside the URDF limits, IK error under 0.5 mm). The scoring cases include a brief 6 mm lift and a brief
+6 deg tilt of the box that then settles on its spot (still full credit), and a tip-over, a box carried more than 5 cm
+off the table and a box knocked off the table (0, latched for the trial). Expected output:
 
 ```
-scoring: 13 cases pass
+scoring: 21 cases pass
 left: 27.0 s plan, worst IK 0.075 mm / 0.012 deg
 right: 27.0 s plan, worst IK 0.095 mm / 0.013 deg
 ```
@@ -38,6 +40,11 @@ inspect-robots run --embodiment yam_arena --policy dream \
 
 `task_score` is 1.0 when `success()` has held for 1 s (the episode ends with `termination_reason="success"`),
 otherwise `score()` at the last step. The CLI prints `task_score: <value>`.
+
+Scoring in short (full text in `task.json`): a trial is zeroed for good only by a consequential event (the box tilted
+more than 45 deg, its lowest corner more than 5 cm above the table or its bottom more than 2 cm below the table top,
+or the second tissue out of the box too). A brief lift or tilt short of that costs nothing; at the end the box must be
+back within 1.5 cm of its spot, turned less than 10 deg, tilted less than 5 deg and resting on the table.
 
 ## Run and score the full-score demo
 
