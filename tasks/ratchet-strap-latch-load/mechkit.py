@@ -21,9 +21,9 @@ Public API (angles in the API are degrees unless the name says rad; lengths m; f
     import mechkit as mk
 
     kit = mk.Kit()
-    kit.part(name, pos, boxes, mass=None, color=GREY, yaw=0.0, quat=None)      # boxes: [mk.box(size, at, ...)]
+    kit.part(name, pos, boxes, mass=None, color=GREY, yaw=0.0, quat=None, iters=(16, 2))  # boxes: [mk.box(...)]
     kit.hinge(name, parent, child, anchor, axis, lower_deg, upper_deg, start_deg=0, stiffness=0, rest_deg=0,
-              damping=0, friction=0)                         # N*m/rad, N*m*s/rad, friction N*m
+              damping=0, friction=0, loop=False)             # N*m/rad, N*m*s/rad, friction N*m; loop: closes a chain
     kit.slider(name, parent, child, axis, lower, upper, start=0, stiffness=0, rest=0, damping=0, friction=0)
     kit.bond(name, parent, child, break_force=inf, break_torque=inf, anchor=None, slip_mm=2, slip_deg=2,
              twist_axis=None, twist_release_deg=None, twist_stiffness=1.0)   # N, N*m about the child, N*m/rad
@@ -55,7 +55,7 @@ import numpy as np
 
 from yam_arena.task_file import GREY, Box, ObjectState
 
-__version__ = "0.2"
+__version__ = "0.3"
 INF = float("inf")
 STICK_RAD = math.radians(0.5)  # friction model: elastic "stick" travel before a joint slips (hinge)
 STICK_M = 0.0005  # (slider)
@@ -179,6 +179,7 @@ class MechPart(Box):
     origin: tuple = (0.0, 0.0, 0.0)  # spawn pose of the part frame (world)
     origin_quat: tuple = (0.0, 0.0, 0.0, 1.0)
     kit_id: int = 0
+    iters: tuple = (16, 2)
 
 
 @dataclass
@@ -191,6 +192,7 @@ class _Part:
     lo: np.ndarray = field(default=None)  # local AABB of the geometry (part frame)
     hi: np.ndarray = field(default=None)
     parent_joint: str | None = None
+    iters: tuple = (16, 2)  # PhysX solver position / velocity iterations
 
     @property
     def free(self) -> bool:
@@ -223,6 +225,7 @@ class _Joint:
     twist_axis: np.ndarray | None = None  # twist bond: turns on a spring about this axis, lets go past the limit
     twist_limit: float = INF  # rad
     twist_stiffness: float = 0.0  # N*m/rad
+    loop: bool = False  # closes a kinematic loop: authored in sim, not used to place parts (both already placed)
 
 
 _KITS: list = []
@@ -241,9 +244,10 @@ class Kit:
 
     # -- declaring --------------------------------------------------------------------------------------------
 
-    def part(self, name, pos, boxes, mass=None, color=GREY, yaw: float = 0.0, quat=None) -> str:
+    def part(self, name, pos, boxes, mass=None, color=GREY, yaw: float = 0.0, quat=None, iters=(16, 2)) -> str:
         """A rigid body made of ``boxes`` (see :func:`box`), its frame at world ``pos`` in the reference pose.
-        ``mass`` None: fixed in place (static); otherwise a free body of that mass (kg)."""
+        ``mass`` None: fixed in place (static); otherwise a free body of that mass (kg). ``iters``: PhysX solver
+        (position, velocity) iterations for this body (raise them for light links under load)."""
         if not str(name).isidentifier():
             raise ValueError(f"part name {name!r} must be a Python identifier")
         if name in self.parts:
@@ -254,7 +258,8 @@ class Kit:
         if mass is not None and not mass > 0:
             raise ValueError(f"part {name!r}: mass must be positive or None")
         q = quat if quat is not None else yaw_quat(yaw)
-        p = _Part(name, _T(quat_to_mat(q), np.asarray(pos, dtype=float)), boxes, mass, tuple(color))
+        p = _Part(name, _T(quat_to_mat(q), np.asarray(pos, dtype=float)), boxes, mass, tuple(color),
+                  iters=tuple(int(i) for i in iters))
         corners = []
         for b in boxes:
             r = quat_to_mat(b.quat)
@@ -275,6 +280,9 @@ class Kit:
         child = self.parts[j.child]
         if not child.free:
             raise ValueError(f"joint {j.name!r}: the child {j.child!r} must be a free part (give it a mass)")
+        if j.loop:  # both parts are placed by their own joints; this one only closes the chain in sim
+            self.joints_[j.name] = j
+            return j.name
         if child.parent_joint is not None:
             raise ValueError(f"part {j.child!r} already has a parent joint ({child.parent_joint!r})")
         if j.parent is not None and self._ancestors(j.parent) & {j.child}:
@@ -292,17 +300,22 @@ class Kit:
         return out
 
     def hinge(self, name, parent, child, anchor, axis, lower_deg, upper_deg, start_deg=0.0, stiffness=0.0,
-              rest_deg=0.0, damping=0.0, friction=0.0) -> str:
+              rest_deg=0.0, damping=0.0, friction=0.0, loop=False) -> str:
         """Revolute joint through world ``anchor`` along world ``axis`` (reference pose). Spring torque
         -stiffness*(q-rest) - damping*dq (N*m/rad, N*m*s/rad). ``friction`` (N*m) is Coulomb joint friction:
         the joint does not move until the other torques on it exceed ``friction``, then slides against it, and it
         stays where it is left (e.g. a creased carton flap). Note: PhysX caps viscous ``damping`` on light bodies,
-        so damping alone does not hold a flap against gravity; use ``friction``."""
+        so damping alone does not hold a flap against gravity; use ``friction``. ``loop``: the hinge closes a chain
+        whose parts are already placed by other joints (e.g. a strap's far end on its anchor); it must be at 0 in
+        the spawn pose (start_deg 0) and it does not move parts in forward kinematics."""
         lo, hi, s = math.radians(lower_deg), math.radians(upper_deg), math.radians(start_deg)
         if not lo <= s <= hi:
             raise ValueError(f"hinge {name!r}: start {start_deg} outside [{lower_deg}, {upper_deg}]")
+        if loop and s != 0.0:
+            raise ValueError(f"hinge {name!r}: a loop hinge starts at 0")
         return self._joint(_Joint(name, "hinge", parent, child, np.asarray(anchor, float), _unit(axis), lo, hi, s,
-                                  float(stiffness), math.radians(rest_deg), float(damping), float(friction)))
+                                  float(stiffness), math.radians(rest_deg), float(damping), float(friction),
+                                  loop=bool(loop)))
 
     def slider(self, name, parent, child, axis, lower, upper, start=0.0, stiffness=0.0, rest=0.0,
                damping=0.0, friction=0.0) -> str:
@@ -393,7 +406,7 @@ class Kit:
             fl = lambda v: tuple(float(c) for c in v)  # plain floats: Isaac turns numpy float64 into doubles
             out.append(MechPart(name=name, pos=fl((lo + hi) / 2), color=fl(p.color), mass=p.mass,
                                 size=fl(np.maximum(hi - lo, 1e-4)), boxes=p.boxes, origin=fl(t[:3, 3]),
-                                origin_quat=fl(mat_to_quat(t[:3, :3])), kit_id=self.id))
+                                origin_quat=fl(mat_to_quat(t[:3, :3])), kit_id=self.id, iters=p.iters))
         return out
 
     # -- readouts ---------------------------------------------------------------------------------------------
@@ -574,7 +587,8 @@ def _author_joint(stage, kit: Kit, j: _Joint, paths: dict, env_T: np.ndarray, su
     else:
         f_ref = _T(_frame_with_x(j.axis), j.anchor)
     frame = env_T @ mp @ f_ref  # the joint frame on the parent, at spawn
-    tc0 = env_T @ mp @ kit.parts[j.child].ref  # the child where it would be with this joint at 0
+    # the child where it would be with this joint at 0 (a loop joint is at 0 where the child spawns)
+    tc0 = env_T @ (poses[j.child] if j.loop else mp @ kit.parts[j.child].ref)
     f0 = _inv(tp) @ frame
     f1 = _inv(tc0) @ frame
     path = f"{paths[j.child].rsplit('/', 1)[0]}/mechkit_joints/{j.name}{suffix}"
@@ -761,8 +775,9 @@ def _spawn_part_fn(mod):
                                      orientation=tuple(float(v) for v in b.quat))
         if spec.free:
             schemas.define_rigid_body_properties(
-                prim_path, mod.PhysxRigidBodyPropertiesCfg(solver_position_iteration_count=16,
-                                                           solver_velocity_iteration_count=2), stage=stage)
+                prim_path, mod.PhysxRigidBodyPropertiesCfg(solver_position_iteration_count=int(spec.iters[0]),
+                                                           solver_velocity_iteration_count=int(spec.iters[1])),
+                stage=stage)
             schemas.define_mass_properties(prim_path, sim_utils.MassPropertiesCfg(mass=spec.mass), stage=stage)
         return stage.GetPrimAtPath(prim_path)
 
