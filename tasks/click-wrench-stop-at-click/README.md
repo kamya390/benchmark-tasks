@@ -49,9 +49,7 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
   90-110 % (2.7-3.3 N*m).
 - **Wrench:** an adjustable click-type torque wrench, ISO 6789-1 Type II class A (permissible deviation +/-6 % under
   10 N*m), 1/4-inch square drive (ISO 1174-1), 2-10 N*m range, about 26 cm long; the grip's load mark 21.5 cm from
-  the drive axis, so 3 N*m takes **14 N at the load mark** (snug 7 N; the tolerance's top 15.3 N). The reverse
-  lever sits on the side of the head, as it commonly does on quarter-inch click wrenches, leaving the head's
-  top face clear for the hold-down press. Check it at
+  the drive axis, so 3 N*m takes **14 N at the load mark** (snug 7 N; the tolerance's top 15.3 N). Check it at
   3 N*m on a torque-wrench tester before the trials and calibrate it as ISO 6789-2 asks.
 - **Socket:** an 8 mm 6-point socket, 1/4-inch drive, ISO 2725-1 dimensions: 25 mm long, 12 mm OD, hex opening
   8.2 mm across flats (0.16 mm clearance per flat on the 7.88 mm head), with the usual ~1 mm 45-degree mouth
