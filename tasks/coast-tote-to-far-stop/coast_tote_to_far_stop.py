@@ -2,7 +2,7 @@
 arm, from just ahead of the arm bases, past the far edge of the table on a leg, to an end stop. The last 18 cm
 before the end stop is the packing station, marked with yellow tape on both side rails and a yellow line across the
 rollers. An open plastic tote stands on the rollers at the near end; a tall square HDPE bottle (a 500 mL reagent
-bottle, half full) stands loose in the middle of it.
+bottle, full, 500 g) stands loose in the middle of it.
 
 The rollers are free-running: a tote given a push rolls on and slows down only by the rollers' rolling resistance
 (about 2 % of its weight, so it loses about 0.2 m/s every second). The station starts 13 cm beyond the farthest point
@@ -334,11 +334,13 @@ def distance(objects) -> float:
 # Open loop from the scene's geometry: the right hand, fingers closed and turned so the closed pads' flat face
 # points forward, comes down behind the tote's rear wall at its mid-height, eases onto it, then pushes it along the
 # lane with a steady 1 m/s^2 up to PUSH_V and stops hard (4 m/s^2). The tote leaves the pads as the hand slows and
-# rolls on alone; the roller bed's resistance (about 0.2 m/s^2) brings it to rest at the station. The push is set by
-# one command per control step (exact positions at the step times), so the hand's speed profile is the one planned.
-# Release-speed window from the scene (model below): about 0.50-0.61 m/s; the demo's 0.54 m/s meets the stop at
-# about 0.22 m/s. (Earlier layout, sim: the tote left the pads at 0.498 m/s for 0.50 commanded and slowed at
-# 0.196 m/s^2.) The hand never comes within 52 cm of the station.
+# rolls on alone; the roller bed's resistance (about 0.2 m/s^2) slows it to the station. The push is set by one
+# command per control step (exact positions at the step times), so the hand's speed profile is the one planned.
+# Release-speed window at the demo's release point (model below): 0.48-0.64 m/s at 0.196 m/s^2. The demo's
+# 0.54 m/s meets the stop at about 0.22 m/s in the model. In sim the tote left the pads at 0.56 m/s, met the stop at
+# 0.26 m/s and came to rest with its rear at 0.942. Once the tote is away, the hand rises to a viewing pose behind
+# the gate (TCP x 0.52, 30 cm up, pointing down the lane 5 deg down), so the wrist camera watches the tote come to
+# rest. No robot point comes within 38 cm of the station.
 
 PUSH_V = {"soft": 0.30, "hard": 0.75}.get(VARIANT, 0.54)  # m/s at the end of the push
 PUSH_A, STOP_A = (2.5 if VARIANT == "hard" else 1.0), 4.0  # m/s^2 speeding up, slowing down
@@ -347,6 +349,8 @@ YAW = math.pi / 2  # fingers close along x: the closed pads present their 26 mm 
 TCP_Z = BED_Z + FLOOR + 0.030 + 0.005  # pads' mid-height at the rear wall's mid-height (TCP 5 mm above it)
 GAP = 0.006  # the hand waits this far behind the wall
 PARK = (0.200, -0.330, TOP + 0.220)
+VIEW = (0.520, LY, TOP + 0.300)  # viewing pose (TCP): its pad tips at x 0.533, 38.7 cm from the station
+VIEW_PITCH = 5.0  # deg: the wrist camera (25 deg below the fingers' axis) then looks 30 deg down, at the station
 V_TIP = 0.40  # m/s at the end stop above which the bottle falls (tip-over model; sim: stood at 0.14, fell at 0.42)
 
 
@@ -367,7 +371,7 @@ def push_profile(v=None, a=PUSH_A, d=STOP_A):
 
 
 def demo():
-    """Come down behind the tote; ease onto its rear wall; push to PUSH_V and stop; lift away; park."""
+    """Come down behind the tote; ease onto its rear wall; push to PUSH_V and stop; rise to the viewing pose."""
     x0, xs = push_profile()
     R = [Waypoint(2.0, PARK, FINGER_CLOSED, "start", YAW),
          Waypoint(2.0, (x0 - GAP - 0.02, LY, TCP_Z + 0.08), FINGER_CLOSED, "over the lane, behind the tote", YAW),
@@ -376,10 +380,10 @@ def demo():
          Waypoint(0.6, (x0 + 0.0005, LY, TCP_Z), FINGER_CLOSED, "ease onto the wall", YAW)]
     R += [Waypoint(DT, (x, LY, TCP_Z), FINGER_CLOSED, "push", YAW) for x in xs]
     xe = xs[-1]
-    R += [Waypoint(0.8, (xe, LY, TCP_Z), FINGER_CLOSED, "hold still: the tote rolls on", YAW),
-          Waypoint(1.2, (xe - 0.01, LY, TCP_Z + 0.10), FINGER_CLOSED, "lift away", YAW),
-          Waypoint(2.0, PARK, FINGER_CLOSED, "park", YAW),
-          Waypoint(4.0, PARK, FINGER_CLOSED, "wait: the tote rolls to rest", YAW)]
+    view = forward_grip(VIEW_PITCH)
+    R += [Waypoint(0.4, (xe, LY, TCP_Z), FINGER_CLOSED, "hold still: the tote rolls on", YAW),
+          Waypoint(1.6, VIEW, FINGER_CLOSED, "rise to the viewing pose: wrist camera down the lane", view),
+          Waypoint(5.0, VIEW, FINGER_CLOSED, "watch the tote come to rest", view)]
     total = sum(w.duration for w in R)
     left = [Waypoint(2.0, (0.150, 0.250, 0.950), FINGER_CLOSED, "park"),
             Waypoint(total - 2.0, (0.150, 0.250, 0.950), FINGER_CLOSED, "park")]

@@ -20,7 +20,8 @@ added a scorer gate:
   footprint at any step, or the trial scores 0. The robot points are the gripper body, the TCP, both pad tips and
   both finger middles. In the lane, that means no point past x 0.67. So the hand's last contact is at least 25 cm
   before the station, and the tote must still be doing at least 0.31 m/s there to coast in (0.30-0.33 m/s across the
-  calibrated drag band). The demo's hand never comes nearer than 56 cm.
+  calibrated drag band). The demo's hand never comes nearer than 38.7 cm (its viewing pose). On a real rig the gate is
+  computed from the arms' logged joint positions through the URDF kinematics ("Measuring the latches on a real rig").
 - **The gate fires in a control run.** In sim control `control_walk()`, the robot tries to push the tote all the way
   by hand. It walks the tote slowly (no momentum), first with the hand pointing down, then pointing forward along the
   lane, to TCP x 0.72, 3.5 cm inside the arm's reach there. In sim the gate latched when the right pad tip reached
@@ -29,13 +30,20 @@ added a scorer gate:
 - **No-slam kept, now with a scored speed limit.** The tote meeting the end stop faster than 0.40 m/s now latches 0
   by itself (new latch). 0.40 m/s is the bottle's tip-over speed when the tote stops dead (below). The bottle falling
   still latches 0 too. In sim the VARIANT "hard" control (a shove to 0.75 m/s) fired this latch at 0.545 m/s, and the
-  bottle fell two steps later. The demo meets the stop at 0.26 m/s.
+  bottle fell two steps later. The demo meets the stop at 0.26 m/s. On a real rig two light gates at x 105 and 109,
+  which stay in place, measure this speed.
 - The numbers are in "Reach and distances" below.
 
 **TK-84WE5K (rollers and the tote's deceleration).** This was answered in the previous revision and is kept here:
 16 mm zinc-plated steel tube rollers at 40 mm centres on sealed ball bearings (now 25 of them, as the conveyor is
 longer), and a three-light-gate coast-down that measures and sets the loaded tote's deceleration to 0.196 m/s^2
 +/- 10 % ("Real-rig calibration").
+
+## Nearby tasks
+
+Unlike #1322 (strike a ball at the angle that sends another past a line) and #720 (pull a peel out from under a
+pizza), the crux here is the release speed: too slow stops short, too fast meets the end stop above 0.40 m/s and tips
+the load.
 
 ## Environment
 
@@ -80,11 +88,11 @@ it prints `right arm 0.791 m, left arm 0.659 m`. Expected output:
    1.00  tote rear stopped at x 0.960  | demo, the hand reaching out only to x 0.66 (26 cm from the station) mid-coast
    0.00  tote rear stopped at x 0.940  | tote still rolling at the last step
 scoring: 23 cases pass; release-speed window 0.477-0.635 m/s, demo 0.54 m/s
-left: 15.3 s plan, worst IK 0.090 mm / 0.013 deg
-right: 15.3 s plan, worst IK 0.092 mm / 0.015 deg
+left: 14.3 s plan, worst IK 0.090 mm / 0.013 deg
+right: 14.3 s plan, worst IK 0.092 mm / 0.015 deg
 control_walk left: 26.7 s plan, worst IK 0.090 mm / 0.013 deg
 control_walk right: 26.7 s plan, worst IK 0.096 mm / 0.015 deg
-nearest robot point to the station: demo 56.3 cm, control_walk 18.8 cm (gate 25 cm)
+nearest robot point to the station: demo 38.7 cm, control_walk 18.8 cm (gate 25 cm)
 ```
 
 ## Run and score one Dream-1 trial
@@ -108,33 +116,40 @@ inspect-robots run --embodiment yam_arena --policy yam_scripted \
   --scorer task_score --max-steps 1200 --seed 0 --no-prompt --store-frames --log-dir ~/yam-eval/coast-tote-to-far-stop-demo
 ```
 
-The demo is `demo()` in the task file: open loop and deterministic, 15.3 s of plan (the tote is at rest at the
+The demo is `demo()` in the task file: open loop and deterministic, 14.3 s of plan (the tote is at rest at the
 station after about 10 s; with the 1 s success hold the episode ends well inside the run limit of 1,200 steps).
 
 ## Sim controls: every new latch fires
 
 Each control runs the same command as the demo on a copy of the task file. For the gate, append
 `demo = control_walk` to the copy. For the end-stop speed latch, set `VARIANT = "hard"` in the copy. Setting
-`DEBUG = True` prints the trace. Latch lines are printed in sim whether or not DEBUG is on.
+`DEBUG = True` prints the trace. The reach-gate and end-stop speed latch lines (`LATCH ...`) print in sim whether or
+not DEBUG is on; the other trace lines (the end-stop speed, `BOTTLE FELL`, the per-step state) print only with DEBUG.
 
 | Control | What the robot does | Result in sim (Isaac, L40S) |
 |---|---|---|
 | `control_walk()`: the reach gate | Tries to push the tote all the way by hand, with no momentum (tote never above 90 mm/s). It walks the tote with the hand pointing down to TCP x 0.38, then pointing forward along the lane to TCP x 0.72. | `LATCH reach-gate: robot point 9 (right arm, right pad tip) at (0.673, -0.201, 0.070 above the table) is 24.7 cm from the station (gate 25 cm); tote rear at 0.674` at step 399. The tote ended at rear 0.734, 19 cm short of the station, held by the hand at the arm's reach. task_score 0. |
 | VARIANT "hard": the end-stop speed limit | Shoves the tote at 2.5 m/s^2 to 0.75 m/s and lets it go. | `LATCH slam: the tote met the end stop at 545 mm/s (limit 400)` at step 160. Two steps later: `BOTTLE FELL (21.3 deg) with the tote rear at 0.960`. task_score 0. |
-| `demo()` | Pushes at 1 m/s^2 to 0.54 m/s and lets go. | The tote left the pads at 0.56 m/s, met the stop at 0.26 m/s, rebounded 1.8 cm and rested with its rear at 0.942, past the station line. The bottle stood (peak tilt 1.8 deg). The nearest robot point stayed 55.5 cm from the station; no latch fired. task_score 1. |
+| `demo()` | Pushes at 1 m/s^2 to 0.54 m/s and lets go, then rises to the viewing pose. | The tote left the pads at 0.56 m/s, met the stop at 0.26 m/s, rebounded 1.8 cm and rested with its rear at 0.942, past the station line. The bottle stood. The hand reached the viewing pose by step 190, and the nearest robot point stayed 38.7 cm from the station; no latch fired. task_score 1. |
 
 ## Recorded runs (this revision)
 
-- Demo, recorded with `--store-frames`: task_score 1.0. The episode ended on success after 207 frames (10.35 s);
-  the tote rests on the station line's far side with the bottle standing. The station is at the top edge of the
-  top camera's view: the tote's rear wall and the yellow line show, and the far end of the tote is out of frame.
-- Dream-1 (1,200 steps): task_score 0. The tote stayed at the near end of the conveyor.
+- **Demo**, recorded with `--store-frames`: task_score 1.0. The episode ended on success after 207 frames (10.35 s).
+  The demo video is the top camera and the right wrist camera side by side, from the same run. After the push the
+  right hand rises to a viewing pose behind the gate (TCP x 0.52, 30 cm up, 38.7 cm from the station), and its
+  wrist camera looks down the lane. The last frame shows the tote resting past the yellow station line with the
+  bottle upright. The top camera alone shows the station only at its top edge.
+- **Dream-1** (1,200 steps): task_score 0. It moved the tote a short way along the lane, and the tote stopped well
+  short of the station.
 
 ## Videos and screenshot
 
 ```bash
 for log in ~/yam-eval/coast-tote-to-far-stop-*/*.json; do inspect-robots video "$log"; done
-ffmpeg -y -i ~/yam-eval/coast-tote-to-far-stop-demo/frames/*/scene-0-e0_top_cam.mp4 -frames:v 1 setup.png
+d=$(ls -d ~/yam-eval/coast-tote-to-far-stop-demo/frames/*/)
+ffmpeg -y -i "$d"*top_cam.mp4 -frames:v 1 setup.png
+ffmpeg -y -i "$d"*top_cam.mp4 -i "$d"*right_cam.mp4 -filter_complex "[0:v][1:v]hstack=inputs=2" \
+  -c:v libx264 -pix_fmt yuv420p -movflags +faststart demo.mp4   # top camera | right wrist camera
 ```
 
 ## Run limit, runtime and seeds
@@ -172,7 +187,7 @@ All in metres along the lane (x from the arm bases), from the task file's consta
 | Far stop (end-stop face) | 1.100: 31 cm beyond reach, 78.5 cm of travel for the tote's front face from its start (0.315) | `STOP_X` |
 | Tote against the stop (rear face) | 0.960 | `REAR_MAX` |
 | Gate line | 0.670 (25 cm before the station) | `GATE` |
-| Demo hand's farthest point | TCP 0.357, pad tip 0.364 (56 cm from the station) | offline plan check |
+| Demo hand's farthest point | pad tip 0.533 in the viewing pose (38.7 cm from the station); 0.364 during the push | offline plan check |
 
 **Coast distance from the roller drag.** A tote let go at speed v coasts d = v^2 / (2a) on the rollers. Here a is
 the loaded tote's measured deceleration on the real rig, set to 0.196 m/s^2 with a band of 0.176-0.216 ("Real-rig
@@ -213,8 +228,10 @@ model, the demo's 0.54 m/s release still brings the tote to the station and meet
 1. **Light gates.** Fit three through-beam photoelectric gates across the lane, with beams 3 cm above the roller tops
    so they see only the tote's wall. Place them where the tote's front edge crosses x 45, 65 and 85, so the spacing
    is d = 20.0 cm. Set the spacing to +/- 0.5 mm with a steel rule. Log the moment each beam is first broken with a
-   timer of 1 ms resolution or better (a photogate timer or a microcontroller). Mount the gates on removable posts
-   outside the rails and take them off for trials.
+   timer of 1 ms resolution or better (a photogate timer or a microcontroller). Mount these three gates on removable posts
+   outside the rails and take them off for trials. (The two end-stop gates at x 105 and 109, "Measuring the
+   latches on a real rig" below, stay in place for every trial; they sit beyond these three and do not affect the
+   coast-down.)
 2. **Load.** Use the tote as in the task, with the bottle standing in its middle. The tote meets the end stop below
    0.40 m/s in these runs, so the bottle stays up.
 3. **Coast-down.** Push the tote along the lane by hand and let go before its front edge reaches the first gate, so
@@ -244,6 +261,21 @@ model, the demo's 0.54 m/s release still brings the tote to the station and meet
      tilting further. At that slope, the tote and bottle stay far inside the scorer's 8 and 15 deg limits.
 7. **When.** Calibrate before a session's first trial and after any roller change. Check with one coast-down every 10
    trials; it must fall inside the band.
+
+## Measuring the latches on a real rig
+
+- **End-stop speed (limit 0.40 m/s).** Two through-beam light gates on posts outside the rails, beams 3 cm above the
+  roller tops (they see only the tote's wall), placed where the tote's front edge crosses x 105 and x 109 cm: 4.0 cm
+  apart, the second 1 cm before the stop face. Log the moment each beam is first broken (1 ms resolution or better).
+  Speed at the stop = 4 cm / (t2 - t1). That is the mean over the 4 cm, centred 3 cm before the stop face, so near
+  0.40 m/s it reads about 0.015 m/s above the speed at the face (0.196 m/s^2 x 0.03 m / 0.40 m/s): it errs toward
+  calling a slam. 1 ms of timing error is 1 % of the speed. The gates stay in place for every trial; the tote never
+  touches them.
+- **Reach gate (25 cm).** Not a sensor in the cell (the tote and bottle would break any beam before the station on
+  every success): log both arms' joint positions at the control rate, and compute the same 6 points per arm as the
+  sim (gripper link origin, TCP, both pad tips, both finger middles) through the URDF's forward kinematics, with each
+  finger's travel from its gripper joint. The trial scores 0 if any point comes within 25 cm of the station's
+  footprint (x 92-110, the lane's 13 cm) in plan view, at any logged step.
 
 ## Reset between trials
 
