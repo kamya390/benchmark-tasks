@@ -1,7 +1,9 @@
-"""On the station table, in front of the right arm, a copper busbar stands on two insulators with a cable lug on it.
-The lug's bolt has been run down snug by hand; a click-type torque wrench, already set to the bolt's torque, sits
-on it with its socket on the bolt head. The wrench lies flat, its handle pointing toward the right arm, its rubber
-grip 21.5 cm from the bolt.
+"""On the station table a copper busbar stands on two insulators with a cable lug on it. The lug's bolt has been
+run down snug by hand; its M5 hex head (with its washer) stands proud of the lug. A click-type torque wrench,
+already set to the bolt's torque, stands to the robot's left ON ITS REST: socket down on the bench, its rubber
+grip on a block, its handle pointing toward the right arm. The robot is responsible for the whole job: pick the
+wrench up, carry it to the joint, seat the socket fully over the bolt head (a real hex fit with chamfered
+lead-ins and 0.16 mm of clearance per flat), and only then torque the bolt to the click.
 
 The wrench works as a real click wrench does. Inside it a sprung detent holds the handle in line with the head;
 the torque you put through the grip bends that detent a little (1.5 deg at the set torque). At the set torque it
@@ -12,18 +14,23 @@ further. Let go, and the detent pulls the handle back in line and re-arms.
 The bolt: its turning torque rises with every degree past snug (the joint clamping up), and it stays where it is
 left (thread friction). At the set torque it is about 5 deg past snug. Pulled on to twice the set torque, about
 15 deg past snug, it yields (the stud stretches): it then turns on under a steady pull and is ruined. Backing it
-off undoes the torque.
+off undoes the torque. The socket drives the bolt only through the physical hex contact: it must be seated (at
+least 2.8 mm of the head's 3.5 mm engaged, in line) to transmit the torque cleanly; a half-seated socket cams
+out or rounds the head, and any bolt turn without the socket seated scores 0 (latched).
 
-The job: tighten the bolt to its torque with the wrench, then let go. Nothing about the bolt says when to stop;
-the wrench does, once, and pulling on is still possible. Full credit needs the peak torque inside the joint's
-tolerance, 90-110 % of the set torque (the bolt 3.9-5.9 deg past snug); a pull on past 110 % scores 0.
+The job: seat the wrench on the bolt, tighten the bolt to its torque, then let go. Nothing about the bolt says
+when to stop; the wrench does, once, and pulling on is still possible. Full credit needs the click with the
+socket seated and the peak torque inside the joint's tolerance, 90-110 % of the set torque (the bolt 3.9-5.9 deg
+past snug); a pull on past 110 % scores 0.
 
-The real joint this models (README, "Real hardware and calibration"): an M5 x 0.8 class 8.8 hex bolt (8 mm
-across flats) with a flat washer, through a 16 mm2 tinned-copper tube lug and a 20 x 6 mm copper bar into a
-self-clinching M5 nut pressed into the bar; marked 3 N*m, snug 1.5 N*m; a 1/4-inch drive click wrench of 2-10 N*m
-range, an inline torque transducer under its drive. At the grip's load mark 3 N*m is 14 N. The angles are
-estimated from the joint's stiffness; the sim's torques are 1/7 of the real ones (0.43 N*m set, 2 N at the grip)
-so the soft simulated arm can apply them.
+The real joint this models (README, "Real hardware and calibration"): an M5 x 0.8 class 8.8 hex bolt (ISO 4017,
+7.88 mm across flats, head 3.5 mm) with a flat washer (ISO 7089), through a 16 mm2 tinned-copper tube lug and a
+20 x 6 mm copper bar into a self-clinching M5 nut pressed into the bar; marked 3 N*m, snug 1.5 N*m; a 1/4-inch
+drive click wrench of 2-10 N*m range, an inline torque transducer under its drive, an 8 mm 6-point socket
+(ISO 2725-1 / ISO 1174-1 drive, opening 8.2 mm). At the grip's load mark 3 N*m is 14 N. The angles are estimated
+from the joint's stiffness; the sim's torques are 1/7 of the real ones (0.43 N*m set, 2 N at the grip) so the
+soft simulated arm can apply them. Steel-on-steel fit surfaces have mu 0.3 (zinc-plated/phosphated, lightly
+oiled); only the rubber grip is grippy.
 
 Run it:  inspect-robots run --embodiment yam_arena -E task=tasks/click-wrench-stop-at-click/click_wrench_stop_at_click.py \\
            -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \\
@@ -37,7 +44,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import mechkit as mk  # noqa: E402  (hinges with springs and friction, per-step rules, per-episode memory)
+import mechkit as mk  # noqa: E402  (hinges with springs and friction, hull pieces, per-step rules, memory)
 
 from yam_arena.demo import Waypoint  # noqa: E402
 from yam_arena.task_file import TABLE_TOP, Box  # noqa: E402
@@ -45,21 +52,60 @@ from yam_arena.task_file import TABLE_TOP, Box  # noqa: E402
 SCENE = "station"
 TOP = TABLE_TOP[SCENE]
 DEBUG = False  # sim only: print the wrench's events and a readout every control step while it is loaded
-VARIANT = "demo"  # sim runs: "demo"; "through" (pulls on to 45 deg); "short" (stops at 6 deg)
+VARIANT = "demo"  # sim runs: "demo"; "half" (left holds the socket 1.5 mm engaged while the right pulls);
+# "through" (pulls on to 45 deg); "short" (stops at 6 deg)
 
 # Frame: x forward from the arm bases, y left, z up, metres. Left arm base (0, +0.305, 0.75), right (0, -0.305).
 # -- the bolted joint: busbar on two insulators, a cable lug on it, the bolt's axis vertical -----------------------
-BX, BY = 0.330, -0.090  # bolt axis
+BX, BY = 0.240, 0.000  # bolt axis (within both arms' reach: the left seats the wrench, the right pulls)
 ZLUG = TOP + 0.033  # lug top (insulators 24 mm, bar 6 mm, lug palm 3 mm)
-SOCKET_H, SOCKET_W, HEAD_T = 0.016, 0.012, 0.014  # 8 mm socket, 1/4-inch drive
+# -- the bolt: its own free body on the thread hinge; the socket drives it only through the hex contact ------------
+HEAD_AF = 0.00788  # hex head across flats (ISO 4017 M5: 7.85-8.00 mm)
+HEAD_K = 0.0035  # head height
+HEAD_CH = 0.0012  # top chamfer: the lead-in a real head's chamfered crown gives the socket
+WASHER_T, WASHER_R = 0.001, 0.005  # flat washer ISO 7089-5 (10 mm OD)
+Z_W0 = 0.0002  # washer spawned a hair above the lug (no parasitic contact torque at rest)
+HEAD_TOP = Z_W0 + WASHER_T + HEAD_K  # local z of the head's top face in the bolt frame (frame origin at ZLUG)
+BOLT_KG = 0.030  # sim mass (the real bolt+washer is ~8 g; heavier for solver stability; the hinge sets dynamics)
+# -- the socket end of the wrench: a real female hex with chamfered mouth -----------------------------------------
+SOCK_AF = 0.0082  # socket opening across flats (8 mm 6-point socket, ISO 2725-1 range): 0.16 mm play per flat
+SOCK_R = 0.006  # socket body radius (12 mm OD)
+SOCKET_H = 0.025  # socket length
+CAV = 0.0060  # hex cavity depth to its ceiling (ISO 2725 sockets cut the hex well deeper than this head's
+# 3.5 mm; max engagement is still the head's 3.5 mm, rim on the washer, so 2.5 mm of wall stand above the
+# crown: the hanging wrench binds wall-on-corner, with no ceiling-on-chamfer ramp to cam it off)
+MOUTH_CH = 0.0008  # 45 deg mouth chamfer
 XDCR = (0.026, 0.040)  # inline rotary torque transducer between the drive and the socket: width, height
-ZH = ZLUG + 0.001 + SOCKET_H + XDCR[1] + HEAD_T / 2  # the wrench's centre plane (socket 1 mm clear of the lug)
-# -- the wrench: head (on the bolt) and handle (on the head's pivot), both turning about vertical axes -------------
-R_PIVOT = 0.045  # handle pivot, from the bolt axis
-R_GRIP = 0.215  # grip centre, from the bolt axis
+HEAD_T = 0.014  # ratchet head thickness
+SOCK_BOT = -(HEAD_T / 2 + XDCR[1] + SOCKET_H)  # local z of the socket's bottom rim in the wrench-head frame
+# -- the wrench: head (free body) and handle (on the head's pivot); it starts standing on its rest -----------------
+R_PIVOT = 0.045  # handle pivot, from the socket axis
+R_GRIP = 0.215  # grip centre, from the socket axis
 GRIP = (0.018, 0.070, 0.018)  # rubber grip: across (x at the start), along the handle, height
 TUBE = (0.014, 0.012)  # handle tube: width, height
-HEAD_KG, HANDLE_KG = 0.30, 0.10  # head with the transducer and socket; handle
+HEAD_KG, HANDLE_KG = 0.45, 0.10  # head end: ratchet head ~150 g + steel inline rotary transducer (26 x 26 x
+# 40 mm, ~210 g bare, ~280 g built) + socket ~20 g; handle. This puts the tool's balance point 39 mm from the
+# socket axis, on the neck, where the demo pinches it.
+SX, SY = 0.300, 0.060  # the socket axis at the start: the wrench stands socket-down on the bench
+SPAWN_YAW = -0.0332  # rad: the wrench rests turned about 1.9 deg clockwise (seen from above). The pinched
+# wrench yaws about +1.9 deg over the carry (run telemetry, repeatable), so starting it turned the other way
+# lands the flats lined up with the head's; the hex clocking play is only about 2 deg.
+_SPC, _SPS = math.cos(SPAWN_YAW), math.sin(SPAWN_YAW)
+
+
+def _spun(x, y):
+    """A point of the resting wrench (part frame) in the world, after the spawn yaw about the socket axis."""
+    return (SX + x * _SPC - y * _SPS, SY + x * _SPS + y * _SPC)
+ZH_START = TOP + 0.0005 - SOCK_BOT  # wrench centre plane at the start (socket rim a hair above the bench)
+ZH = ZLUG + Z_W0 + WASHER_T - SOCK_BOT  # wrench centre plane, socket fully seated (rim on the washer)
+MU_METAL = 0.3  # fit surfaces: zinc-plated or phosphated steel, lightly oiled
+# -- the seating gate ----------------------------------------------------------------------------------------------
+ENG_SEAT = 0.0028  # seated: at least this much of the head engaged (of ENG_MAX)
+ENG_MAX = HEAD_K  # 3.5 mm: rim on the washer, 2.5 mm of cavity wall above the head
+TILT_MAX = 8.0  # deg, socket axis off vertical
+COAX_MAX = 0.001  # m, socket axis off the bolt axis at the head
+SEAT_STEPS = 5  # seated held this many consecutive control steps to latch SEATED
+UNSEAT_TURN_DEG = 1.0  # the bolt turned this far while the socket was not seated: latched fail
 # -- the mechanism (forces at the grip are 1/7 of the real joint's, for the soft simulated arm) -------------------
 F0, F_CLICK, F_OVER = 1.0, 2.0, 4.6  # N at the grip: bolt starts to turn; the wrench's set torque; the bolt yields
 T0, T_CLICK, T_OVER = F0 * R_GRIP, F_CLICK * R_GRIP, F_OVER * R_GRIP  # N*m
@@ -82,29 +128,96 @@ DAMP = 0.02  # N*m*s/rad on both hinges (a quiet solver)
 
 STEEL, CHROME, RUBBER, RED = (0.30, 0.31, 0.33), (0.70, 0.72, 0.75), (0.08, 0.08, 0.09), (0.75, 0.12, 0.10)
 COPPER, TIN, EPOXY, PVC = (0.78, 0.46, 0.25), (0.80, 0.80, 0.78), (0.85, 0.80, 0.20), (0.10, 0.10, 0.10)
+BLOCK = (0.20, 0.20, 0.22)
+
+# -- hull geometry: hexes as real convex meshes (PhysX convex hulls, tight contact offsets) -----------------------
+_COS30 = math.cos(math.pi / 6)
+
+
+def _rings_mesh(rings):
+    """A watertight convex solid from horizontal outlines (counter-clockwise, equal counts), bottom to top:
+    (points, face counts, face indices) for mk.hull."""
+    n = len(rings[0][1])
+    m = len(rings)
+    pts = [(x, y, z) for z, ring in rings for x, y in ring]
+    counts = [n, n]
+    idx = list(range(n))[::-1] + [(m - 1) * n + k for k in range(n)]
+    for r in range(m - 1):
+        for k in range(n):
+            k2 = (k + 1) % n
+            counts.append(4)
+            idx += [r * n + k, r * n + k2, (r + 1) * n + k2, (r + 1) * n + k]
+    return pts, counts, idx
+
+
+def _hex(d_flat):
+    """A hexagon with its flats ``d_flat`` from the axis, flats facing k*60 deg (the bolt and socket agree)."""
+    rv = d_flat / _COS30
+    return [(rv * math.cos(math.pi / 6 + k * math.pi / 3), rv * math.sin(math.pi / 6 + k * math.pi / 3))
+            for k in range(6)]
+
+
+def _ngon(r, n=12):
+    return [(r * math.cos(2 * math.pi * k / n), r * math.sin(2 * math.pi * k / n)) for k in range(n)]
+
+
+def _bolt_pieces():
+    z1 = Z_W0 + WASHER_T
+    washer = _rings_mesh([(Z_W0, _ngon(WASHER_R)), (z1, _ngon(WASHER_R))])
+    crown = (HEAD_AF - 2 * 0.0007) / HEAD_AF  # chamfer: the top ring pulled in 0.7 mm radially over HEAD_CH
+    hx = _hex(HEAD_AF / 2)
+    head = _rings_mesh([(z1, hx), (z1 + HEAD_K - HEAD_CH, hx),
+                        (z1 + HEAD_K, [(x * crown, y * crown) for x, y in hx])])
+    return [mk.hull(*washer, color=CHROME, mu=MU_METAL), mk.hull(*head, color=STEEL, mu=MU_METAL)]
+
+
+def _socket_pieces():
+    """Six cavity walls (each convex: outer arc, radial sides, one hex flat with a 45 deg mouth chamfer) and the
+    solid above the cavity's ceiling."""
+    pieces = []
+    for k in range(6):
+        a = k * math.pi / 3
+
+        def ring(d):
+            rv = d / _COS30
+            outer = [(SOCK_R * math.cos(a + s), SOCK_R * math.sin(a + s)) for s in (-math.pi / 6, 0.0, math.pi / 6)]
+            inner = [(rv * math.cos(a + math.pi / 6), rv * math.sin(a + math.pi / 6)),
+                     (rv * math.cos(a - math.pi / 6), rv * math.sin(a - math.pi / 6))]
+            return outer + inner
+
+        wall = _rings_mesh([(SOCK_BOT, ring(SOCK_AF / 2 + MOUTH_CH)), (SOCK_BOT + MOUTH_CH, ring(SOCK_AF / 2)),
+                            (SOCK_BOT + CAV, ring(SOCK_AF / 2))])
+        pieces.append(mk.hull(*wall, color=CHROME, mu=MU_METAL))
+    body = _rings_mesh([(SOCK_BOT + CAV, _ngon(SOCK_R)), (SOCK_BOT + SOCKET_H, _ngon(SOCK_R))])
+    pieces.append(mk.hull(*body, color=CHROME, mu=MU_METAL))
+    return pieces
+
 
 kit = mk.Kit()
-_hy = R_PIVOT  # head frame: origin on the bolt axis at the centre plane, the handle along -y
-kit.part("wrench_head", (BX, BY, ZH), [
-    mk.box((0.032, 0.032, HEAD_T)),  # ratchet head
-    mk.box((XDCR[0], XDCR[0], XDCR[1]), at=(0, 0, -HEAD_T / 2 - XDCR[1] / 2), color=(0.15, 0.25, 0.45)),  # transducer
-    mk.box((SOCKET_W, SOCKET_W, SOCKET_H), at=(0, 0, -HEAD_T / 2 - XDCR[1] - SOCKET_H / 2), color=CHROME),  # socket
-    mk.box((0.016, _hy - 0.016, 0.012), at=(0, -(_hy + 0.016) / 2, 0)),  # neck to the pivot
+# the bolt: a free hex-head body on the thread hinge; +angle = clockwise seen from above = tightening
+kit.part("lug_bolt", (BX, BY, ZLUG), _bolt_pieces(), mass=BOLT_KG, color=STEEL)
+kit.hinge("bolt", None, "lug_bolt", anchor=(BX, BY, ZLUG), axis=(0, 0, -1), lower_deg=-30.0, upper_deg=90.0,
+          friction=T0, damping=DAMP)
+# the wrench head: socket + transducer + ratchet head + neck, one free body, standing socket-down on the bench
+_hy = R_PIVOT  # head frame: origin on the socket axis at the centre plane, the handle along -y
+kit.part("wrench_head", (SX, SY, ZH_START), yaw=SPAWN_YAW, boxes=[
+    *_socket_pieces(),
+    mk.box((XDCR[0], XDCR[0], XDCR[1]), at=(0, 0, -HEAD_T / 2 - XDCR[1] / 2), color=(0.15, 0.25, 0.45),
+           mu=MU_METAL),  # transducer
+    mk.box((0.032, 0.032, HEAD_T), mu=MU_METAL),  # ratchet head
+    mk.box((0.016, _hy - 0.016, 0.012), at=(0, -(_hy + 0.016) / 2, 0), mu=MU_METAL),  # neck to the pivot
     mk.box((0.010, 0.004, 0.003), at=(0, 0.004, HEAD_T / 2 + 0.0015), color=RED),  # direction lever
 ], mass=HEAD_KG, color=CHROME)
-# handle frame: origin on the pivot, the tube running out along -y
+# handle frame: origin on the pivot, the tube running out along -y; the grip rests on the bench block
 _tube_len = R_GRIP - GRIP[1] / 2 - R_PIVOT
-kit.part("handle", (BX, BY - R_PIVOT, ZH), [
-    mk.box((TUBE[0], _tube_len, TUBE[1]), at=(0, -_tube_len / 2, 0)),
+kit.part("handle", (*_spun(0.0, -R_PIVOT), ZH_START), yaw=SPAWN_YAW, boxes=[
+    mk.box((TUBE[0], _tube_len, TUBE[1]), at=(0, -_tube_len / 2, 0), mu=MU_METAL),
     mk.box(GRIP, at=(0, -(R_GRIP - R_PIVOT), 0), color=RUBBER),
     mk.box((0.012, 0.006, 0.012), at=(0, -(R_GRIP + GRIP[1] / 2 + 0.003 - R_PIVOT), 0), color=RED),  # lock knob
 ], mass=HANDLE_KG, color=STEEL)
-# the bolt: the head turns with it (socket on); +angle = clockwise seen from above = tightening
-kit.hinge("bolt", None, "wrench_head", anchor=(BX, BY, ZH), axis=(0, 0, -1), lower_deg=-30.0, upper_deg=90.0,
-          friction=T0, damping=DAMP)
 # the detent pivot: handle on the head, held in line by the armed detent spring, its stop at 6 deg
-kit.hinge("breakover", "wrench_head", "handle", anchor=(BX, BY - R_PIVOT, ZH), axis=(0, 0, -1), lower_deg=-1.0,
-          upper_deg=BREAK_DEG, stiffness=K_DETENT, rest_deg=0.0, damping=DAMP)
+kit.hinge("breakover", "wrench_head", "handle", anchor=(*_spun(0.0, -R_PIVOT), ZH_START), axis=(0, 0, -1),
+          lower_deg=-1.0, upper_deg=BREAK_DEG, stiffness=K_DETENT, rest_deg=0.0, damping=DAMP)
 
 FIXTURES = [
     Box("insulator_a", pos=(BX - 0.020, BY, TOP + 0.012), size=(0.020, 0.020, 0.024), color=EPOXY),
@@ -114,6 +227,12 @@ FIXTURES = [
     Box("lug_palm", pos=(BX + 0.003, BY, ZLUG - 0.0015), size=(0.018, 0.012, 0.003), color=TIN),
     Box("lug_barrel", pos=(BX + 0.023, BY, ZLUG + 0.001), size=(0.022, 0.008, 0.008), color=TIN),
     Box("cable", pos=(BX + 0.074, BY, ZLUG + 0.001), size=(0.080, 0.008, 0.008), color=PVC),
+    Box("bench_rest", pos=(*_spun(0.0, -R_GRIP), TOP + 0.0315), size=(0.030, 0.030, 0.063), color=BLOCK),  # grip block
+    # the handle rest: carries the grip while the wrench is on the bolt (a 0.55 kg transducer wrench cannot
+    # balance unattended on a 3.5 mm head - a fitter rests the handle on the work). Its top sits half a
+    # millimetre under the seated grip, and it spans the grip's whole pull arc, so the grip rides along it.
+    Box("handle_rest", pos=(BX - 0.031, BY - 0.211, TOP + (ZH - GRIP[2] / 2 - TOP - 0.0005) / 2),
+        size=(0.074, 0.040, ZH - GRIP[2] / 2 - TOP - 0.0005), color=BLOCK),
 ]
 OBJECTS = [*kit.objects(), *FIXTURES]
 
@@ -137,18 +256,19 @@ def _mem() -> dict:
     if m is None:
         m = mk.MEMORY[M] = {"n": 0, "init": False, "armed": True, "clicks": 0, "t_click": None, "peak": 0.0,
                             "over": False, "yielded": False, "loose": False, "still": True, "prev": None,
-                            "k_bolt": None}
+                            "k_bolt": None, "seat_steps": 0, "seated": False, "seated_now": False,
+                            "click_seated": False, "th0_unseat": None, "unseated_turn": False}
     return m
+
+
+def bolt_deg(objects) -> float:
+    """How far the bolt has turned past snug (deg, + = tightened), from the bolt body's pose on its hinge."""
+    return kit.q_deg(objects, "bolt")
 
 
 def _cw_deg(r) -> float:
     """Clockwise turn (deg, seen from above) of a rotation matrix about the vertical."""
     return -math.degrees(math.atan2(float(r[1, 0]), float(r[0, 0])))
-
-
-def bolt_deg(objects) -> float:
-    """How far the bolt has turned past snug (deg, + = tightened): the wrench head's turn in the world."""
-    return _cw_deg(kit._pose_T(objects, "wrench_head")[:3, :3])
 
 
 def break_deg(objects) -> float:
@@ -160,6 +280,26 @@ def break_deg(objects) -> float:
 def grip_point(objects) -> np.ndarray:
     """The grip's centre (world)."""
     return kit.point(objects, "handle", (0.0, -(R_GRIP - R_PIVOT), 0.0))
+
+
+def seat_geom(objects) -> tuple[float, float, float]:
+    """(engagement m, tilt deg, coaxial offset m): how far the socket is down over the head (head top face above
+    the socket's bottom rim), the socket axis off vertical, and the socket axis off the bolt axis at the head.
+    All from the two bodies' poses: geometry a reviewer could measure on a photo."""
+    tw = kit._pose_T(objects, "wrench_head")
+    tb = kit._pose_T(objects, "lug_bolt")
+    rim = tw[:3, :3] @ np.array([0.0, 0.0, SOCK_BOT]) + tw[:3, 3]
+    head_top_z = float(tb[2, 3] + tb[2, 2] * HEAD_TOP)  # the bolt only yaws: its top face stays horizontal
+    eng = head_top_z - float(rim[2])
+    tilt = math.degrees(math.acos(max(-1.0, min(1.0, float(tw[2, 2])))))
+    axis_pt = rim + tw[:3, 2] * max(eng, 0.0)  # the socket axis back up at the head's plane
+    coax = float(math.hypot(axis_pt[0] - tb[0, 3], axis_pt[1] - tb[1, 3]))
+    return eng, tilt, coax
+
+
+def seated_now(objects) -> bool:
+    eng, tilt, coax = seat_geom(objects)
+    return bool(eng >= ENG_SEAT and tilt <= TILT_MAX and coax <= COAX_MAX)
 
 
 def bolt_torque(deg: float) -> float:
@@ -206,7 +346,7 @@ def _released(st, margin=CLEAR_M) -> bool:
 
 
 def _rules(objects) -> None:
-    """One control step of the bolt (its rising turning torque) and the wrench's detent (break over, re-arm)."""
+    """One control step of the bolt (its rising turning torque), the seating gate and the wrench's detent."""
     m = _mem()
     sim = mk._EP.get("env") is not None
     m["n"] += 1
@@ -214,6 +354,24 @@ def _rules(objects) -> None:
         m["init"] = True
         _set_drive("breakover", target=0.0, stiffness=K_DETENT)
     th, d = bolt_deg(objects), break_deg(objects)
+    eng, tilt, coax = seat_geom(objects)
+    s_now = bool(eng >= ENG_SEAT and tilt <= TILT_MAX and coax <= COAX_MAX)
+    m["seated_now"] = s_now
+    if s_now:
+        m["seat_steps"] += 1
+        m["th0_unseat"] = None
+        if m["seat_steps"] >= SEAT_STEPS and not m["seated"]:
+            m["seated"] = True
+            _say(f"SEATED: engagement {eng * 1000:.2f} mm, tilt {tilt:.2f} deg, coax {coax * 1000:.2f} mm, "
+                 f"held {SEAT_STEPS} steps")
+    else:
+        m["seat_steps"] = 0
+        if m["th0_unseat"] is None:
+            m["th0_unseat"] = th
+        elif abs(th - m["th0_unseat"]) >= UNSEAT_TURN_DEG and not m["unseated_turn"]:
+            m["unseated_turn"] = True
+            _say(f"UNSEATED-TURN: bolt moved {th - m['th0_unseat']:+.2f} deg with the socket not seated "
+                 f"(engagement {eng * 1000:.2f} mm, tilt {tilt:.2f} deg, coax {coax * 1000:.2f} mm)")
     # the bolt: thread friction rising with the turn (the kit's friction hinge, its limit set from the angle)
     k = bolt_torque(th) / _STICK
     if m["k_bolt"] is None or abs(k - m["k_bolt"]) > 0.002 * k:
@@ -234,8 +392,9 @@ def _rules(objects) -> None:
     if m["armed"] and d >= CLICK_DEG:
         m["armed"], m["t_click"] = False, m["n"]
         m["clicks"] += 1
+        m["click_seated"] = m["click_seated"] or s_now
         _set_drive("breakover", target=0.0, stiffness=K_RETURN)
-        _say(f"CLICK {m['clicks']}: handle {d:.2f} deg, bolt {th:.2f} deg past snug")
+        _say(f"CLICK {m['clicks']}: handle {d:.2f} deg, bolt {th:.2f} deg past snug, seated {s_now}")
     elif not m["armed"] and d <= REARM_DEG and m["n"] - m["t_click"] >= REARM_STEPS:
         m["armed"] = True
         _set_drive("breakover", target=0.0, stiffness=K_DETENT)
@@ -253,71 +412,102 @@ def _rules(objects) -> None:
             tang = np.array([-math.cos(a), math.sin(a), 0.0])
             lead = float((t - g) @ tang)
             _say(f"R tcp ({t[0]:.4f},{t[1]:.4f},{t[2] - ZH:.4f}) lead {lead * 1000:.1f} mm; bolt {th:.2f} deg, "
-                 f"handle {d:.2f} deg, armed {m['armed']}, clicks {m['clicks']}, peak {m['peak']:.2f} "
-                 f"({peak_pct(m['peak']):.0f} %), over {m['over']} loose {m['loose']} still {m['still']}")
+                 f"handle {d:.2f} deg, eng {eng * 1000:.1f} mm tilt {tilt:.1f} coax {coax * 1000:.1f} mm "
+                 f"seated {s_now}/{m['seated']}, armed {m['armed']}, clicks {m['clicks']}, peak {m['peak']:.2f} "
+                 f"({peak_pct(m['peak']):.0f} %), over {m['over']} loose {m['loose']} unseat {m['unseated_turn']} "
+                 f"still {m['still']}")
 
 
 kit.on_step(_rules)
 
 
 def torqued(objects) -> bool:
-    """In tolerance: the wrench clicked, the peak torque was 90-110 % of the set torque (the bolt's tightest 3.9-5.9
-    deg past snug) and the bolt is still within 1 deg of its tightest."""
+    """In tolerance: the wrench clicked with the socket seated, the peak torque was 90-110 % of the set torque
+    (the bolt's tightest 3.9-5.9 deg past snug) and the bolt is still within 1 deg of its tightest."""
     m = _mem()
-    return bool(m["clicks"] > 0 and TOL_LO_DEG <= m["peak"] <= TOL_HI_DEG
+    return bool(m["clicks"] > 0 and m["click_seated"] and TOL_LO_DEG <= m["peak"] <= TOL_HI_DEG
                 and bolt_deg(objects) >= m["peak"] - SETBACK_DEG)
 
 
 def score(objects) -> float:
-    """0 (latched) if the peak torque ever went over 110 % of the set torque (the bolt more than 5.9 deg past snug;
-    it yields at 230 %, 17.7 deg) or the bolt was turned back more than 3 deg from its tightest. Otherwise 1.0 for
-    torqued (clicked, peak 90-110 %, the bolt still within 1 deg of its tightest), else 0.25 for turned on at least
-    1.5 deg (under-torqued). Halved unless both grippers are 10 cm outside the wrench's bounding box and the bolt
-    and grip are still."""
+    """0 (latched) if the bolt ever moved 1 deg or more while the socket was not seated (engagement under 2.8 mm,
+    tilt over 8 deg or 1 mm off axis), if the peak torque went over 110 % of the set torque (the bolt more than
+    5.9 deg past snug), or if the bolt was turned back more than 3 deg from its tightest. Otherwise 1.0 for
+    torqued (clicked while seated, peak 90-110 %, the bolt still within 1 deg of its tightest), else 0.25 for
+    turned on at least 1.5 deg (under-torqued), else 0.1 for the socket seated (5 steps) but the bolt not turned.
+    Halved unless both grippers are 10 cm outside the wrench's bounding box and the bolt and grip are still."""
     if mk._EP.get("env") is None and _mem().get("last") is not objects:  # offline (once per state); in sim the
         _mem()["last"] = objects  # per-step rule has already run
         _rules(objects)
     m = _mem()
-    if m["over"] or m["loose"]:
+    if m["over"] or m["loose"] or m["unseated_turn"]:
         return 0.0
     th = bolt_deg(objects)
-    base = 1.0 if torqued(objects) else (0.25 if th >= TURNED_DEG else 0.0)
+    base = 1.0 if torqued(objects) else (0.25 if th >= TURNED_DEG else (0.1 if m["seated"] else 0.0))
     clear = _released(objects["wrench_head"]) and _released(objects["handle"]) and m["still"]
     return round(base if clear else base / 2, 6)
 
 
 def success(objects) -> bool:
-    """Torqued in tolerance (clicked, peak 90-110 %, not backed off), let go and still; holds for 1 s."""
+    """Torqued in tolerance (seated click, peak 90-110 %, not backed off), let go and still; holds for 1 s."""
     return score(objects) >= 1.0 - 1e-9
 
 
 def distance(objects) -> float:
-    """2 if over-torqued or backed off; else the click still to come plus the turn still missing as a fraction."""
+    """3 on a latched fail; else the seating, the click and the turn still missing."""
     m = _mem()
-    if m["over"] or m["loose"]:
-        return 2.0
-    return float((m["clicks"] == 0) + max(0.0, TOL_LO_DEG - bolt_deg(objects)) / TOL_LO_DEG)
+    if m["over"] or m["loose"] or m["unseated_turn"]:
+        return 3.0
+    return float((not m["seated"]) + (m["clicks"] == 0)
+                 + max(0.0, TOL_LO_DEG - bolt_deg(objects)) / TOL_LO_DEG)
 
 
 # -- the scripted demo ------------------------------------------------------------------------------------------
-# Open loop from the scene's geometry and the wrench's set torque; right arm only, the left stays parked. The
-# fingers, opened 36 mm, straddle the 18 mm grip (turned so they close across the handle) and the hand pulls the
-# grip round the bolt toward the robot, its far pad on the grip (9 mm play). Under load the arm lags its command
-# (sim runs: about 3 deg, 11 mm, at 2 N), so the wrench clicks with the hand commanded about 11.3 deg round; the
-# handle's 6 deg of free swing then takes up the hand's travel and the lag it lets go of, and the bolt would not
-# turn on again until about 14 deg. The hand stops at 13.5 deg, eases back 1.5 deg, opens, lifts 7 cm and moves
-# away to park, over 10 cm from the wrench, before the success hold starts.
+# Open loop from the scene's geometry and the wrench's set torque. The LEFT arm does the seating: it pinches the
+# wrench's steel neck (16 mm across, just outboard of the head, near the tool's centre of mass), lifts the wrench
+# off its rest, carries it over the bolt (gripping at the tool's balance point so it hangs level, aiming off
+# by the wrist's measured settle, SEAT_AIM; the rest pose's SPAWN_YAW cancels the carry's yaw drift so the
+# flats arrive lined up), lowers it until the chamfers meet and the hex is home - never pushing on, which
+# would pitch the wrench and skate the socket off the head - sets the handle down on the HANDLE REST (a
+# 0.55 kg transducer wrench cannot balance unattended on a 3.5 mm bolt head: the hanging moment cams the hex
+# fit over the head's corner, in the sim as on the bench, so the scene carries the grip the way a fitter
+# rests a wrench on the work), opens and parks. The tool now stands bolt-plus-rail, a stable tripod. The
+# RIGHT arm straddles the grip (pads 36 mm apart round the 18 mm grip: side pushes only, so no finger moment
+# ever reaches the handle and the breakover detent carries the full drive torque, exactly like a hand pulling
+# at the load mark; rail friction acts at the same radius as the pull and cancels out of the detent's load).
+# It pulls the grip round the bolt toward the robot; the spec angle (4.9 deg), the breakover deflection
+# (1.5 deg), the straddle slack (~2.4 deg) and the arm's lag under load put the click at a commanded
+# ~11-13 deg. The hand stops at 15 deg - within the click + the handle's 6 deg free swing, so the bolt is
+# never driven past the click - eases back 1.5 deg, opens, lifts and parks, over 10 cm from the wrench; the
+# torqued wrench stays seated on the bolt with its grip on the rest through the success hold.
 
 TIP = 0.013  # pad tips below the TCP
-PAD_DOWN = 0.006  # pad tips this far below the grip's centre (3 mm above its underside)
-STRADDLE = -0.018  # finger target: pads 36 mm apart round the 18 mm grip (9 mm play each side)
+PAD_DOWN = 0.004  # right grip: pad tips this far below the grip's centre plane
+PAD_DOWN_L = 0.007  # left pinch: pads a little lower round the 12 mm neck (full-height contact patch)
+R_NECK = 0.040  # the left pinch point: the tool's balance point (the whole wrench's centre of mass is 39 mm
+# from the socket axis, measured from the sim bodies' COMs), still on the neck. Pinched at the balance point
+# the handle's weight puts no pitch moment on the pinch, so the carried wrench hangs level and the socket
+# tracks the hand - the key to seating a head-heavy tool with a compliant wrist.
+NECK_CLOSE = -0.004  # fingers closed 8 mm inside the 16 mm neck: about 20 N a finger, a firm pitch-proof pinch
+SEAT_AIM = (0.0043, -0.0017)  # carry aim: the wrist settles this far off the commanded point under the
+# 0.55 kg tool (run telemetry, repeatable); the bolt-side waypoints aim the same distance the other way so
+# the socket arrives centred over the head and the chamfers take it from there
+SAG_Z = 0.004  # the laden wrist also rides this far below the commanded height while the tool hangs free
+# (run telemetry: the hex seated fully at a commanded rim height of +4 mm); the seat heights command that
+# much high so the rim is set down on the washer, never pressed into it - pressing pitches the tool and
+# cams the socket off the head
+STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip (9 mm play each side). The
+# straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
+# the wrist's stiffness straight past the breakover (measured: the detent never fires through a pinch).
 WIDE = -0.030
-PULL_DEG = {"demo": 13.5, "through": 45.0, "short": 6.0}
-PULL_S = {"demo": 5.0, "through": 12.0, "short": 3.0}
+PULL_DEG = {"demo": 15.0, "half": 15.0, "through": 45.0, "short": 6.0}
+PULL_S = {"demo": 6.0, "half": 6.0, "through": 12.0, "short": 3.0}
 EASE_DEG = 1.5
 STEP_DEG = 1.5
-PARK = (0.150, -0.300, TOP + 0.200)
-LIFT = 0.070  # straight up off the grip after letting go, before moving away to PARK
+PARK_L = (0.150, 0.250, 0.950)
+PARK_R = (0.150, -0.300, TOP + 0.200)
+L_OPEN = -0.04695
+LIFT = 0.070  # straight up off the grip after letting go, before moving away to PARK_R
 
 
 def _grip_xy(deg):
@@ -326,10 +516,45 @@ def _grip_xy(deg):
 
 
 def demo():
-    """Straddle the grip, pull it round the bolt until just past where the wrench clicks, ease off, let go, lift
-    clear and park."""
-    tz = ZH - PAD_DOWN + TIP
-    R = [Waypoint(2.0, PARK, WIDE, "start", math.pi / 2)]
+    """Left: pick the wrench off its rest by the neck, carry it, seat the socket on the bolt with the grip
+    coming down on the handle rest, let go and park. Right: straddle the grip, pull it round the bolt until
+    just past where the wrench clicks, ease off, open, lift clear and park; the torqued wrench stays on the
+    bolt with its grip on the rest."""
+    tzs = ZH_START - PAD_DOWN_L + TIP  # TCP at the neck, wrench on its rest
+    tzb = ZH - PAD_DOWN_L + TIP  # TCP with the socket fully seated
+    tzr = ZH - PAD_DOWN + TIP  # TCP at the grip, handle level, socket seated
+    nx, ny = _spun(0.0, -R_NECK)
+    bxn, byn = BX + SEAT_AIM[0], BY - R_NECK + SEAT_AIM[1]
+    L = []
+
+    def lw(dur, pos, f, label, yaw=-math.pi / 2):
+        L.append(Waypoint(dur, pos, f, label, yaw))
+
+    lw(2.0, (nx, ny, tzs + 0.055), WIDE, "over the wrench's neck")
+    lw(1.5, (nx, ny, tzs), WIDE, "down round the neck")
+    lw(0.4, (nx, ny, tzs), WIDE, "settle")
+    lw(0.8, (nx, ny, tzs), NECK_CLOSE, "pinch the neck")
+    lw(1.5, (nx, ny, tzs + 0.045), NECK_CLOSE, "lift the wrench off its rest")
+    yb = -math.pi / 2
+    zmeet = tzb + 0.004 + SAG_Z  # the socket's mouth at the head's chamfered crown
+    zhome = tzb + 0.0005 + SAG_Z  # the hex home, the rim a hair over the washer: no push
+    zhalf = tzb + 0.002 + SAG_Z  # the half variant's hold: about 1.5 mm engaged, short of the 2.8 mm gate
+    lw(3.0, (bxn, byn, tzb + 0.020), NECK_CLOSE, "carry it over the bolt", yb)
+    lw(1.2, (bxn, byn, zmeet + 0.004), NECK_CLOSE, "socket over the head", yb)
+    lw(1.5, (bxn, byn, zmeet), NECK_CLOSE, "lower: the chamfers meet", yb)
+    if VARIANT == "half":  # the seating ablation: hold the socket 1.5 mm engaged while the right arm pulls
+        lw(2.0, (bxn, byn, zhalf), NECK_CLOSE, "lower part way: about 1.5 mm engaged", yb)
+        lw(1.0, (bxn, byn, zhalf), NECK_CLOSE, "hold half-seated", yb)
+    else:
+        lw(2.0, (bxn, byn, zhome), NECK_CLOSE, "ease the hex home: no overdrive, no side load", yb)
+        lw(0.5, (bxn, byn, zhome), NECK_CLOSE, "hold: the grip is down on the handle rest", yb)
+        lw(0.6, (bxn, byn, zhome), WIDE, "open: the tool stands on the bolt and the rest", yb)
+        lw(1.0, (bxn, byn, zhome + 0.048), WIDE, "lift clear", yb)
+        L.append(Waypoint(2.0, PARK_L, L_OPEN, "park", 0.0))
+    t_ready = sum(w.duration for w in L)
+
+    R = [Waypoint(2.0, PARK_R, WIDE, "start", math.pi / 2),
+         Waypoint(t_ready - 2.0, PARK_R, WIDE, "wait for the left arm", math.pi / 2)]
 
     def w(dur, deg, z, f, label):
         x, y = _grip_xy(deg)
@@ -338,28 +563,28 @@ def demo():
     def arc(a, b, dur, label):
         n = max(1, math.ceil(abs(b - a) / STEP_DEG))
         for k in range(1, n + 1):
-            w(dur / n, a + (b - a) * k / n, tz, STRADDLE, label)
+            w(dur / n, a + (b - a) * k / n, tzr, STRADDLE, label)
 
     pull = PULL_DEG[VARIANT]
-    w(2.0, 0.0, tz + 0.060, STRADDLE, "over the grip, fingers part open")
-    w(1.5, 0.0, tz, STRADDLE, "down round the grip")
-    w(0.5, 0.0, tz, STRADDLE, "settle")
+    w(2.0, 0.0, tzr + 0.060, STRADDLE, "over the grip, fingers part open")
+    w(1.5, 0.0, tzr, STRADDLE, "down round the grip")
+    w(0.5, 0.0, tzr, STRADDLE, "settle")
     if VARIANT == "through":  # the naive ablation: a pause where the demo stops, then on round to 45 deg
         arc(0.0, PULL_DEG["demo"], PULL_S["demo"], "pull the grip round, steadily")
-        w(1.0, PULL_DEG["demo"], tz, STRADDLE, "pause where the demo stops")
+        w(1.0, PULL_DEG["demo"], tzr, STRADDLE, "pause where the demo stops")
         arc(PULL_DEG["demo"], pull, PULL_S[VARIANT], "pull on through the click")
     else:
         arc(0.0, pull, PULL_S[VARIANT], "pull the grip round, steadily")
-    w(0.6, pull, tz, STRADDLE, "stop: it clicked")
-    w(0.6, pull - EASE_DEG, tz, STRADDLE, "ease off")
-    w(0.5, pull - EASE_DEG, tz, WIDE, "open the fingers")
-    w(1.0, pull - EASE_DEG, tz + LIFT, WIDE, "lift clear")
-    R.append(Waypoint(2.0, PARK, WIDE, "move away (over 10 cm from the wrench)", math.pi / 2))
-    R.append(Waypoint(2.5, PARK, WIDE, "wait", math.pi / 2))
+    w(0.6, pull, tzr, STRADDLE, "stop: it clicked")
+    w(0.6, pull - EASE_DEG, tzr, STRADDLE, "ease off")
+    w(0.5, pull - EASE_DEG, tzr, WIDE, "open the fingers")
+    w(1.0, pull - EASE_DEG, tzr + LIFT, WIDE, "lift clear")
+    R.append(Waypoint(2.0, PARK_R, WIDE, "move away (over 10 cm from the wrench)", math.pi / 2))
+    R.append(Waypoint(2.5, PARK_R, WIDE, "wait", math.pi / 2))
     total = sum(x.duration for x in R)
-    left = [Waypoint(2.0, (0.150, 0.250, 0.950), -0.04695, "park"),
-            Waypoint(total - 2.0, (0.150, 0.250, 0.950), -0.04695, "park")]
-    return {"left": left, "right": R}
+    last = L[-1]
+    L.append(Waypoint(total - t_ready, last.pos, last.finger, "wait", last.yaw))
+    return {"left": L, "right": R}
 
 
 # -- offline self-test ------------------------------------------------------------------------------------------
@@ -370,7 +595,16 @@ def self_test():
     global _TEST_TCPS
     on = (*_grip_xy(0.0), ZH - PAD_DOWN + TIP)  # a gripper still round the grip
 
-    def state(th, d):
+    def state(th, d, eng=0.0034, tilt=0.0, coax=0.0):
+        """The wrench posed on (or over) the bolt with ``eng`` engagement, turned with the bolt to ``th``."""
+        rim_z = ZLUG + HEAD_TOP - eng
+        r = mk.axis_angle((1, 0, 0), math.radians(tilt)) @ mk.axis_angle((0, 0, -1), math.radians(th))
+        pos = (BX + coax, BY, rim_z - SOCK_BOT)
+        return kit.fake_states(q={"bolt": math.radians(th), "breakover": math.radians(d)},
+                               moved={"wrench_head": (np.array(pos), mk.mat_to_quat(r))})
+
+    def bench(th=0.0, d=0.0):
+        """The wrench untouched on its bench rest."""
         return kit.fake_states(q={"bolt": math.radians(th), "breakover": math.radians(d)})
 
     def lin(a, b, n=8):
@@ -388,73 +622,110 @@ def self_test():
     def let_go(th, d0=BREAK_DEG, n=6):  # load off: the handle springs back in line from d0, then all still
         return [(th, d) for d in lin(d0, 0.0, 4)[1:]] + [(th, 0.0)] * n
 
+    APPROACH = [("bench", 0.0, 0.0, 0.0), ("hover", 0.0, 0.0, -0.010), ("lower", 0.0, 0.0, 0.0010),
+                ("lower", 0.0, 0.0, 0.0022)] + [("seat", 0.0, 0.0, 0.0034)] * (SEAT_STEPS + 1)
+
+    def frames(seq, eng=0.0034):  # torque frames (th, d), played out seated after the approach
+        return APPROACH + [("seat", th, d, eng) for th, d in seq]
+
     s = SPEC_DEG
-    good = pull(0.0, s) + click(s + 0.1) + let_go(s + 0.1)
-    cases = {  # name: (frames (bolt deg, handle deg), TCPs at the end, score)
-        "start": ([(0.0, 0.0)], [], 0.0),
-        "pulled until it clicked, stopped, let go (demo)": (good, [], 1.0),
+    good = frames(pull(0.0, s) + click(s + 0.1) + let_go(s + 0.1))
+    cases = {  # name: (frames, TCPs at the end, score)
+        "on its bench rest, untouched": ([("bench", 0.0, 0.0, 0.0)] * 5, [], 0.0),
+        "carried over the bolt, hovering, never seated": (APPROACH[:3], [], 0.0),
+        "seated and left alone (no turn, no click)": (frames([]), [], 0.1),
+        "seated and left alone, hand still on the grip": (frames([]), [on], 0.05),
+        "seated, pulled until it clicked, stopped, let go (demo)": (good, [], 1.0),
         "the same, the hand still on the grip": (good, [on], 0.5),
         "the same, the open hand 5 cm above the grip": (good, [(on[0], on[1], on[2] + 0.05)], 0.5),
-        "the same, the grip still swinging back at the end": (pull(0.0, s) + click(s + 0.1) + [(s + 0.1, 3.0)],
-                                                              [], 0.5),
-        "stopped short: bolt 3.5 deg on, no click (under-torqued)": (pull(0.0, 3.5) + let_go(3.5, load(3.5)), [], 0.25),
-        "pulled on through the click to 20 deg (yielded)": (pull(0.0, s) + click(s + 0.1)
-                                                            + [(t, BREAK_DEG) for t in lin(s + 0.1, 20.0)]
-                                                            + let_go(20.0), [], 0.0),
-        "naive: swung the handle round 80 deg": (pull(0.0, s) + click(s) + [(t, BREAK_DEG) for t in lin(s, 80.0)]
-                                                 + let_go(80.0), [], 0.0),
-        "clicked, springs back 0.5 deg as the hand lets go": (pull(0.0, s) + click(s + 0.1) + let_go(s - 0.4), [],
-                                                               1.0),
-        "pulled on 0.8 deg past the click (106 %, inside the tolerance)": (pull(0.0, s) + click(s)
-                                                                           + [(t, BREAK_DEG) for t in lin(s, s + 0.8)]
-                                                                           + let_go(s + 0.8), [], 1.0),
-        "pulled on 1.2 deg past the click (112 %, over the tolerance)": (pull(0.0, s) + click(s)
-                                                                         + [(t, BREAK_DEG) for t in lin(s, s + 1.2)]
-                                                                         + let_go(s + 1.2), [], 0.0),
-        "pulled on 4 deg past the click (128 %)": (pull(0.0, s) + click(s) + [(t, BREAK_DEG) for t in lin(s, s + 4.0)]
-                                                   + let_go(s + 4.0), [], 0.0),
-        "pulled on to 14.5 deg, just under the yield (197 %)": (pull(0.0, s) + click(s)
-                                                                + [(t, BREAK_DEG) for t in lin(s, 14.5)]
-                                                                + let_go(14.5), [], 0.0),
-        "over by 1.2 deg, then eased back into the band (latched)": (pull(0.0, s) + click(s)
-                                                                     + [(t, BREAK_DEG) for t in lin(s, s + 1.2)]
-                                                                     + [(t, -1.0) for t in lin(s + 1.2, s + 0.4)]
-                                                                     + let_go(s + 0.4, -1.0), [], 0.0),
-        "clicked, then backed off to 1.5 deg (torque undone)": (good + [(t, -1.0) for t in lin(s + 0.1, 1.5)]
-                                                                + let_go(1.5, -1.0), [], 0.0),
-        "clicked, then eased back 2 deg (now under the torque)": (good + [(t, -1.0) for t in lin(s + 0.1, s - 1.9)]
-                                                                  + let_go(s - 1.9, -1.0), [], 0.25),
-        "loosened from snug: turned 4 deg the wrong way": ([(t, -1.0) for t in lin(0.0, -4.0)] + let_go(-4.0, -1.0),
-                                                           [], 0.0),
-        "turned 4.5 deg by the head, no click (torque not read)": ([(t, 0.0) for t in lin(0.0, 4.5)]
-                                                                   + let_go(4.5, 0.0), [], 0.25),
-        "turned 8 deg by the head, no click (126 %, over)": ([(t, 0.0) for t in lin(0.0, 8.0)] + let_go(8.0, 0.0),
-                                                             [], 0.0),
-        "clicked, let go, clicked again to check (bolt 5.3 deg)": (good + pull(s + 0.1, s + 0.4) + click(s + 0.4)
-                                                                   + let_go(s + 0.4), [], 1.0),
-        "a jerk kinks the handle with the bolt only 2 deg on": (pull(0.0, 2.0) + click(2.0) + let_go(2.0), [],
-                                                                0.25),
-        "untouched, hand resting on the grip": ([(0.0, 0.0)] * 5, [on], 0.0),
+        "the same, the grip still swinging back at the end": (frames(pull(0.0, s) + click(s + 0.1)
+                                                                     + [(s + 0.1, 3.0)]), [], 0.5),
+        "half-seated (1.5 mm): the pull drags the bolt 2 deg": (APPROACH[:4] + [("seat", t, 0.5, 0.0015)
+                                                                                for t in lin(0.0, 2.0)], [], 0.0),
+        "socket 5 mm off axis, pushed and twisted 1.5 deg": (APPROACH[:3] + [("miss", t, 0.0, 0.003, 0.0, 0.005)
+                                                                             for t in lin(0.0, 1.5)], [], 0.0),
+        "seated but tilted 10 deg, bolt dragged 1.5 deg": (APPROACH[:3] + [("tilt", t, 0.0, 0.0030, 10.0)
+                                                                           for t in lin(0.0, 1.5)], [], 0.0),
+        "stopped short: bolt 3.5 deg on, no click (under-torqued)": (frames(pull(0.0, 3.5)
+                                                                            + let_go(3.5, load(3.5))), [], 0.25),
+        "pulled on through the click to 20 deg (yielded)": (frames(pull(0.0, s) + click(s + 0.1)
+                                                                   + [(t, BREAK_DEG) for t in lin(s + 0.1, 20.0)]
+                                                                   + let_go(20.0)), [], 0.0),
+        "naive: swung the handle round 80 deg": (frames(pull(0.0, s) + click(s)
+                                                        + [(t, BREAK_DEG) for t in lin(s, 80.0)]
+                                                        + let_go(80.0)), [], 0.0),
+        "clicked, springs back 0.5 deg as the hand lets go": (frames(pull(0.0, s) + click(s + 0.1)
+                                                                     + let_go(s - 0.4)), [], 1.0),
+        "pulled on 0.8 deg past the click (106 %, inside the tolerance)": (
+            frames(pull(0.0, s) + click(s) + [(t, BREAK_DEG) for t in lin(s, s + 0.8)] + let_go(s + 0.8)), [], 1.0),
+        "pulled on 1.2 deg past the click (112 %, over the tolerance)": (
+            frames(pull(0.0, s) + click(s) + [(t, BREAK_DEG) for t in lin(s, s + 1.2)] + let_go(s + 1.2)), [], 0.0),
+        "pulled on 4 deg past the click (128 %)": (
+            frames(pull(0.0, s) + click(s) + [(t, BREAK_DEG) for t in lin(s, s + 4.0)] + let_go(s + 4.0)), [], 0.0),
+        "pulled on to 14.5 deg, just under the yield (197 %)": (
+            frames(pull(0.0, s) + click(s) + [(t, BREAK_DEG) for t in lin(s, 14.5)] + let_go(14.5)), [], 0.0),
+        "over by 1.2 deg, then eased back into the band (latched)": (
+            frames(pull(0.0, s) + click(s) + [(t, BREAK_DEG) for t in lin(s, s + 1.2)]
+                   + [(t, -1.0) for t in lin(s + 1.2, s + 0.4)] + let_go(s + 0.4, -1.0)), [], 0.0),
+        "clicked, then backed off to 1.5 deg (torque undone)": (
+            good + [("seat", t, -1.0, 0.0034) for t in lin(s + 0.1, 1.5)]
+            + [("seat", t, d, 0.0034) for t, d in let_go(1.5, -1.0)], [], 0.0),
+        "clicked, then eased back 2 deg (now under the torque)": (
+            good + [("seat", t, -1.0, 0.0034) for t in lin(s + 0.1, s - 1.9)]
+            + [("seat", t, d, 0.0034) for t, d in let_go(s - 1.9, -1.0)], [], 0.25),
+        "loosened from snug: turned 4 deg the wrong way": (frames([(t, -1.0) for t in lin(0.0, -4.0)]
+                                                                  + let_go(-4.0, -1.0)), [], 0.0),
+        "turned 4.5 deg by the head, no click (torque not read)": (frames([(t, 0.0) for t in lin(0.0, 4.5)]
+                                                                          + let_go(4.5, 0.0)), [], 0.25),
+        "turned 8 deg by the head, no click (126 %, over)": (frames([(t, 0.0) for t in lin(0.0, 8.0)]
+                                                                    + let_go(8.0, 0.0)), [], 0.0),
+        "clicked, let go, clicked again to check (bolt 5.3 deg)": (good + [("seat", t, d, 0.0034) for t, d in
+                                                                           pull(s + 0.1, s + 0.4)]
+                                                                   + [("seat", t, d, 0.0034) for t, d in
+                                                                      click(s + 0.4) + let_go(s + 0.4)], [], 1.0),
+        "a jerk kinks the handle with the bolt only 2 deg on": (frames(pull(0.0, 2.0) + click(2.0)
+                                                                       + let_go(2.0)), [], 0.25),
+        "clicked, then the wrench lifted back off (bolt stays tight)": (good + [("hover", s + 0.1, 0.0, -0.010)] * 3,
+                                                                        [], 1.0),
     }
+
+    def to_state(f):
+        tag, th, d, eng = f[0], f[1], f[2], f[3]
+        if tag == "bench":
+            return bench(th, d)
+        tilt = f[4] if len(f) > 4 else 0.0
+        coax = f[5] if len(f) > 5 else 0.0
+        return state(th, d, eng=eng, tilt=tilt, coax=coax)
+
+    def norm(fr):  # frames may be (tag, th, d, eng[, tilt[, coax]]) or plain torque frames (th, d)
+        return [f if isinstance(f[0], str) else ("seat", f[0], f[1], 0.0034) for f in fr]
+
     try:
-        assert abs(break_deg(state(3.0, 2.0)) - 2.0) < 1e-6 and abs(bolt_deg(state(3.0, 2.0)) - 3.0) < 1e-6
-        for name, (frames, tcps, want) in cases.items():
+        st = state(3.0, 2.0)
+        assert abs(break_deg(st) - 2.0) < 1e-6 and abs(bolt_deg(st) - 3.0) < 1e-6
+        eng, tilt, coax = seat_geom(st)
+        assert abs(eng - 0.0034) < 1e-6 and tilt < 1e-6 and coax < 1e-6, (eng, tilt, coax)
+        assert not seated_now(state(0.0, 0.0, eng=0.0015)) and seated_now(state(0.0, 0.0, eng=0.0030))
+        assert not seated_now(state(0.0, 0.0, tilt=10.0)) and not seated_now(state(0.0, 0.0, coax=0.005))
+        assert not seated_now(bench())
+        for name, (fr, tcps, want) in cases.items():
+            fr = norm(fr)
             mk.new_episode()
             _TEST_TCPS = []
-            for th, d in frames[:-1]:
-                score(state(th, d))
+            for f in fr[:-1]:
+                score(to_state(f))
             _TEST_TCPS = list(tcps)
-            st = state(*frames[-1])
+            st = to_state(fr[-1])
             got = score(st)
             assert abs(got - want) < 1e-9, (name, got, want, _mem())
             assert success(st) == (want >= 1.0), name
         mk.new_episode()
         _TEST_TCPS = []
-        for th, d in good:
-            score(state(th, d))
+        for f in norm(good):
+            score(to_state(f))
         clicks = _mem()["clicks"]
         mk.new_episode()
-        assert score(state(0.0, 0.0)) == 0.0 and _mem()["clicks"] == 0, "a new trial forgets the last one"
+        assert score(bench()) == 0.0 and _mem()["clicks"] == 0, "a new trial forgets the last one"
     finally:
         mk.new_episode()
         _TEST_TCPS = None
@@ -472,7 +743,8 @@ if __name__ == "__main__":
     print(f"scoring: {n} cases pass (set torque {T_CLICK:.2f} N*m = {F_CLICK:.1f} N at the grip, reached "
           f"{SPEC_DEG:.1f} deg past snug; tolerance 90-110 % = {TOL_LO_DEG:.1f}-{TOL_HI_DEG:.1f} deg; yield "
           f"{T_OVER:.2f} N*m = {F_OVER:.1f} N at {YIELD_DEG:.1f} deg; real joint x{1 / TORQUE_SCALE:.1f}: "
-          f"{REAL_SET_NM:.0f} N*m set)")
+          f"{REAL_SET_NM:.0f} N*m set; seated = {ENG_SEAT * 1000:.1f} of {ENG_MAX * 1000:.1f} mm engaged, "
+          f"tilt <= {TILT_MAX:.0f} deg, coax <= {COAX_MAX * 1000:.0f} mm)")
     task = load(__file__)
     hz = 20.0
     for arm, waypoints in task.demo().items():

@@ -1,9 +1,34 @@
-# Torque a busbar lug bolt with a click-type torque wrench
+# Seat a click-type torque wrench on a busbar lug bolt and torque it to the click
 
-Instruction given to the policy: `Torque the lug bolt with the torque wrench on it. The wrench is already set to the bolt's torque. Then let go.`
+Instruction given to the policy: `Pick up the torque wrench standing on its rest, seat its socket fully on the lug bolt, and torque the bolt with it. The wrench is already set to the bolt's torque. Then let go.`
 
 Files: `task.json`, `click_wrench_stop_at_click.py` (scene, `success()`, partial-credit `score()`, the scripted `demo()` and an offline
-self-test), `README.md`.
+self-test), `mechkit.py` (helper), `README.md`.
+
+## Response to review
+
+**TK-VCSWCB — "Robot should be responsible for seating the torque wrench."** Done; the wrench no longer starts
+on the bolt. It stands socket-down on the bench 8.5 cm from the joint, its grip on a rest block, and the robot
+does the whole job: the left arm pinches the wrench's neck at the tool's centre of mass, lifts it off the rest,
+carries it over the joint and seats the socket on the bolt head, then lets go and parks; the right arm then
+pulls the grip to the click as before. The seating is physical, not scripted bookkeeping: the bolt is now its
+own free body, driven only through a real hex contact (ISO 4017 M5 head, 7.88 mm across flats, chamfered crown,
+inside an 8.2 mm 6-point socket cavity built from convex meshes, 0.16 mm clearance per flat, 0.8 mm 45-degree
+mouth chamfer, steel-on-steel friction 0.3 per part). The scorer gates on it: "seated" is measured from the two
+bodies' poses (at least 2.8 mm of the head's 3.5 mm engaged, within 8 degrees of square and 1 mm of coaxial,
+held 5 control steps), the click only counts if the socket is seated when the detent breaks over, and **any
+bolt movement of 1 degree or more while the socket is not seated is a latched 0** (half-seated torquing, camming
+the socket, dragging the head). A control run ("half" variant: the left arm holds the socket only 1.5 mm
+engaged while the right pulls) shows that latch firing. Seating credit alone is 0.1.
+
+**TK-NP6A85 — scoring and specification** (kept from the first revision, unchanged here): full credit now
+requires the peak torque inside the joint's documented 90-110 % tolerance — the old 1.0 at nearly twice the
+setting is a latched 0 (anything past 110 %), and the "pull on through the click" ablation scores 0. The bolt
+(M5 x 0.8 x 16 class 8.8, ISO 4017 head geometry), washer (ISO 7089), lug (16 mm2 tube lug, M5 hole), cable
+(8 mm over PVC), busbar (20 x 6 mm copper), wrench (ISO 6789-1 Type II class A, 1/4-inch drive, 2-10 N*m,
+checked per ISO 6789-2), socket (8 mm 6-point, ISO 2725-1, ISO 1174-1 drive) and the snug and torque-angle
+calibration are specified below with how a real trial is verified (inline peak-hold transducer). The demo
+releases the wrench, parks both arms over 10 cm clear and holds success within the run limit.
 
 ## Environment
 
@@ -16,17 +41,29 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
 
 - **Joint:** a 20 x 6 mm copper flat bar on two glass-polyester standoff insulators; a tinned-copper tube lug for
   16 mm2 (about 6 AWG) cable with an M5 hole (palm 18 x 12 x 3 mm, barrel 8 mm across), crimped on a flexible copper
-  cable, black PVC, 8 mm over the insulation; an M5 x 0.8 x 16 mm class 8.8 zinc-plated steel hex bolt (8 mm across
-  flats) with a flat steel washer, through the lug palm and the bar into an M5 self-clinching nut pressed into the bar.
+  cable, black PVC, 8 mm over the insulation; an M5 x 0.8 x 16 mm class 8.8 zinc-plated steel hex bolt (ISO 4017:
+  head nominally 8 mm across flats, 7.85-8.00 mm tolerance band, the sim uses 7.88 mm; head 3.5 mm high with the
+  standard chamfered crown) with an ISO 7089 flat steel washer (10 mm OD, 1 mm), through the lug palm and the bar
+  into an M5 self-clinching nut pressed into the bar.
 - **Specified torque: 3 N*m, marked on the lug and on the panel label** (the label is not modelled). Tolerance
   90-110 % (2.7-3.3 N*m).
 - **Wrench:** an adjustable click-type torque wrench, ISO 6789-1 Type II class A (permissible deviation +/-6 % under
-  10 N*m), 1/4-inch square drive, 2-10 N*m range, about 26 cm long; the grip's load mark 21.5 cm from the drive axis,
-  so 3 N*m takes **14 N at the load mark** (snug 7 N; the tolerance's top 15.3 N). Check it at 3 N*m on a torque-wrench
-  tester before the trials and calibrate it as ISO 6789-2 asks.
+  10 N*m), 1/4-inch square drive (ISO 1174-1), 2-10 N*m range, about 26 cm long; the grip's load mark 21.5 cm from
+  the drive axis, so 3 N*m takes **14 N at the load mark** (snug 7 N; the tolerance's top 15.3 N). Check it at
+  3 N*m on a torque-wrench tester before the trials and calibrate it as ISO 6789-2 asks.
+- **Socket:** an 8 mm 6-point socket, 1/4-inch drive, ISO 2725-1 dimensions: 25 mm long, 12 mm OD, hex opening
+  8.2 mm across flats (0.16 mm clearance per flat on the 7.88 mm head), with the usual ~1 mm 45-degree mouth
+  chamfer. The hex fit, both chamfers and the clearances are modelled as real convex meshes; the socket drives
+  the bolt only through this contact, so it must be seated to tighten it.
+- **Wrench rest:** the wrench starts off the bolt, standing socket-down on the bench 8.5 cm from the joint with
+  its rubber grip on a 6.3 cm block (any bench block; only its height matters), handle toward the right arm.
+- **Handle rest:** a second block (7.4 x 4 cm, 9.7 cm tall, any rigid block) stands under the handle's pull arc
+  beside the joint, its top level with the seated grip's underside: it carries the grip whenever the wrench is
+  on the bolt - nobody balances a 550 g transducer wrench on a 3.5 mm bolt head - and the grip rides along it
+  through the pull. Its friction acts at the same radius as the pull, so it does not shift the click torque.
 - **Inline transducer (in the scene):** a rotary torque-angle transducer with 1/4-inch square drive in and out
-  (strain-gauge torque cell, 0-10 N*m, angle encoder, peak hold), 26 x 26 mm and 4 cm tall, between the wrench's drive
-  and an 8 mm 6-point socket. It raises the wrench to 9.7 cm above the table, as in the sim.
+  (strain-gauge torque cell, 0-10 N*m, angle encoder, peak hold), 26 x 26 mm and 4 cm tall, between the wrench's
+  drive and the socket. Seated, the wrench's centre plane is 10.6 cm above the table, as in the sim.
 - **Snug (the zero for every angle):** run the bolt down by hand, then tighten until the transducer reads 1.5 N*m
   (half the marked torque). Paint a line across the bolt head, washer and lug. The sim starts here: the bolt turns on
   at half the set torque.
@@ -40,13 +77,19 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
     straight line of 3.27 deg per N*m above snug). On that line 3.3 N*m (110 %) is at 5.9 deg. A class 8.8 M5 starts
     to yield under tightening at about 7 kN of preload (640 MPa on 14.2 mm2, less the share taken by thread torsion),
     about 6.9 N*m or 230 % of the set torque, which the same line puts at 17.7 deg, as in the sim.
-- **Angles are sim-only.** A real trial is scored from the transducer's peak-hold reading, not from angles.
+- **Angles are sim-only.** A real trial is scored from the transducer's peak-hold reading and the seating gates,
+  not from angles.
+- **Seating in a real trial:** "seated" and "bolt moved while unseated" are geometry (engagement depth, squareness,
+  coaxiality, head angle), read in the sim from the two bodies' poses; on a real rig the same gates come from the
+  video (socket rim flush on the washer, no visible ride-up) plus the transducer's angle channel against the paint
+  mark: any angle change before the socket is flush is the unseated-turn fail.
 - **Peak torque in a real trial:** the transducer stays in the drive line for every trial, and its peak-hold reading
   is the trial's peak torque P: 2.7-3.3 N*m with the click is in tolerance (1.0); over 3.3 N*m, as when the hand pulls
   on through the click, scores 0. The video shows the click (the handle's kink).
 - **Force scale:** the sim's torques are 1/7 of the real ones (0.43 N*m set, 2 N at the grip, not 14 N), because
   the simulated arm is soft (at 2 N on the grip it already lags its command by about 11 mm). Sizes, angles and ratios (snug 50 %, tolerance +/-10 %,
-  yield 230 %) are the real joint's.
+  yield 230 %) are the real joint's. The sim's bolt body is 30 g (the real bolt and washer are about 8 g) for
+  solver stability; the bolt's dynamics are set by its thread-friction hinge, not its mass.
 
 ## Offline check, no GPU
 
@@ -56,13 +99,14 @@ From the root of this repository, with yam-arena importable:
 python tasks/click-wrench-stop-at-click/click_wrench_stop_at_click.py
 ```
 
-It asserts the scoring rules on hand-built states and replays every arm's demo plan through the kinematics at 20 Hz
-(every joint inside the URDF limits, IK error under 0.5 mm). Expected output:
+It asserts the scoring rules on hand-built states (seating gates, half-seated and off-axis fails, every torque
+outcome) and replays both arms' demo plans through the kinematics at 20 Hz (every joint inside the URDF limits,
+IK error under 0.5 mm). Expected output:
 
 ```
-scoring: 23 cases pass (set torque 0.43 N*m = 2.0 N at the grip, reached 4.9 deg past snug; tolerance 90-110 % = 3.9-5.9 deg; yield 0.99 N*m = 4.6 N at 17.7 deg; real joint x7.0: 3 N*m set)
-left: 18.2 s plan, worst IK 0.090 mm / 0.013 deg
-right: 18.2 s plan, worst IK 0.089 mm / 0.015 deg
+scoring: 29 cases pass (set torque 0.43 N*m = 2.0 N at the grip, reached 4.9 deg past snug; tolerance 90-110 % = 3.9-5.9 deg; yield 0.99 N*m = 4.6 N at 17.7 deg; real joint x7.0: 3 N*m set; seated = 2.8 of 3.5 mm engaged, tilt <= 8 deg, coax <= 1 mm)
+left: 35.2 s plan, worst IK 0.097 mm / 0.014 deg
+right: 35.2 s plan, worst IK 0.084 mm / 0.015 deg
 ```
 
 ## Run and score one Dream-1 trial
@@ -70,7 +114,7 @@ right: 18.2 s plan, worst IK 0.089 mm / 0.015 deg
 ```bash
 inspect-robots run --embodiment yam_arena --policy dream \
   -E task=tasks/click-wrench-stop-at-click/click_wrench_stop_at_click.py -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \
-  --instruction "Torque the lug bolt with the torque wrench on it. The wrench is already set to the bolt's torque. Then let go." \
+  --instruction "Pick up the torque wrench standing on its rest, seat its socket fully on the lug bolt, and torque the bolt with it. The wrench is already set to the bolt's torque. Then let go." \
   --scorer task_score --max-steps 1200 --seed 0 --no-prompt --store-frames --log-dir ~/yam-eval/click-wrench-stop-at-click-dream
 ```
 
@@ -82,16 +126,30 @@ otherwise `score()` at the last step. The CLI prints `task_score: <value>`.
 ```bash
 inspect-robots run --embodiment yam_arena --policy yam_scripted \
   -E task=tasks/click-wrench-stop-at-click/click_wrench_stop_at_click.py -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \
-  --instruction "Torque the lug bolt with the torque wrench on it. The wrench is already set to the bolt's torque. Then let go." \
+  --instruction "Pick up the torque wrench standing on its rest, seat its socket fully on the lug bolt, and torque the bolt with it. The wrench is already set to the bolt's torque. Then let go." \
   --scorer task_score --max-steps 1200 --seed 0 --no-prompt --store-frames --log-dir ~/yam-eval/click-wrench-stop-at-click-demo
 ```
 
-The demo is `demo()` in the task file: open loop and deterministic, 18 s of plan. In sim it pulls the grip
-round until the wrench clicks (the bolt's peak 4.60 deg past snug, 97 % of the set torque, inside the 90-110 %
-band), stops, eases off and opens the fingers; the bolt springs back to 4.10 deg and the handle returns in line.
-The hand lifts 7 cm straight up and moves back to its park pose, about 16 cm from the grip and over 10 cm outside
-the wrench's bounding box, so the success hold (1 s) only starts once the release is plain in the video. The
-episode ends on success at step 318 of the 1,200-step run limit (about 3.8x).
+The demo is `demo()` in the task file: open loop and deterministic, 35 s of plan, both arms. The left arm
+pinches the wrench's neck at the tool's balance point, lifts it off its rest, carries it over the joint,
+sets the socket down over the bolt head (the chamfers take up the last millimetre; no overdrive) with the
+grip coming down on the handle rest, opens and parks - the tool stands bolt-plus-rest, a stable tripod
+(a 0.55 kg transducer wrench cannot balance unattended on a 3.5 mm bolt head; the rest carries the handle
+the way a fitter rests a wrench on the work). The right arm straddles the grip - side pushes only, so no
+finger moment bypasses the breakover, and the rest's friction acts at the pull radius so it cancels out of
+the detent's load - and pulls it round until the wrench clicks (spec angle + breakover deflection + straddle
+slack + the arm's lag under load), stops short of driving past the click, eases back 1.5 deg, opens, lifts
+and parks, over 10 cm outside the wrench's bounding box, so the success hold (1 s) only starts once the
+release is plain in the video; the torqued wrench stays seated with its grip on the rest.
+
+## Control runs (ablations)
+
+Set `VARIANT` at the top of the task file:
+
+- `"half"`: the left arm holds the socket only 1.5 mm engaged (under the 2.8 mm gate) while the right pulls.
+  The bolt is dragged or the socket cams out: the UNSEATED-TURN latch fires and the trial scores 0.
+- `"through"`: the naive pull straight on through the click to 45 deg: OVER-TORQUED latches, score 0.
+- `"short"`: stops before the click: under-torqued, at most 0.25.
 
 ## Videos and screenshot
 
@@ -110,4 +168,6 @@ ffmpeg -y -i ~/yam-eval/click-wrench-stop-at-click-demo/frames/<run>/scene-0-e0_
 
 ## Reset between trials
 
-Back the bolt off (fit a new bolt if its peak went over 110 %); run it down by hand, then to 1.5 N*m on the transducer, and paint-mark the head and lug; check the wrench is set to 3 N*m and fit it on the bolt in line, the handle pointing toward the right arm.
+Back the bolt off (fit a new bolt if its peak went over 110 % or the head was rounded); run it down by hand, then
+to 1.5 N*m on the transducer, and paint-mark the head and lug; check the wrench is set to 3 N*m and stand it back
+on its bench rest, socket down, grip on the block, handle toward the right arm.

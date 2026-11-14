@@ -22,6 +22,8 @@ Public API (angles in the API are degrees unless the name says rad; lengths m; f
 
     kit = mk.Kit()
     kit.part(name, pos, boxes, mass=None, color=GREY, yaw=0.0, quat=None)      # boxes: [mk.box(size, at, ...)]
+                                           # or convex pieces mk.hull(points, counts, indices, ...); both take a
+                                           # per-piece friction ``mu`` (hulls collide as PhysX convex hulls)
     kit.hinge(name, parent, child, anchor, axis, lower_deg, upper_deg, start_deg=0, stiffness=0, rest_deg=0,
               damping=0, friction=0)                         # N*m/rad, N*m*s/rad, friction N*m
     kit.slider(name, parent, child, axis, lower, upper, start=0, stiffness=0, rest=0, damping=0, friction=0)
@@ -55,7 +57,7 @@ import numpy as np
 
 from yam_arena.task_file import GREY, Box, ObjectState
 
-__version__ = "0.2"
+__version__ = "0.3"  # 0.3: convex hull pieces and per-piece friction materials
 INF = float("inf")
 STICK_RAD = math.radians(0.5)  # friction model: elastic "stick" travel before a joint slips (hinge)
 STICK_M = 0.0005  # (slider)
@@ -158,16 +160,44 @@ class BoxSpec:
     at: tuple = (0.0, 0.0, 0.0)
     color: tuple | None = None
     quat: tuple = (0.0, 0.0, 0.0, 1.0)
+    mu: float | None = None  # per-piece friction (static=dynamic); None: the stock grippy material
 
 
-def box(size, at=(0.0, 0.0, 0.0), color=None, yaw: float = 0.0, quat=None) -> BoxSpec:
+def box(size, at=(0.0, 0.0, 0.0), color=None, yaw: float = 0.0, quat=None, mu=None) -> BoxSpec:
     """One box of a part: edge lengths ``size`` (m), centre ``at`` in the part frame, turned ``yaw`` (rad) about
-    the part's z (or by ``quat`` xyzw); ``color`` overrides the part's."""
+    the part's z (or by ``quat`` xyzw); ``color`` overrides the part's; ``mu`` its own friction coefficient."""
     size = tuple(float(s) for s in size)
     if len(size) != 3 or min(size) <= 0:
         raise ValueError(f"box size must be 3 positive lengths, got {size!r}")
     q = tuple(float(c) for c in (quat if quat is not None else yaw_quat(yaw)))
-    return BoxSpec(size, tuple(float(c) for c in at), None if color is None else tuple(color), q)
+    return BoxSpec(size, tuple(float(c) for c in at), None if color is None else tuple(color), q,
+                   None if mu is None else float(mu))
+
+
+@dataclass(frozen=True)
+class HullSpec:
+    """One convex piece of a part: a watertight mesh (vertices + polygon faces, wound counter-clockwise from
+    outside), rendered as given and colliding as its convex hull (PhysX ``convexHull``), with tight contact
+    offsets for precision fits. Vertices are in the part frame after ``quat`` then ``at``."""
+
+    points: tuple  # ((x, y, z), ...)
+    counts: tuple  # face vertex counts
+    indices: tuple  # face vertex indices, concatenated
+    at: tuple = (0.0, 0.0, 0.0)
+    color: tuple | None = None
+    quat: tuple = (0.0, 0.0, 0.0, 1.0)
+    mu: float | None = None
+
+
+def hull(points, counts, indices, at=(0.0, 0.0, 0.0), color=None, yaw: float = 0.0, quat=None,
+         mu=None) -> HullSpec:
+    pts = tuple(tuple(float(c) for c in p) for p in points)
+    if len(pts) < 4:
+        raise ValueError("a hull needs at least 4 points")
+    q = tuple(float(c) for c in (quat if quat is not None else yaw_quat(yaw)))
+    return HullSpec(pts, tuple(int(c) for c in counts), tuple(int(i) for i in indices),
+                    tuple(float(c) for c in at), None if color is None else tuple(color), q,
+                    None if mu is None else float(mu))
 
 
 @dataclass(frozen=True)
@@ -248,7 +278,7 @@ class Kit:
             raise ValueError(f"part name {name!r} must be a Python identifier")
         if name in self.parts:
             raise ValueError(f"part {name!r} declared twice")
-        boxes = tuple(b if isinstance(b, BoxSpec) else box(*b) for b in boxes)
+        boxes = tuple(b if isinstance(b, (BoxSpec, HullSpec)) else box(*b) for b in boxes)
         if not boxes:
             raise ValueError(f"part {name!r} needs at least one box")
         if mass is not None and not mass > 0:
@@ -258,6 +288,9 @@ class Kit:
         corners = []
         for b in boxes:
             r = quat_to_mat(b.quat)
+            if isinstance(b, HullSpec):
+                corners += [np.asarray(b.at) + r @ np.asarray(v) for v in b.points]
+                continue
             for sx in (-0.5, 0.5):
                 for sy in (-0.5, 0.5):
                     for sz in (-0.5, 0.5):
@@ -737,24 +770,56 @@ def _reglue() -> None:
 
 
 def _spawn_part_fn(mod):
-    """A spawner (decorated like yam_arena's own) that builds a kit part from its boxes."""
+    """A spawner (decorated like yam_arena's own) that builds a kit part from its boxes and hulls."""
     import isaaclab.sim as sim_utils
     from isaaclab.sim import schemas
     from isaaclab.sim.spawners.shapes import spawn_cuboid
-    from isaaclab.sim.utils import clone, create_prim, get_current_stage
+    from isaaclab.sim.utils import bind_physics_material, bind_visual_material, clone, create_prim, get_current_stage
 
     @clone
     def spawn(prim_path, cfg, translation=None, orientation=None, **kwargs):
+        from pxr import Gf, PhysxSchema, UsdGeom, UsdPhysics
+
         spec = _PENDING[prim_path.rsplit("/", 1)[-1]]
         stage = get_current_stage()
         create_prim(prim_path, prim_type="Xform", translation=translation, orientation=orientation, stage=stage)
         coll = mod._contact_props() if spec.free else mod.PhysxCollisionPropertiesCfg()
+
+        def mat(i, b):  # the piece's physics material: its own mu, or the stock grippy one
+            if b.mu is None:
+                return mod._grippy()
+            return sim_utils.RigidBodyMaterialCfg(static_friction=b.mu, dynamic_friction=b.mu)
+
         for i, b in enumerate(spec.boxes):
             color = b.color if b.color is not None else spec.color
+            if isinstance(b, HullSpec):
+                path = f"{prim_path}/hull{i}"
+                mesh = UsdGeom.Mesh.Define(stage, path)
+                r = quat_to_mat(b.quat)
+                pts = [Gf.Vec3f(*(r @ np.asarray(v) + np.asarray(b.at)).tolist()) for v in b.points]
+                mesh.CreatePointsAttr(pts)
+                mesh.CreateFaceVertexCountsAttr(list(b.counts))
+                mesh.CreateFaceVertexIndicesAttr(list(b.indices))
+                mesh.CreateSubdivisionSchemeAttr("none")
+                prim = mesh.GetPrim()
+                UsdPhysics.CollisionAPI.Apply(prim)
+                cp = PhysxSchema.PhysxCollisionAPI.Apply(prim)
+                cp.CreateContactOffsetAttr(0.0015)  # a precision fit: contacts live within 1.5 mm, rest at 0
+                cp.CreateRestOffsetAttr(0.0)
+                UsdPhysics.MeshCollisionAPI.Apply(prim).CreateApproximationAttr("convexHull")
+                pm = mat(i, b)
+                pm_path = f"{prim_path}/Looks/phys{i}"
+                pm.func(pm_path, pm)
+                bind_physics_material(path, pm_path, stage=stage)
+                lk = sim_utils.PreviewSurfaceCfg(diffuse_color=mod.linear_rgb(color), roughness=0.4)
+                lk_path = f"{prim_path}/Looks/look{i}"
+                lk.func(lk_path, lk)
+                bind_visual_material(path, lk_path, stage=stage)
+                continue
             bcfg = sim_utils.CuboidCfg(
                 size=tuple(b.size),
                 collision_props=coll,
-                physics_material=mod._grippy(),
+                physics_material=mat(i, b),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=mod.linear_rgb(color), roughness=0.4),
             )
             spawn_cuboid.__wrapped__(f"{prim_path}/box{i}", bcfg, translation=tuple(float(v) for v in b.at),
