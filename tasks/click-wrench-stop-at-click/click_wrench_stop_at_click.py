@@ -230,9 +230,11 @@ FIXTURES = [
     Box("bench_rest", pos=(*_spun(0.0, -R_GRIP), TOP + 0.0315), size=(0.030, 0.030, 0.063), color=BLOCK),  # grip block
     # the handle rest: carries the grip while the wrench is on the bolt (a 0.55 kg transducer wrench cannot
     # balance unattended on a 3.5 mm head - a fitter rests the handle on the work). Its top sits half a
-    # millimetre under the seated grip, and it spans the grip's whole pull arc, so the grip rides along it.
-    Box("handle_rest", pos=(BX - 0.031, BY - 0.211, TOP + (ZH - GRIP[2] / 2 - TOP - 0.0005) / 2),
-        size=(0.074, 0.040, ZH - GRIP[2] / 2 - TOP - 0.0005), color=BLOCK),
+    # millimetre under the seated grip; it spans the grip's whole pull arc, so the grip rides along it, and
+    # it reaches 30 mm past the grip on the +x side so the resting tool cannot roll over its edge (the
+    # bolt-rim-plus-grip support line runs along y: the rest's width is the tool's lateral stance).
+    Box("handle_rest", pos=(BX - 0.019, BY - 0.211, TOP + (ZH - GRIP[2] / 2 - TOP - 0.0005) / 2),
+        size=(0.098, 0.040, ZH - GRIP[2] / 2 - TOP - 0.0005), color=BLOCK),
 ]
 OBJECTS = [*kit.objects(), *FIXTURES]
 
@@ -548,7 +550,7 @@ def demo():
     else:
         lw(2.0, (bxn, byn, zhome), NECK_CLOSE, "ease the hex home: no overdrive, no side load", yb)
         lw(0.5, (bxn, byn, zhome), NECK_CLOSE, "hold: the grip is down on the handle rest", yb)
-        lw(0.6, (bxn, byn, zhome), WIDE, "open: the tool stands on the bolt and the rest", yb)
+        lw(1.2, (bxn, byn, zhome), WIDE, "open gently: the tool stands on the bolt and the rest", yb)
         lw(1.0, (bxn, byn, zhome + 0.048), WIDE, "lift clear", yb)
         L.append(Waypoint(2.0, PARK_L, L_OPEN, "park", 0.0))
     t_ready = sum(w.duration for w in L)

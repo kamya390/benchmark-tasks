@@ -57,7 +57,7 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
   the bolt only through this contact, so it must be seated to tighten it.
 - **Wrench rest:** the wrench starts off the bolt, standing socket-down on the bench 8.5 cm from the joint with
   its rubber grip on a 6.3 cm block (any bench block; only its height matters), handle toward the right arm.
-- **Handle rest:** a second block (7.4 x 4 cm, 9.7 cm tall, any rigid block) stands under the handle's pull arc
+- **Handle rest:** a second block (9.8 x 4 cm, 9.7 cm tall, any rigid block) stands under the handle's pull arc
   beside the joint, its top level with the seated grip's underside: it carries the grip whenever the wrench is
   on the bolt - nobody balances a 550 g transducer wrench on a 3.5 mm bolt head - and the grip rides along it
   through the pull. Its friction acts at the same radius as the pull, so it does not shift the click torque.
