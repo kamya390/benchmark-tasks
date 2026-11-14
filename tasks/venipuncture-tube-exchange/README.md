@@ -1,4 +1,4 @@
-# Change the blood tube on a needle already in a training arm's vein: fill it and take it off without moving the needle
+# Fill a blood tube on a needle already in a training arm's vein and take it off without moving the needle
 
 Instruction given to the policy: `On the practice arm, fill the blood tube, then lay it in the tray.`
 
@@ -157,17 +157,25 @@ only slide, those two gates cannot trip in the sim; `self_test()` shows them fir
 In the real trial, from video (as in task.json):
 
 - Marks: a pen mark on the skin at the hub, a paint dot on the green hub.
-- Two fixed cameras, 30 fps or more, about 20 cm from the site, each looking square onto the needle: a side camera
-  beyond the training arm at the hub's height, looking toward the robot, and a camera above the site tilted 25 deg
-  toward the shoulder (the two views are at right angles, both across the needle). The mm scale in each view is the
-  holder barrel's 19 mm width, which lies in the needle's plane.
+- Two fixed cameras, 30 fps or more, each with its lens 20 cm from the hub's face (x 25, y 4.55, 6.7 cm above the
+  table) and its optical axis along a normal to the needle, so the needle crosses each view square on:
+  - Side camera: beyond the training arm, lens at x 45, y 4.55, 6.7 cm up (the hub's height), looking toward the robot
+    (-x), along the normal to the needle's vertical plane.
+  - Overhead camera: lens at x 25, y 13.0, 24.8 cm up, on a stand or boom above the site, aimed down and back at the
+    hub. Its axis is the needle's upward normal in the needle's vertical plane: tilted 25 deg from straight down
+    toward the shoulder, so it looks perpendicular to the needle (which descends 25 deg into the arm).
+  The two views are at right angles, both across the needle. The mm scale in each view is the holder barrel's 19 mm
+  width, which lies in the needle's plane.
 - On the last frame before the robot first touches anything, overlay the needle's start line (the barrel's axis) and
   the hub dot in each view (any video player with a line overlay, or free video-analysis software).
-- Read every 5th frame, and frame by frame wherever the holder visibly moves, to the end of the trial. Latched if:
-  the hub-to-mark gap along the needle (16.4 mm at the start: 1 inch needle, 9 mm in) is under 14.4 or over 18.4 mm;
-  the hub dot is more than 2 mm off the start line, combined from the two views (square root of the sum of squares);
-  or the barrel's axis, read along at least 20 mm of its visible edge, has turned more than 3 deg from the start
-  line, combined the same way (1.05 mm across per 20 mm along).
+- Read every 5th frame, and frame by frame wherever the holder visibly moves, to the end of the trial.
+- Blocked frames: where a gripper blocks a camera's view of the hub dot or the barrel's edge, use that camera's nearest
+  unblocked frame within 0.5 s (before or after). If there is no unblocked frame within 0.5 s, that interval fails:
+  the trial is latched 0.
+- Latched if: the hub-to-mark gap along the needle (16.4 mm at the start: 1 inch needle, 9 mm in) is under 14.4 or
+  over 18.4 mm; the hub dot is more than 2 mm off the start line, combined from the two views (square root of the sum
+  of squares); or the barrel's axis, read along at least 20 mm of its visible edge, has turned more than 3 deg from
+  the start line, combined the same way (1.05 mm across per 20 mm along).
 
 ## Sim controls
 
