@@ -99,7 +99,10 @@ by 20 mm up), a ball moved 9.6 mm and gaps opened to 3.1 mm; a loose pack (2 mm 
   part at least 50 mm from every ball); 0.75 that and at least 24 of the 30 touching pairs within 0.5 mm; 1.0 all 30
   within 0.5 mm, the head ball within 5 mm of the spot, all balls still (under 5 mm/s), and no gripper point (both TCPs,
   all four pad tips and pad middles) within 30 mm of any ball. Held 1 s.
-- Real rig: an overhead photo for the spot and the rack's clearance, a 0.5 mm feeler gauge between neighbouring balls.
+- Real rig: ball movement during the lift is measured from two overhead photos against a grid on the cloth, one taken
+  just before the rack starts to rise and one once it is clear; the trial fails (0) if any ball's centre moved more
+  than 3 mm between them. The same photos give the head ball's distance from the spot and the rack's clearance, and a
+  0.5 mm feeler gauge goes between neighbouring balls.
 
 ## Sim controls
 
