@@ -477,11 +477,15 @@ def distance(objects) -> float:
 # RIGHT arm straddles the grip (pads 36 mm apart round the 18 mm grip: side pushes only, so no finger moment
 # ever reaches the handle and the breakover detent carries the full drive torque, exactly like a hand pulling
 # at the load mark; rail friction acts at the same radius as the pull and cancels out of the detent's load).
-# It pulls the grip round the bolt toward the robot; the spec angle (4.9 deg), the breakover deflection
-# (1.5 deg), the straddle slack (~2.4 deg) and the arm's lag under load put the click at a commanded
-# ~11-13 deg. The hand stops at 15 deg - within the click + the handle's 6 deg free swing, so the bolt is
-# never driven past the click - eases back 1.5 deg, opens, lifts and parks, over 10 cm from the wrench; the
-# torqued wrench stays seated on the bolt with its grip on the rest through the success hold.
+# Meanwhile the LEFT hand comes back and presses the wrench head down onto the joint - the two-hand
+# technique every fitter uses: without a hold-down the pull cams the loose hex fit over the head's corner
+# before the bolt's snug friction gives (run telemetry), and the press sits on the bolt axis so its sliding
+# friction puts no measurable torque on the bolt. The right pulls the grip round the bolt toward the robot;
+# the spec angle (4.9 deg), the breakover deflection (1.5 deg), the straddle slack (~2.4 deg) and the arm's
+# lag under load put the click at a commanded ~11-13 deg. The hand stops at 15 deg - within the click + the
+# handle's 6 deg free swing, so the bolt is never driven past the click - eases back 1.5 deg, opens and
+# parks; the left lifts off the head and parks; the torqued wrench stays seated on the bolt with its grip
+# on the rest through the success hold.
 
 TIP = 0.013  # pad tips below the TCP
 PAD_DOWN = 0.004  # right grip: pad tips this far below the grip's centre plane
@@ -552,11 +556,24 @@ def demo():
         lw(0.5, (bxn, byn, zhome), NECK_CLOSE, "hold: the grip is down on the handle rest", yb)
         lw(1.2, (bxn, byn, zhome), WIDE, "open gently: the tool stands on the bolt and the rest", yb)
         lw(1.0, (bxn, byn, zhome + 0.048), WIDE, "lift clear", yb)
+        # the two-hand finish: without a hold-down, the pull cams the loose hex fit over the head's corner
+        # before the bolt's snug friction is overcome (run telemetry), exactly as on a real bench - so the
+        # left hand presses the head down onto the joint, on the bolt axis where its sliding friction puts
+        # no measurable torque on the bolt, while the right hand pulls the handle. The press leaves before
+        # the success hold; the tool then stands on the bolt and the rest as before.
+        zpress = ZH + HEAD_T / 2 + TIP - 0.001  # closed pad tips a hair into the head's top face
+        lw(1.0, (BX, BY - 0.006, zpress + 0.025), 0.0, "fingers closed, over the wrench head", yb)
+        lw(0.8, (BX, BY - 0.006, zpress), 0.0, "press the head down onto the joint", yb)
+        hold_s = {"demo": 6.0, "through": 19.0, "short": 3.0}[VARIANT] + 6.5
+        t_on = sum(w.duration for w in L)
+        lw(hold_s, (BX, BY - 0.006, zpress), 0.0, "hold the head down while the right hand pulls", yb)
+        lw(0.8, (BX, BY - 0.006, zpress + 0.035), 0.0, "lift off the head", yb)
         L.append(Waypoint(2.0, PARK_L, L_OPEN, "park", 0.0))
     t_ready = sum(w.duration for w in L)
+    t_go = t_ready if VARIANT == "half" else t_on  # the right moves in once the press (or the half hold) is on
 
     R = [Waypoint(2.0, PARK_R, WIDE, "start", math.pi / 2),
-         Waypoint(t_ready - 2.0, PARK_R, WIDE, "wait for the left arm", math.pi / 2)]
+         Waypoint(t_go - 2.0, PARK_R, WIDE, "wait for the left arm", math.pi / 2)]
 
     def w(dur, deg, z, f, label):
         x, y = _grip_xy(deg)

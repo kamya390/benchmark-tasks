@@ -135,12 +135,15 @@ pinches the wrench's neck at the tool's balance point, lifts it off its rest, ca
 sets the socket down over the bolt head (the chamfers take up the last millimetre; no overdrive) with the
 grip coming down on the handle rest, opens and parks - the tool stands bolt-plus-rest, a stable tripod
 (a 0.55 kg transducer wrench cannot balance unattended on a 3.5 mm bolt head; the rest carries the handle
-the way a fitter rests a wrench on the work). The right arm straddles the grip - side pushes only, so no
+the way a fitter rests a wrench on the work). Then the two-hand finish every fitter uses: the left hand
+presses the wrench head straight down onto the joint (on the bolt axis, so its sliding friction puts no
+measurable torque on the bolt; without a hold-down, pulling a loosely-fitting socket cams it off the head
+before the bolt's snug friction gives) while the right arm straddles the grip - side pushes only, so no
 finger moment bypasses the breakover, and the rest's friction acts at the pull radius so it cancels out of
 the detent's load - and pulls it round until the wrench clicks (spec angle + breakover deflection + straddle
-slack + the arm's lag under load), stops short of driving past the click, eases back 1.5 deg, opens, lifts
-and parks, over 10 cm outside the wrench's bounding box, so the success hold (1 s) only starts once the
-release is plain in the video; the torqued wrench stays seated with its grip on the rest.
+slack + the arm's lag under load), stops short of driving past the click and eases back 1.5 deg. Both hands
+let go and park, over 10 cm outside the wrench's bounding box, so the success hold (1 s) only starts once
+the release is plain in the video; the torqued wrench stays seated with its grip on the rest.
 
 ## Control runs (ablations)
 
