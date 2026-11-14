@@ -94,9 +94,10 @@ inspect-robots run --embodiment yam_arena --policy yam_scripted \
 
 The demo is `demo()` in the task file. It is open loop and deterministic.
 - The right gripper points straight down with its fingers closing along y. It comes down round the round grip bar,
-  closes on it lightly (about 10 N a pad on the strokes and 2.5 N while closing it, so the bar can roll between
-  the pads as the handle turns) and follows the
-  bar's circle about the mandrel's axis.
+  closes on it lightly and follows the bar's circle about the mandrel's axis. The grip force is set in the task file
+  by the finger targets against the gripper's 5000 N/m finger stiffness: `GRIP` puts each pad 2 mm inside the bar's
+  surface on the strokes (about 10 N a pad), and `GRIP_SHUT` 0.5 mm while closing the handle (about 2.5 N a pad), so
+  the bar can roll between the pads as the handle turns.
 - It makes four full strokes (out to 100 deg, back to 22 deg), then presses the handle shut through its detent.
 - It eases off onto the shut bar, lets go, lifts clear and parks while the deck is jolted.
 
