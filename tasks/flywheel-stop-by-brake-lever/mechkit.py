@@ -27,11 +27,15 @@ Public API (angles in the API are degrees unless the name says rad; lengths m; f
     kit.slider(name, parent, child, axis, lower, upper, start=0, stiffness=0, rest=0, damping=0, friction=0)
     kit.bond(name, parent, child, break_force=inf, break_torque=inf, anchor=None, slip_mm=2, slip_deg=2,
              twist_axis=None, twist_release_deg=None, twist_stiffness=1.0)   # N, N*m about the child, N*m/rad
+    kit.screw(name, parent, child, anchor, axis, pitch, length, friction, seat_friction=None, seat_deg=5,
+              tight_friction=None, axial_stiffness=2e4, axial_damping=20, axial_max_force=400)
+                                                             # a nut on a threaded shaft (see Kit.screw)
     kit.on_step(fn)                                          # fn(objects) every control step, sim only
     kit.release(name)                                        # switch a bond off now (sim; re-glued at reset)
     OBJECTS = [*kit.objects(), ...]
 
     kit.q(objects, joint) / kit.q_deg(objects, hinge) / kit.joints(objects)   # joint values from body poses
+    kit.travel(objects, screw)                               # how far a screw's nut has risen along its axis (m)
     kit.broken(objects, bond)                                # moved apart > slip (latched per episode)
     kit.pose(objects, part) -> (pos, quat_xyzw)              # the part origin's world pose
     kit.point(objects, part, local_xyz)                      # a point fixed on the part, in world
@@ -55,10 +59,11 @@ import numpy as np
 
 from yam_arena.task_file import GREY, Box, ObjectState
 
-__version__ = "0.2"
+__version__ = "0.3"
 INF = float("inf")
 STICK_RAD = math.radians(0.5)  # friction model: elastic "stick" travel before a joint slips (hinge)
 STICK_M = 0.0005  # (slider)
+SCREW_DAMP = 1.0e3  # N*m*s/rad: a screw's friction drive (holds the relative turn still, up to the friction torque)
 _BIG = 3.0e38  # PhysX "unbreakable"
 MEMORY: dict = {}  # per-episode scratch for tasks; cleared at every reset (and by new_episode())
 _EP: dict = {"env": None, "emb": None, "step": 0}
@@ -158,16 +163,19 @@ class BoxSpec:
     at: tuple = (0.0, 0.0, 0.0)
     color: tuple | None = None
     quat: tuple = (0.0, 0.0, 0.0, 1.0)
+    friction: tuple | None = None  # (static, dynamic); None: the part's
 
 
-def box(size, at=(0.0, 0.0, 0.0), color=None, yaw: float = 0.0, quat=None) -> BoxSpec:
+def box(size, at=(0.0, 0.0, 0.0), color=None, yaw: float = 0.0, quat=None, friction=None) -> BoxSpec:
     """One box of a part: edge lengths ``size`` (m), centre ``at`` in the part frame, turned ``yaw`` (rad) about
-    the part's z (or by ``quat`` xyzw); ``color`` overrides the part's."""
+    the part's z (or by ``quat`` xyzw); ``color`` overrides the part's, ``friction`` (static, dynamic) the part's
+    surface friction (a brake lining on a steel lever, say)."""
     size = tuple(float(s) for s in size)
     if len(size) != 3 or min(size) <= 0:
         raise ValueError(f"box size must be 3 positive lengths, got {size!r}")
     q = tuple(float(c) for c in (quat if quat is not None else yaw_quat(yaw)))
-    return BoxSpec(size, tuple(float(c) for c in at), None if color is None else tuple(color), q)
+    f = None if friction is None else (float(friction[0]), float(friction[1]))
+    return BoxSpec(size, tuple(float(c) for c in at), None if color is None else tuple(color), q, f)
 
 
 @dataclass(frozen=True)
@@ -179,6 +187,7 @@ class MechPart(Box):
     origin: tuple = (0.0, 0.0, 0.0)  # spawn pose of the part frame (world)
     origin_quat: tuple = (0.0, 0.0, 0.0, 1.0)
     kit_id: int = 0
+    friction: tuple | None = None  # (static, dynamic) surface friction; None: yam_arena's default (1.2, 1.0)
 
 
 @dataclass
@@ -188,6 +197,7 @@ class _Part:
     boxes: tuple
     mass: float | None
     color: tuple
+    friction: tuple | None = None
     lo: np.ndarray = field(default=None)  # local AABB of the geometry (part frame)
     hi: np.ndarray = field(default=None)
     parent_joint: str | None = None
@@ -204,7 +214,7 @@ class _Part:
 @dataclass
 class _Joint:
     name: str
-    kind: str  # "hinge" | "slider" | "bond"
+    kind: str  # "hinge" | "slider" | "bond" | "screw"
     parent: str | None
     child: str
     anchor: np.ndarray  # world, reference pose
@@ -223,6 +233,13 @@ class _Joint:
     twist_axis: np.ndarray | None = None  # twist bond: turns on a spring about this axis, lets go past the limit
     twist_limit: float = INF  # rad
     twist_stiffness: float = 0.0  # N*m/rad
+    pitch: float = 0.0  # screw: lead per turn (m); travel along +axis per right-hand turn about +axis
+    seat_friction: float = 0.0  # screw: thread + seat friction torque while within seat_rad of the seat (N*m)
+    seat_rad: float = 0.0
+    tight_friction: float = 0.0  # screw: turned tighter than seat_rad past the seat (N*m)
+    axial_k: float = 0.0  # screw: the thread flanks' axial stiffness (N/m), damping (N*s/m), force cap (N)
+    axial_d: float = 0.0
+    axial_max: float = 0.0
 
 
 _KITS: list = []
@@ -241,9 +258,11 @@ class Kit:
 
     # -- declaring --------------------------------------------------------------------------------------------
 
-    def part(self, name, pos, boxes, mass=None, color=GREY, yaw: float = 0.0, quat=None) -> str:
+    def part(self, name, pos, boxes, mass=None, color=GREY, yaw: float = 0.0, quat=None, friction=None) -> str:
         """A rigid body made of ``boxes`` (see :func:`box`), its frame at world ``pos`` in the reference pose.
-        ``mass`` None: fixed in place (static); otherwise a free body of that mass (kg)."""
+        ``mass`` None: fixed in place (static); otherwise a free body of that mass (kg). ``friction``: (static,
+        dynamic) coefficients of its surfaces (PhysX averages the two surfaces' values at a contact); None keeps
+        yam_arena's rubber-like (1.2, 1.0)."""
         if not str(name).isidentifier():
             raise ValueError(f"part name {name!r} must be a Python identifier")
         if name in self.parts:
@@ -254,7 +273,8 @@ class Kit:
         if mass is not None and not mass > 0:
             raise ValueError(f"part {name!r}: mass must be positive or None")
         q = quat if quat is not None else yaw_quat(yaw)
-        p = _Part(name, _T(quat_to_mat(q), np.asarray(pos, dtype=float)), boxes, mass, tuple(color))
+        f = None if friction is None else (float(friction[0]), float(friction[1]))
+        p = _Part(name, _T(quat_to_mat(q), np.asarray(pos, dtype=float)), boxes, mass, tuple(color), f)
         corners = []
         for b in boxes:
             r = quat_to_mat(b.quat)
@@ -340,6 +360,34 @@ class Kit:
             j.twist_limit, j.twist_stiffness = math.radians(twist_release_deg), float(twist_stiffness)
         return self._joint(j)
 
+    def screw(self, name, parent, child, anchor, axis, pitch, length, friction, seat_friction=None, seat_deg=5.0,
+              tight_friction=None, axial_stiffness=2.0e4, axial_damping=20.0, axial_max_force=400.0) -> str:
+        """A nut (``child``) screwed onto a threaded shaft (``parent``): a right-hand thread of lead ``pitch`` (m per
+        turn) along world ``axis`` (pointing out of the shaft's free end), the nut seated at world ``anchor`` in the
+        reference pose, with ``length`` (m) of thread engaged.
+
+        Model (a PhysX D6 joint, after bodykit.Thread): the nut stays on the shaft's axis (no sideways slide, no
+        tilt) and turns about it only when the torques on it overcome thread friction: Coulomb (a drive that holds
+        the relative turn still with at most the friction torque, solved every physics step), ``friction`` N*m
+        while it runs on the thread, ``seat_friction`` within ``seat_deg`` of the seat (the clamp load of a seated
+        nut), ``tight_friction`` once turned more than ``seat_deg`` tighter than seated. Its position along the
+        axis is held by a stiff spring (``axial_stiffness``, ``axial_damping``, at most ``axial_max_force``: the
+        thread flanks) whose target follows the turn every control step, pitch / (2 pi) per radian of the nut's
+        own measured right-hand turn about ``axis`` relative to the shaft: turned left (seen from the free end,
+        anticlockwise) it rises, and nothing but its turn moves it along the shaft; it never goes below the seat.
+        Once it has risen ``length`` its thread clears the shaft's thread end: the joint is removed and the nut
+        is a free body (it collides with the shaft again). Re-made at every reset. Nothing ever sets the nut's
+        pose: the turn comes from contact torques (a gripper's fingers), the rise from the thread."""
+        if not (pitch > 0 and length > 0 and friction >= 0):
+            raise ValueError(f"screw {name!r}: needs pitch > 0, length > 0, friction >= 0")
+        seat = friction if seat_friction is None else seat_friction
+        tight = seat if tight_friction is None else tight_friction
+        j = _Joint(name, "screw", parent, child, np.asarray(anchor, float), _unit(axis), 0.0, float(length), 0.0,
+                   friction=float(friction), pitch=float(pitch), seat_friction=float(seat),
+                   seat_rad=math.radians(seat_deg), tight_friction=float(tight), axial_k=float(axial_stiffness),
+                   axial_d=float(axial_damping), axial_max=float(axial_max_force))
+        return self._joint(j)
+
     def on_step(self, fn) -> None:
         """Call ``fn(objects)`` after every control step in sim, before success()/score() (e.g. a release rule)."""
         self._steps.append(fn)
@@ -353,6 +401,10 @@ class Kit:
             return _T(r, j.anchor - r @ j.anchor)
         if j.kind == "slider":
             return _T(None, j.axis * value)
+        if j.kind == "screw":  # value: the nut's turn (rad, unwrapped); it rises pitch per turn, from the seat
+            r = axis_angle(j.axis, value)
+            d = min(max(j.pitch * value / (2 * math.pi), j.lower), j.upper)
+            return _T(r, j.anchor - r @ j.anchor + j.axis * d)
         if j.twist_axis is not None and value:
             r = axis_angle(j.twist_axis, value)
             return _T(r, j.anchor - r @ j.anchor)
@@ -393,7 +445,7 @@ class Kit:
             fl = lambda v: tuple(float(c) for c in v)  # plain floats: Isaac turns numpy float64 into doubles
             out.append(MechPart(name=name, pos=fl((lo + hi) / 2), color=fl(p.color), mass=p.mass,
                                 size=fl(np.maximum(hi - lo, 1e-4)), boxes=p.boxes, origin=fl(t[:3, 3]),
-                                origin_quat=fl(mat_to_quat(t[:3, :3])), kit_id=self.id))
+                                origin_quat=fl(mat_to_quat(t[:3, :3])), kit_id=self.id, friction=p.friction))
         return out
 
     # -- readouts ---------------------------------------------------------------------------------------------
@@ -427,12 +479,18 @@ class Kit:
         """Hinge angle (rad) or slider travel (m), from the two bodies' poses."""
         j = self.joints_[name]
         m = self._joint_motion(objects, j)
-        if j.kind == "hinge" or j.twist_axis is not None:
+        if j.kind in ("hinge", "screw") or j.twist_axis is not None:  # screw: its turn, wrapped to (-pi, pi]
             quat = mat_to_quat(m[:3, :3])
             return float(2 * math.atan2(float(np.dot(quat[:3], j.axis)), float(quat[3])))
         if j.kind == "slider":
             return float(np.dot(m[:3, 3], j.axis))
         raise ValueError(f"{name!r} is a plain bond; use broken() / slip()")
+
+    def travel(self, objects, name: str) -> float:
+        """How far a screw's nut has moved out along the axis from its seat (m), from the two bodies' poses."""
+        j = self.joints_[name]
+        m = self._joint_motion(objects, j)
+        return float(np.dot(m[:3, :3] @ j.anchor + m[:3, 3] - j.anchor, j.axis))
 
     def q_deg(self, objects, name: str) -> float:
         return math.degrees(self.q(objects, name))
@@ -583,6 +641,8 @@ def _author_joint(stage, kit: Kit, j: _Joint, paths: dict, env_T: np.ndarray, su
         joint = UsdPhysics.RevoluteJoint.Define(stage, path)
     elif j.kind == "slider":
         joint = UsdPhysics.PrismaticJoint.Define(stage, path)
+    elif j.kind == "screw":
+        joint = UsdPhysics.Joint.Define(stage, path)  # a plain Joint is a PhysX D6: each axis locked, limited or free
     else:
         joint = UsdPhysics.FixedJoint.Define(stage, path)
     if j.kind == "bond":
@@ -620,6 +680,28 @@ def _author_joint(stage, kit: Kit, j: _Joint, paths: dict, env_T: np.ndarray, su
             drive.CreateDampingAttr().Set(float(j.damping / scale))
             drive.CreateTargetPositionAttr().Set(float(_drive_target(j, j.start) * scale))
             drive.CreateTargetVelocityAttr().Set(0.0)
+    elif j.kind == "screw":
+        for dof in ("transY", "transZ", "rotY", "rotZ"):  # low > high: locked (on the axis, no tilt)
+            lim = UsdPhysics.LimitAPI.Apply(prim, dof)
+            lim.CreateLowAttr().Set(1.0)
+            lim.CreateHighAttr().Set(-1.0)
+        lim = UsdPhysics.LimitAPI.Apply(prim, "transX")  # never below the seat
+        lim.CreateLowAttr().Set(float(j.lower))
+        lim.CreateHighAttr().Set(float(j.upper + 0.002))
+        turn = UsdPhysics.DriveAPI.Apply(prim, "rotX")  # thread friction: zero relative speed, capped torque
+        turn.CreateTypeAttr().Set("force")
+        turn.CreateStiffnessAttr().Set(0.0)
+        turn.CreateDampingAttr().Set(float(SCREW_DAMP * math.pi / 180.0))  # USD angular drives: per degree
+        turn.CreateTargetPositionAttr().Set(0.0)
+        turn.CreateTargetVelocityAttr().Set(0.0)
+        turn.CreateMaxForceAttr().Set(float(j.seat_friction))
+        slide = UsdPhysics.DriveAPI.Apply(prim, "transX")  # the thread flanks: where the turn puts the nut
+        slide.CreateTypeAttr().Set("force")
+        slide.CreateStiffnessAttr().Set(float(j.axial_k))
+        slide.CreateDampingAttr().Set(float(j.axial_d))
+        slide.CreateMaxForceAttr().Set(float(j.axial_max))
+        slide.CreateTargetPositionAttr().Set(0.0)
+        slide.CreateTargetVelocityAttr().Set(0.0)
     else:
         joint.CreateBreakForceAttr().Set(float(min(j.break_force, _BIG)))
         joint.CreateBreakTorqueAttr().Set(float(min(j.break_torque, _BIG)))
@@ -656,7 +738,7 @@ def _friction_step(kit: Kit, states: dict) -> None:
     from pxr import UsdPhysics
 
     for j in kit.joints_.values():
-        if j.kind == "bond" or j.friction <= 0 or j.child not in states:
+        if j.kind in ("bond", "screw") or j.friction <= 0 or j.child not in states:
             continue
         key = (kit.id, j.name)
         path = _SIM["joint_paths"].get(key)
@@ -678,7 +760,7 @@ def _friction_reset() -> None:
 
     for (kid, name), path in _SIM["joint_paths"].items():
         j = _KITS[kid].joints_[name]
-        if j.kind == "bond" or j.friction <= 0:
+        if j.kind in ("bond", "screw") or j.friction <= 0:
             continue
         _SIM["stick"][(kid, name)] = j.start
         scale = 180.0 / math.pi if j.kind == "hinge" else 1.0
@@ -686,7 +768,85 @@ def _friction_reset() -> None:
         drive.GetTargetPositionAttr().Set(float(_drive_target(j, j.start) * scale))
 
 
-_SIM: dict = {"stage": None, "paths": {}, "env_T": np.eye(4), "joint_paths": {}, "gen": 0, "stick": {}}
+def _wrap(a: float) -> float:
+    return (a + math.pi) % (2 * math.pi) - math.pi
+
+
+def _screw_friction(j: _Joint, turn: float) -> float:
+    if turn < -j.seat_rad:
+        return j.tight_friction
+    return j.seat_friction if turn < j.seat_rad else j.friction
+
+
+def screw_state(kit: Kit, name: str) -> dict:
+    """Sim readout of a screw: {'turn': unwrapped turn (rad), 'target': the thread's axial target (m), 'off':
+    cleared the thread end}; a fresh state offline / before the first step."""
+    return _SIM["screw"].get((kit.id, name), {"turn": 0.0, "target": 0.0, "off": False})
+
+
+def _screw_step(kit: Kit, states: dict) -> None:
+    """Every control step: unwrap each screw's turn, set its friction torque (seat / running / jammed) and its axial
+    target, and remove the joint once the nut's thread has cleared the shaft's thread end."""
+    from pxr import UsdPhysics
+
+    stage = _SIM["stage"]
+    for j in kit.joints_.values():
+        if j.kind != "screw" or j.child not in states or (j.parent is not None and j.parent not in states):
+            continue
+        key = (kit.id, j.name)
+        path = _SIM["joint_paths"].get(key)
+        s = _SIM["screw"].setdefault(key, {"prev": None, "turn": 0.0, "f": None, "target": 0.0, "off": False})
+        if not path or s["off"]:
+            continue
+        a = kit.q(states, j.name)
+        if s["prev"] is not None:
+            s["turn"] += _wrap(a - s["prev"])
+        s["prev"] = a
+        turn = s["turn"]
+        rise = j.pitch * turn / (2 * math.pi)
+        if rise >= j.upper:  # the nut's thread has run off the end of the shaft's thread: it is free
+            stage.RemovePrim(path)
+            s["off"] = True
+            MEMORY[("mechkit_screw_off", kit.id, j.name)] = True
+            print(f"[mechkit] screw {j.name!r}: off the thread end after {turn / (2 * math.pi):.2f} turns", flush=True)
+            continue
+        prim = stage.GetPrimAtPath(path)
+        f = _screw_friction(j, turn)
+        if f != s["f"]:
+            UsdPhysics.DriveAPI(prim, "rotX").GetMaxForceAttr().Set(float(f))
+            s["f"] = f
+        s["target"] = min(max(rise, j.lower), j.upper)
+        UsdPhysics.DriveAPI(prim, "transX").GetTargetPositionAttr().Set(float(s["target"]))
+
+
+def _screw_reset(before: bool) -> None:
+    """Before the reset: thread targets back to the seat. After it: re-make removed screw joints, forget turns."""
+    from pxr import UsdPhysics
+
+    stage = _SIM["stage"]
+    if stage is None:
+        return
+    for (kid, name), path in list(_SIM["joint_paths"].items()):
+        k = _KITS[kid]
+        j = k.joints_[name]
+        if j.kind != "screw":
+            continue
+        s = _SIM["screw"].get((kid, name), {})
+        if before:
+            prim = stage.GetPrimAtPath(path)
+            if prim.IsValid():
+                UsdPhysics.DriveAPI(prim, "transX").GetTargetPositionAttr().Set(0.0)
+                UsdPhysics.DriveAPI(prim, "rotX").GetMaxForceAttr().Set(float(j.seat_friction))
+            continue
+        if s.get("off") or not stage.GetPrimAtPath(path).IsValid():
+            _SIM["gen"] += 1
+            p = _author_joint(stage, k, j, _SIM["paths"], _SIM["env_T"], suffix=f"_r{_SIM['gen']}")
+            if p:
+                _SIM["joint_paths"][(kid, name)] = p
+        _SIM["screw"].pop((kid, name), None)
+
+
+_SIM: dict = {"stage": None, "paths": {}, "env_T": np.eye(4), "joint_paths": {}, "gen": 0, "stick": {}, "screw": {}}
 
 
 def _author_all(stage, env_path: str) -> None:
@@ -751,10 +911,13 @@ def _spawn_part_fn(mod):
         coll = mod._contact_props() if spec.free else mod.PhysxCollisionPropertiesCfg()
         for i, b in enumerate(spec.boxes):
             color = b.color if b.color is not None else spec.color
+            f = b.friction if b.friction is not None else spec.friction
+            mat = mod._grippy() if f is None else sim_utils.RigidBodyMaterialCfg(static_friction=f[0],
+                                                                                dynamic_friction=f[1])
             bcfg = sim_utils.CuboidCfg(
                 size=tuple(b.size),
                 collision_props=coll,
-                physics_material=mod._grippy(),
+                physics_material=mat,
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=mod.linear_rgb(color), roughness=0.4),
             )
             spawn_cuboid.__wrapped__(f"{prim_path}/box{i}", bcfg, translation=tuple(float(v) for v in b.at),
@@ -828,8 +991,10 @@ def _patch_embodiment(ie) -> None:
     def reset(self, *a, **k):
         if _SIM["stage"] is not None:
             _friction_reset()
+            _screw_reset(before=True)
         obs = reset0(self, *a, **k)
         _reglue()
+        _screw_reset(before=False)
         new_episode()
         _EP.update(env=self._env, emb=self, step=0)
         return obs
@@ -837,7 +1002,8 @@ def _patch_embodiment(ie) -> None:
     def _task_step(self, *a, **k):
         _EP.update(env=self._env, emb=self)
         _EP["step"] += 1
-        if any(kit._steps or any(j.kind == "bond" or j.friction > 0 for j in kit.joints_.values()) for kit in _KITS):
+        if any(kit._steps or any(j.kind in ("bond", "screw") or j.friction > 0 for j in kit.joints_.values())
+               for kit in _KITS):
             from yam_arena.scene import object_states
 
             names = [n for n in self.task.names]
@@ -848,6 +1014,7 @@ def _patch_embodiment(ie) -> None:
                         if kit.broken(states, j.name) and j.twist_axis is not None and j.name not in kit._released:
                             kit.release(j.name)  # a twist bond lets go for good past its limit
                 _friction_step(kit, states)
+                _screw_step(kit, states)
                 for fn in kit._steps:
                     fn(states)
         return step0(self, *a, **k)
