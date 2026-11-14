@@ -11,7 +11,10 @@ Physics (mechkit.py, in this folder, adds the joints to the stock runtime in mem
 fill counter are added below in the same way):
 - The needle in the arm is a slide along the needle's own line with 0.5 N of Coulomb friction (tissue drag); the
   holder and needle are one rigid body on it. The vein's lumen is +-2 mm of that slide. Push the tube in, or pull
-  it out, without holding the holder, and the needle goes deeper or comes back with it.
+  it out, without holding the holder, and the needle goes deeper or comes back with it. Because it is a slide, the
+  sim cannot move the needle sideways or pivot it; the scorer still reads both from the holder's pose (gates: the
+  hub 2 mm off the needle's start line, the needle's direction 3 deg off its start), and the real trial checks them
+  on video.
 - The stopper is pierced only when the measured contact force pressing the tube onto the back needle's sleeve
   reaches 4 N (PhysX contact readout, every physics step). From then on the tube is on the needle: it slides on it
   with up to 1.5 N of drag, ramped over the 4 mm of stopper the needle passes through, to a stop 8 mm in. Pulled
@@ -210,6 +213,9 @@ TRAVEL = 0.008  # m: the tube's stop on the needle (sleeve squashed against the 
 Q_OUT = -0.039  # m: the stopper 2 mm out of the holder's mouth: the tube is free
 T_FILL = 8.0  # s for the full 4 mL draw (UNVERIFIED)
 FULL = 0.9  # blood up to the fill mark (+-10 %)
+SIDE_MAX = 0.002  # m: the hub's sideways offset from the needle's start line (any direction across it) that latches 0
+PIVOT_MAX = 3.0  # deg: the needle's direction off its start direction (any pivot; spin about its own axis excluded)
+HUB_FACE = HUB[1]  # the hub's face toward the skin, 16 mm out along the needle: where the sideways offset is read
 
 kit = mk.Kit()
 kit.part("arm", (SITE[0], SITE[1], TOP), ARM_BOXES, mass=None, color=SKIN)
@@ -231,7 +237,8 @@ def _mem() -> dict:
         m = mk.MEMORY[M] = {"t": 0, "n": 0, "pierced": None, "rail": True, "removed": None, "fill": 0.0,
                             "out": None, "let_go": None, "first_held": None, "unheld": 0, "held": False,
                             "q_t": 0.0, "q_s": 0.0, "peak_push": 0.0, "out_dirs": set(),
-                            "touch": [0.0] * 8, "seg_shown": 0, "label": ""}
+                            "touch": [0.0] * 8, "seg_shown": 0, "label": "",
+                            "side": None, "side_kinds": set(), "lat_max": 0.0, "piv_max": 0.0}
     return m
 
 
@@ -377,29 +384,59 @@ def _latch_out(m, q_t) -> None:
               f"at physics step {m['t']}, waypoint '{m['label']}'", flush=True)
 
 
+def needle_pose(p_h, rot) -> tuple[float, float, float]:
+    """From the holder's (= the needle's) origin ``p_h`` (world, m) and rotation matrix ``rot``: travel along the
+    needle's start line (m, + deeper), the hub's sideways offset from that line (m, any direction across it) and the
+    needle's pivot off its start direction (deg). Spin about the needle's own axis moves neither."""
+    p_h = np.asarray(p_h, float)
+    hub = p_h + np.asarray(rot, float) @ np.array([HUB_FACE, 0.0, 0.0])
+    d = hub - (SITE + HUB_FACE * A)
+    lat = float(np.linalg.norm(d - (A @ d) * A))
+    piv = math.degrees(math.acos(max(-1.0, min(1.0, float(np.asarray(rot, float)[:, 0] @ A)))))
+    return float(A @ (p_h - SITE)), lat, piv
+
+
+def _check_side(m, lat, piv) -> None:
+    """The sideways and pivot gates, every physics step for the whole trial (before, during and after the fill):
+    latched 0 at the first exceedance; each kind is logged once."""
+    m["lat_max"], m["piv_max"] = max(m["lat_max"], lat), max(m["piv_max"], piv)
+    for kind, bad, txt in (("sideways", lat > SIDE_MAX, f"the hub moved {lat * 1000:.2f} mm sideways off the needle's "
+                            f"start line (limit {SIDE_MAX * 1000:.0f} mm)"),
+                           ("pivot", piv > PIVOT_MAX, f"the needle pivoted {piv:.2f} deg off its start direction "
+                            f"(limit {PIVOT_MAX:.0f} deg)")):
+        if bad and kind not in m["side_kinds"]:
+            m["side"] = m["t"] if m["side"] is None else m["side"]
+            m["side_kinds"].add(kind)
+            print(f"[vp] LATCH needle-{kind}: {txt} at physics step {m['t']}, waypoint '{m['label']}'", flush=True)
+
+
 def _physics_step() -> None:
     """Every physics step: the needle's and the tube's travel, the tissue and stopper drag, the piercing rule, the
     tube leaving the holder, the needle-out latch and the fill counter."""
     rt, m = _RT, _mem()
     m["t"] += 1
-    p_h = _arr(rt["b_holder"].get_transforms()).reshape(-1, 7)[0][:3] - rt["origin"]
+    x_h = _arr(rt["b_holder"].get_transforms()).reshape(-1, 7)[0]  # pos, quat xyzw
+    p_h = x_h[:3] - rt["origin"]
     p_t = _arr(rt["b_tube"].get_transforms()).reshape(-1, 7)[0][:3] - rt["origin"]
-    q_t = float(A @ (p_h - SITE))
+    q_t, lat, piv = needle_pose(p_h, mk.quat_to_mat(x_h[3:7]))
     q_s = float(A @ (p_t - p_h))
     m["q_t"], m["q_s"] = q_t, q_s
     if abs(q_t) > BAND:
         _latch_out(m, q_t)
+    _check_side(m, lat, piv)
     if m["rail"] and q_s <= Q_OUT:
         m["rail"], m["removed"] = False, m["t"]
         _set_rail(False)
         print(f"[vp] tube out of the holder at physics step {m['t']} (pierced {bool(m['pierced'])}, fill "
-              f"{m['fill'] * 100:.0f} %), needle {q_t * 1000:+.2f} mm", flush=True)
+              f"{m['fill'] * 100:.0f} %), needle {q_t * 1000:+.2f} mm; so far hub sideways max "
+              f"{m['lat_max'] * 1000:.3f} mm, pivot max {m['piv_max']:.3f} deg", flush=True)
     fm = _arr(rt["c_tube"].get_contact_force_matrix(dt=rt["dt"])).reshape(-1, 3)
     fh = _arr(rt["c_holder"].get_contact_force_matrix(dt=rt["dt"])).reshape(-1, 3)
     for k in range(4):  # finger tips touching: [holder: LL, LR, RL, RR] + [tube: LL, LR, RL, RR]
         m["touch"][k] = max(m["touch"][k], float(np.linalg.norm(fh[k])))
         m["touch"][4 + k] = max(m["touch"][4 + k], float(np.linalg.norm(fm[1 + k])))
-    if m["pierced"] and m["rail"] and q_s >= T_STOP and abs(q_t) <= BAND and m["out"] is None and m["fill"] < 1.0:
+    if m["pierced"] and m["rail"] and q_s >= T_STOP and abs(q_t) <= BAND and m["out"] is None and m["side"] is None \
+            and m["fill"] < 1.0:
         m["fill"] = min(1.0, m["fill"] + rt["dt"] / T_FILL)
 
 
@@ -572,6 +609,10 @@ def _on_step(objects) -> None:
                   f"step {m['t']} (needle {m['q_t'] * 1000:+.2f} mm), waypoint '{m['label']}'", flush=True)
     else:
         m["unheld"] = 0
+    if m["n"] % 200 == 0:  # every 10 s: the sideways and pivot gates' running maxima (whole trial)
+        print(f"[vp] k={m['n']} needle sideways/pivot so far: hub max {m['lat_max'] * 1000:.3f} mm (limit "
+              f"{SIDE_MAX * 1000:.0f}), pivot max {m['piv_max']:.3f} deg (limit {PIVOT_MAX:.0f}), latched "
+              f"{m['side'] is not None}", flush=True)
     if DEBUG and m["n"] % 10 == 0:
         print(f"[vp] k={m['n']} needle {m['q_t'] * 1000:+.2f} mm tube {m['q_s'] * 1000:+.2f} mm fill "
               f"{m['fill'] * 100:.0f} % held {int(held)} touch {[round(v, 2) for v in m['touch']]} pierced "
@@ -615,12 +656,14 @@ def in_tray(objects) -> bool:
 
 
 def score(objects) -> float:
-    """0 if the needle ever left the vein (moved more than 2 mm along its line), or the holder was let go of after it
-    was first held (no hand on it for 0.25 s), or the stopper was never pierced. Otherwise 0.25 (pierced in the vein),
-    0.5 the tube filled to its mark (>= 90 %), 0.75 that and the tube off the needle and out of the holder, 1.0 that
-    and the tube lying in a tray slot, let go and still, with the holder still held."""
+    """0 if the needle ever left the vein (moved more than 2 mm along its line), or its hub ever moved more than 2 mm
+    sideways off the needle's start line, or the needle ever pivoted more than 3 deg (whole trial, including after the
+    fill), or the holder was let go of after it was first held (no hand on it for 0.25 s), or the stopper was never
+    pierced. Otherwise 0.25 (pierced in the vein), 0.5 the tube filled to its mark (>= 90 %), 0.75 that and the tube
+    off the needle and out of the holder, 1.0 that and the tube lying in a tray slot, let go and still, with the holder
+    still held."""
     m = _mem()
-    if m["out"] is not None or m["let_go"] is not None or not m["pierced"]:
+    if m["out"] is not None or m["side"] is not None or m["let_go"] is not None or not m["pierced"]:
         return 0.0
     if m["fill"] < FULL:
         return 0.25
@@ -997,6 +1040,7 @@ def self_test():
         "never pierced, tube in the tray": (tray, {**F, "pierced": None, "fill": 0.0}, [], 0.0),
         "unbraced push: pierced but needle out": (on, dict(pierced=1, fill=0.0, out=3, held=False), [], 0.0),
         "unbraced pull: full, removed, needle out": (out_tube, {**F, "out": 9}, [], 0.0),
+        "needle pushed sideways after the fill (latched)": (tray, {**F, "side": 7}, [], 0.0),
     }
     try:
         for name, (st, flags, tcps, want) in cases.items():
@@ -1008,13 +1052,37 @@ def self_test():
         # readouts and rules
         assert abs(kit.q(on, "skewer") - TRAVEL) < 1e-9 and abs(kit.q(_states(q_t=0.003), "tissue") - 0.003) < 1e-9
         assert drag_cap(-0.01) == 0.0 and abs(drag_cap(0.002) - F_DRAG / 2) < 1e-9 and drag_cap(0.006) == F_DRAG
+        # the sideways and pivot gates: pose readouts, then the latch firing from hand-built holder poses
+        def pose(shift=(0.0, 0.0, 0.0), piv_deg=0.0, axis=(1.0, 0.0, 0.0), spin_deg=0.0):
+            r = mk.axis_angle(axis, math.radians(piv_deg)) @ mk.axis_angle(A, math.radians(spin_deg)) @ R_H
+            return SITE + np.asarray(shift), r  # pivoting about the skin point (the holder's origin)
+        q0, l0, v0 = needle_pose(*pose())
+        assert abs(q0) < 1e-9 and l0 < 1e-9 and v0 < 1e-6
+        q1, l1, v1 = needle_pose(*pose(shift=0.0015 * A, spin_deg=30.0))  # along the line and spun: neither gate
+        assert abs(q1 - 0.0015) < 1e-9 and l1 < 1e-9 and v1 < 1e-6
+        _, l2, _ = needle_pose(*pose(shift=0.0025 * np.array([1.0, 0.0, 0.0])))  # 2.5 mm across (away from the robot)
+        assert abs(l2 - 0.0025) < 1e-9
+        _, l3, v3 = needle_pose(*pose(piv_deg=4.0))  # 4 deg about the vertical through the skin point
+        assert abs(v3 - 4.0) < 1e-6 and abs(l3 - abs(HUB_FACE) * math.sin(math.radians(4.0))) < 1e-9
+        for p_h, rot, kinds in ((*pose(shift=0.0019 * U), set()), (*pose(piv_deg=2.9, axis=U), set()),
+                                (*pose(shift=0.0021 * U), {"sideways"}), (*pose(piv_deg=3.1, axis=U), {"pivot"}),
+                                (*pose(shift=0.0025 * YL, piv_deg=8.0, axis=YL), {"sideways", "pivot"})):
+            mk.new_episode()
+            m = _mem()
+            m.update(F)
+            m["t"] = 4000  # after the fill
+            _, lat, piv = needle_pose(p_h, rot)
+            _check_side(m, lat, piv)
+            assert m["side_kinds"] == kinds and (m["side"] is not None) == bool(kinds), (kinds, lat, piv)
+            _TEST_TCPS = []
+            assert (score(tray) == 0.0) == bool(kinds), kinds
         z = [0.0] * 8
         assert holder_held([1, 1, 0, 0, 0, 0, 0, 0]) and holder_held([0, 0, 0, 1, 0, 0, 1, 0])
         assert not holder_held(z) and not holder_held([0, 0, 0, 0, 0, 0, 1, 1]) and not holder_held([1, 0, 0, 0, 0, 0, 0, 0])
     finally:
         mk.new_episode()
         _TEST_TCPS = None
-    return len(cases) + 3
+    return len(cases) + 4
 
 
 if __name__ == "__main__":
