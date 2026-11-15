@@ -502,12 +502,12 @@ STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip 
 # straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
 # the wrist's stiffness straight past the breakover (measured: the detent never fires through a pinch).
 WIDE = -0.030
-PULL_DEG = {"demo": 15.0, "half": 15.0, "through": 45.0, "short": 6.0}
+PULL_DEG = {"demo": 17.0, "half": 17.0, "through": 45.0, "short": 6.0}
 PULL_S = {"demo": 6.0, "half": 6.0, "through": 12.0, "short": 3.0}
 EASE_DEG = 1.5
 STEP_DEG = 1.5
 PARK_L = (0.150, 0.250, 0.950)
-PARK_R = (0.150, -0.300, TOP + 0.200)
+PARK_R = (0.150, -0.350, TOP + 0.200)  # 5 cm further out: the pulled grip must end over 10 cm from the hand
 L_OPEN = -0.04695
 LIFT = 0.070  # straight up off the grip after letting go, before moving away to PARK_R
 
