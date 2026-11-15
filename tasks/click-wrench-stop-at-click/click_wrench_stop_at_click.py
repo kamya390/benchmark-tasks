@@ -112,6 +112,12 @@ SLOPE = 2.5  # N*m/rad: the bolt's turning torque rises this much per radian pas
 CLICK_DEG = 1.5  # the detent breaks over at this deflection (= the set torque, pulled at the grip's centre)
 K_DETENT = F_CLICK * (R_GRIP - R_PIVOT) / math.radians(CLICK_DEG)  # N*m/rad about the pivot, the armed detent
 K_RETURN = 0.3  # N*m/rad, the reset spring once it has broken over
+BREAKOVER_DRIVE = 27.0  # sim drive calibration: the pipeline's joint-drive backend realises angular
+# stiffness about 27x the commanded value (measured on the breakover with a moment-free pull: 0.06 deg of
+# deflection where statics demand 1.61 deg at 107 % of the set torque, i.e. ~347 N*m/rad effective against
+# the 13 commanded). The breakover's commanded stiffness is divided by this so the EFFECTIVE spring is the
+# designed K_DETENT - a sim calibration of the same kind as TORQUE_SCALE. The scored click threshold
+# (1.5 deg of breakover, read from body poses) is untouched.
 BREAK_DEG = 6.0  # the handle's stop: how far it kinks at the click
 REARM_DEG = 0.5  # back within this of in line (load off): the detent re-arms
 SPEC_DEG = math.degrees((T_CLICK - T0) / SLOPE)  # bolt angle at the set torque (4.9 deg)
@@ -218,7 +224,7 @@ kit.part("handle", (*_spun(0.0, -R_PIVOT), ZH_START), yaw=SPAWN_YAW, boxes=[
 ], mass=HANDLE_KG, color=STEEL)
 # the detent pivot: handle on the head, held in line by the armed detent spring, its stop at 6 deg
 kit.hinge("breakover", "wrench_head", "handle", anchor=(*_spun(0.0, -R_PIVOT), ZH_START), axis=(0, 0, -1),
-          lower_deg=-1.0, upper_deg=BREAK_DEG, stiffness=K_DETENT, rest_deg=0.0, damping=DAMP)
+          lower_deg=-1.0, upper_deg=BREAK_DEG, stiffness=K_DETENT / BREAKOVER_DRIVE, rest_deg=0.0, damping=DAMP)
 
 FIXTURES = [
     Box("insulator_a", pos=(BX - 0.020, BY, TOP + 0.012), size=(0.020, 0.020, 0.024), color=EPOXY),
@@ -355,7 +361,7 @@ def _rules(objects) -> None:
     m["n"] += 1
     if not m["init"]:  # a new episode: the detent armed, the bolt at snug
         m["init"] = True
-        _set_drive("breakover", target=0.0, stiffness=K_DETENT)
+        _set_drive("breakover", target=0.0, stiffness=K_DETENT / BREAKOVER_DRIVE)
     th, d = bolt_deg(objects), break_deg(objects)
     eng, tilt, coax = seat_geom(objects)
     s_now = bool(eng >= ENG_SEAT and tilt <= TILT_MAX and coax <= COAX_MAX)
@@ -396,11 +402,11 @@ def _rules(objects) -> None:
         m["armed"], m["t_click"] = False, m["n"]
         m["clicks"] += 1
         m["click_seated"] = m["click_seated"] or s_now
-        _set_drive("breakover", target=0.0, stiffness=K_RETURN)
+        _set_drive("breakover", target=0.0, stiffness=K_RETURN / BREAKOVER_DRIVE)
         _say(f"CLICK {m['clicks']}: handle {d:.2f} deg, bolt {th:.2f} deg past snug, seated {s_now}")
     elif not m["armed"] and d <= REARM_DEG and m["n"] - m["t_click"] >= REARM_STEPS:
         m["armed"] = True
-        _set_drive("breakover", target=0.0, stiffness=K_DETENT)
+        _set_drive("breakover", target=0.0, stiffness=K_DETENT / BREAKOVER_DRIVE)
         _say(f"re-armed: handle {d:.2f} deg, bolt {th:.2f} deg")
     g = grip_point(objects)
     if m["prev"] is not None:
@@ -502,7 +508,9 @@ STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip 
 # straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
 # the wrist's stiffness straight past the breakover (measured: the detent never fires through a pinch).
 WIDE = -0.030
-PULL_DEG = {"demo": 17.0, "half": 17.0, "through": 45.0, "short": 6.0}
+PULL_DEG = {"demo": 18.5, "half": 18.5, "through": 45.0, "short": 6.0}  # the calibrated detent
+# adds its ~1.6 deg of designed flex to the chain; the click is torque-driven at the bolt's 4.9 deg and
+# the handle's 6 deg free swing absorbs the rest, so 18.5 cannot drive past the click
 PULL_S = {"demo": 6.0, "half": 6.0, "through": 12.0, "short": 3.0}
 EASE_DEG = 1.5
 STEP_DEG = 1.5
