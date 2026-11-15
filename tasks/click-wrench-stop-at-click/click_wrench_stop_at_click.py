@@ -112,12 +112,13 @@ SLOPE = 2.5  # N*m/rad: the bolt's turning torque rises this much per radian pas
 CLICK_DEG = 1.5  # the detent breaks over at this deflection (= the set torque, pulled at the grip's centre)
 K_DETENT = F_CLICK * (R_GRIP - R_PIVOT) / math.radians(CLICK_DEG)  # N*m/rad about the pivot, the armed detent
 K_RETURN = 0.3  # N*m/rad, the reset spring once it has broken over
-BREAKOVER_DRIVE = 20.0  # sim drive calibration: the pipeline's joint-drive backend realises angular
-# stiffness about 20x the commanded value. Measured from the breakover's own break trace under a moment-free
-# pull (well-conditioned: the 1.5 deg break crossed at a known bolt torque; effective spring 9-10 N*m/rad
-# against the commanded 13/27, i.e. a backend factor of ~19.7, +-7 %). The breakover's commanded stiffness
-# is divided by this so the EFFECTIVE spring is the designed K_DETENT - a sim calibration of the same kind
-# as TORQUE_SCALE. The scored click threshold (1.5 deg of breakover, read from body poses) is untouched.
+BREAKOVER_DRIVE = 22.0  # sim drive calibration, bracket-fitted: the joint-drive backend's realised
+# stiffness is super-linear in the command and softens with amplitude (stiffness-sweep probe + two measured
+# break points: commanded 0.481 N*m/rad breaks at 69 % of the set torque, 0.65 does not break by 110 %), so
+# the commanded value is set where the interpolated 1.5-deg break lands at the set torque: 13/22 = 0.59
+# N*m/rad. The press's small sliding drag biases the click a shade early, into the 90-110 % band. A sim
+# calibration of the same kind as TORQUE_SCALE; the scored click threshold (1.5 deg of breakover, read from
+# body poses) is untouched.
 SWEEP_CMDS = (0.20, 0.481, 0.80, 1.30)  # VARIANT "sweep": commanded breakover stiffness per 6 s window of a
 # slow pull (soft to stiff as the torque rises), to characterise the backend's super-linear stiffness mapping
 SWEEP_WIN_S = 6.0
@@ -521,7 +522,7 @@ STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip 
 # straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
 # the wrist's stiffness straight past the breakover (measured: the detent never fires through a pinch).
 WIDE = -0.030
-PULL_DEG = {"demo": 18.5, "half": 18.5, "through": 45.0, "short": 6.0, "sweep": 16.0}  # the calibrated detent
+PULL_DEG = {"demo": 20.5, "half": 20.5, "through": 45.0, "short": 6.0, "sweep": 16.0}  # the calibrated detent
 # adds its ~1.6 deg of designed flex to the chain; the click is torque-driven at the bolt's 4.9 deg and
 # the handle's 6 deg free swing absorbs the rest, so 18.5 cannot drive past the click
 PULL_S = {"demo": 6.0, "half": 6.0, "through": 12.0, "short": 3.0, "sweep": 24.0}
