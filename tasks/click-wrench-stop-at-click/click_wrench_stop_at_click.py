@@ -206,7 +206,9 @@ kit.part("wrench_head", (SX, SY, ZH_START), yaw=SPAWN_YAW, boxes=[
            mu=MU_METAL),  # transducer
     mk.box((0.032, 0.032, HEAD_T), mu=MU_METAL),  # ratchet head
     mk.box((0.016, _hy - 0.016, 0.012), at=(0, -(_hy + 0.016) / 2, 0), mu=MU_METAL),  # neck to the pivot
-    mk.box((0.010, 0.004, 0.003), at=(0, 0.004, HEAD_T / 2 + 0.0015), color=RED),  # direction lever
+    mk.box((0.010, 0.004, 0.002), at=(0, 0.004, HEAD_T / 2 - 0.0005), color=RED),  # direction selector:
+    # a flush ring-style reverse selector (the low-profile pattern common on quarter-inch click
+    # wrenches), 0.5 mm proud - visible, but nothing for a hold-down press to snag or pin
 ], mass=HEAD_KG, color=CHROME)
 # handle frame: origin on the pivot, the tube running out along -y; the grip rests on the bench block
 _tube_len = R_GRIP - GRIP[1] / 2 - R_PIVOT
@@ -564,16 +566,16 @@ def demo():
         # left hand presses the head down onto the joint, on the bolt axis where its sliding friction puts
         # no measurable torque on the bolt, while the right hand pulls the handle. The press leaves before
         # the success hold; the tool then stands on the bolt and the rest as before.
-        # nearly dead-centre and firm: the press sits as close to the drive axis as the direction lever
-        # allows, so its sliding friction works at a few millimetres' radius - a few hundredths of a N*m on
-        # the click, inside the band - while the hold-down gives the hex the righting the pull's pry needs.
+        # dead-centre and firm: with the flush selector there is nothing to snag, so the press rides the
+        # drive axis, its sliding friction works at a few millimetres' radius - a few hundredths of a N*m
+        # on the click, inside the band - and the hold-down gives the hex the righting the pull's pry needs.
         zpress = ZH + HEAD_T / 2 + TIP - 0.004  # closed pad tips pressed firmly into the head's top face
-        lw(1.0, (BX, BY - 0.0045, zpress + 0.030), 0.0, "fingers closed, over the wrench head", yb)
-        lw(1.0, (BX, BY - 0.0045, zpress), 0.0, "press the head down onto the joint, firmly", yb)
+        lw(1.0, (BX, BY, zpress + 0.030), 0.0, "fingers closed, over the wrench head", yb)
+        lw(1.0, (BX, BY, zpress), 0.0, "press the head down onto the joint, firmly", yb)
         hold_s = {"demo": 6.0, "through": 19.0, "short": 3.0}[VARIANT] + 6.5
         t_on = sum(w.duration for w in L)
-        lw(hold_s, (BX, BY - 0.0045, zpress), 0.0, "hold the head down while the right hand pulls", yb)
-        lw(0.8, (BX, BY - 0.0045, zpress + 0.040), 0.0, "lift off the head", yb)
+        lw(hold_s, (BX, BY, zpress), 0.0, "hold the head down while the right hand pulls", yb)
+        lw(0.8, (BX, BY, zpress + 0.040), 0.0, "lift off the head", yb)
         L.append(Waypoint(2.0, PARK_L, L_OPEN, "park", 0.0))
     t_ready = sum(w.duration for w in L)
     t_go = t_ready if VARIANT == "half" else t_on  # the right moves in once the press (or the half hold) is on
