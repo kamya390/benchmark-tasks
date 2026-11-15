@@ -488,10 +488,10 @@ def distance(objects) -> float:
 # on the rest through the success hold.
 
 TIP = 0.013  # pad tips below the TCP
-PAD_DOWN = 0.008  # right grip: pad tips this far below the grip's centre plane, so the pads' contact patch
-# centres on the grip. A patch above centre rolls the resting tool about its handle axis as it pushes (run
-# telemetry: the hex wedged and pried the bolt before it could turn); centred, the push is roll-free. The
-# tips still clear the handle rest's top by 1.5 mm.
+PAD_DOWN = 0.004  # right grip: pad tips this far below the grip's centre plane - the proven pushing height.
+# Lower (tips 1.5 mm off the rest) the arm's sag parks the tips ON the rest and the sweep stalls before it
+# ever touches the grip (run telemetry); the slight above-centre push is fine because the firm head press
+# carries the roll.
 PAD_DOWN_L = 0.007  # left pinch: pads a little lower round the 12 mm neck (full-height contact patch)
 R_NECK = 0.040  # the left pinch point: the tool's balance point (the whole wrench's centre of mass is 39 mm
 # from the socket axis, measured from the sim bodies' COMs), still on the neck. Pinched at the balance point
