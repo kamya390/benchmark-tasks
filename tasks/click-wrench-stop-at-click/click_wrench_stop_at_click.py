@@ -490,9 +490,13 @@ PAD_DOWN = 0.004  # right grip: pad tips this far below the grip's centre plane 
 PAD_DOWN_L = 0.007  # left pinch: pads a little lower round the 12 mm neck (full-height contact patch)
 R_NECK = 0.040  # the left pinch point on the neck, just outboard of the head
 NECK_CLOSE = -0.004  # fingers closed 8 mm inside the 16 mm neck: a firm pinch
-SEAT_AIM = (0.0, 0.0)  # carry aim correction for the supported carry; the carry pretest measures any
-# residual settle of the two laden wrists and this takes it out (zero until measured otherwise)
-SAG_Z = 0.0  # height correction, likewise measured by the carry pretest (two wrists share the 0.55 kg load)
+SEAT_AIM = (0.0034, 0.0059)  # carry aim: the two laden wrists settle this far off the commanded point
+# (carry-pretest telemetry, repeatable across cycles); the bolt-side targets aim the same distance the other
+# way so the socket arrives centred over the head
+SAG_Z = 0.004  # the seat heights command this much low as a minimum-sag allowance. Any extra wrist sag just
+# becomes command-overdrive, which is safe here: the supported tool cannot pitch or skate (both hands and the
+# handle rest hold it level - the rest squares the handle as the grip lands), so surplus command turns into a
+# firm, aligned preload of the rim on the washer
 GRIP_CLOSE = -0.006  # right hand on the 18 mm rubber grip for the carry: pads 3 mm into the rubber, firm
 STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip (9 mm play each side). The
 # straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
