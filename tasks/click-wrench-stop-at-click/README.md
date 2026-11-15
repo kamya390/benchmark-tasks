@@ -67,10 +67,10 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
   (strain-gauge torque cell, 0-10 N*m, angle encoder, peak hold), 26 x 26 mm and 4 cm tall, between the wrench's
   drive and the socket. Seated, the wrench's centre plane is 10.6 cm above the table, as in the sim.
 - **Sim drive calibration** (sim only; declared in `fidelity` beside the 1/7 torque scale): the pipeline's
-  joint-drive backend realises angular drive stiffness at about 27x the commanded value - measured on the
-  breakover under a moment-free pull, which deflected 0.06 deg where the statics of the commanded 13 N*m/rad
-  spring demand 1.61 deg at 107 % of the set torque (~347 N*m/rad effective). The breakover's commanded
-  stiffness is therefore divided by `BREAKOVER_DRIVE = 27`, so the effective joint is the designed detent.
+  joint-drive backend realises angular drive stiffness at about 20x the commanded value - measured from the
+  breakover's own break trace under a moment-free pull (the 1.5 deg break crossing at a known bolt torque:
+  effective spring 9-10 N*m/rad, backend factor ~19.7, +-7 %). The breakover's commanded
+  stiffness is divided by `BREAKOVER_DRIVE = 20`, so the effective joint is the designed detent.
   The scored click threshold (1.5 deg of breakover, read from body poses) is unchanged.
 - **Snug (the zero for every angle):** run the bolt down by hand, then tighten until the transducer reads 1.5 N*m
   (half the marked torque). Paint a line across the bolt head, washer and lug. The sim starts here: the bolt turns on

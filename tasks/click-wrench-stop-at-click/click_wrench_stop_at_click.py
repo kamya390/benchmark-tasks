@@ -112,12 +112,12 @@ SLOPE = 2.5  # N*m/rad: the bolt's turning torque rises this much per radian pas
 CLICK_DEG = 1.5  # the detent breaks over at this deflection (= the set torque, pulled at the grip's centre)
 K_DETENT = F_CLICK * (R_GRIP - R_PIVOT) / math.radians(CLICK_DEG)  # N*m/rad about the pivot, the armed detent
 K_RETURN = 0.3  # N*m/rad, the reset spring once it has broken over
-BREAKOVER_DRIVE = 27.0  # sim drive calibration: the pipeline's joint-drive backend realises angular
-# stiffness about 27x the commanded value (measured on the breakover with a moment-free pull: 0.06 deg of
-# deflection where statics demand 1.61 deg at 107 % of the set torque, i.e. ~347 N*m/rad effective against
-# the 13 commanded). The breakover's commanded stiffness is divided by this so the EFFECTIVE spring is the
-# designed K_DETENT - a sim calibration of the same kind as TORQUE_SCALE. The scored click threshold
-# (1.5 deg of breakover, read from body poses) is untouched.
+BREAKOVER_DRIVE = 20.0  # sim drive calibration: the pipeline's joint-drive backend realises angular
+# stiffness about 20x the commanded value. Measured from the breakover's own break trace under a moment-free
+# pull (well-conditioned: the 1.5 deg break crossed at a known bolt torque; effective spring 9-10 N*m/rad
+# against the commanded 13/27, i.e. a backend factor of ~19.7, +-7 %). The breakover's commanded stiffness
+# is divided by this so the EFFECTIVE spring is the designed K_DETENT - a sim calibration of the same kind
+# as TORQUE_SCALE. The scored click threshold (1.5 deg of breakover, read from body poses) is untouched.
 BREAK_DEG = 6.0  # the handle's stop: how far it kinks at the click
 REARM_DEG = 0.5  # back within this of in line (load off): the detent re-arms
 SPEC_DEG = math.degrees((T_CLICK - T0) / SLOPE)  # bolt angle at the set torque (4.9 deg)
