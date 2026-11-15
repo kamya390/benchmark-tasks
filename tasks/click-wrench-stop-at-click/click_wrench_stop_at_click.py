@@ -522,7 +522,7 @@ STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip 
 # straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
 # the wrist's stiffness straight past the breakover (measured: the detent never fires through a pinch).
 WIDE = -0.030
-PULL_DEG = {"demo": 20.5, "half": 20.5, "through": 45.0, "short": 6.0, "sweep": 16.0}  # the calibrated detent
+PULL_DEG = {"demo": 20.5, "half": 8.0, "through": 45.0, "short": 6.0, "sweep": 16.0}  # the calibrated detent
 # adds its ~1.6 deg of designed flex to the chain; the click is torque-driven at the bolt's 4.9 deg and
 # the handle's 6 deg free swing absorbs the rest, so 18.5 cannot drive past the click
 PULL_S = {"demo": 6.0, "half": 6.0, "through": 12.0, "short": 3.0, "sweep": 24.0}
@@ -597,17 +597,21 @@ def demo():
         x, y = _grip_xy(deg)
         R.append(Waypoint(dur, (x, y, z), f, label, math.pi / 2 - math.radians(deg)))
 
+    zarc = tzr + (0.0065 if VARIANT == "half" else 0.0)  # half pulls at the crown-rest height
+
     def arc(a, b, dur, label):
         n = max(1, math.ceil(abs(b - a) / STEP_DEG))
         for k in range(1, n + 1):
-            w(dur / n, a + (b - a) * k / n, tzr, STRADDLE, label)
+            w(dur / n, a + (b - a) * k / n, zarc, STRADDLE, label)
 
-    if VARIANT == "half":  # the seating ablation: hold the socket 1.5 mm engaged while the right pulls
-        two(2.0, (*nb, tzb + 0.002 + SAG_Z), NECK_CLOSE, (*gb, tzr + 0.002 + SAG_Z), GRIP_CLOSE,
-            "lower part way: about 1.5 mm engaged")
-        L.append(Waypoint(1.0, (*nb, tzb + 0.002 + SAG_Z), NECK_CLOSE, "hold half-seated", YL))
-        w(0.6, 0.0, tzr + 0.002 + SAG_Z, STRADDLE, "open to a straddle")
-        w(0.4, 0.0, tzr + 0.002 + SAG_Z, STRADDLE, "settle")
+    if VARIANT == "half":  # the seating ablation: the socket is never let into the hex - the rim is set
+        # down on the head's chamfered crown (a contact, so the wrist's sag becomes press force rather than a
+        # position error) and the right pulls anyway: the grinding rim drags the bolt round unseated
+        two(3.0, (*nb, tzb + 0.0065), NECK_CLOSE, (*gb, tzr + 0.0065), GRIP_CLOSE,
+            "lower until the rim sits on the head's crown: never seated")
+        L.append(Waypoint(1.0, (*nb, tzb + 0.0065), NECK_CLOSE, "hold it there", YL))
+        w(0.6, 0.0, tzr + 0.0065, STRADDLE, "open to a straddle")
+        w(0.4, 0.0, tzr + 0.0065, STRADDLE, "settle")
     else:
         two(2.0, (*nb, tzb + 0.0005 + SAG_Z), NECK_CLOSE, (*gb, tzr + 0.0005 + SAG_Z), GRIP_CLOSE,
             "ease the hex home: the grip comes down on the handle rest")
