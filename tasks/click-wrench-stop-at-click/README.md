@@ -166,6 +166,8 @@ Set `VARIANT` at the top of the task file:
   The bolt is dragged or the socket cams out: the UNSEATED-TURN latch fires and the trial scores 0.
 - `"through"`: the naive pull straight on through the click to 45 deg: OVER-TORQUED latches, score 0.
 - `"short"`: stops before the click: under-torqued, at most 0.25.
+- `"sweep"`: a sim-calibration probe, not an ablation: a slow pull while the breakover drive steps
+  through four commanded stiffnesses, used to bracket-fit `BREAKOVER_DRIVE`; it never scores.
 
 ## Videos and screenshot
 

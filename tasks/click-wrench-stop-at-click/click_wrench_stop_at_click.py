@@ -522,9 +522,10 @@ STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip 
 # straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
 # the wrist's stiffness straight past the breakover (measured: the detent never fires through a pinch).
 WIDE = -0.030
-PULL_DEG = {"demo": 20.5, "half": 8.0, "through": 45.0, "short": 6.0, "sweep": 16.0}  # the calibrated detent
-# adds its ~1.6 deg of designed flex to the chain; the click is torque-driven at the bolt's 4.9 deg and
-# the handle's 6 deg free swing absorbs the rest, so 18.5 cannot drive past the click
+PULL_DEG = {"demo": 20.5, "half": 8.0, "through": 45.0, "short": 6.0, "sweep": 16.0}  # the demo stops at
+# 20.5: the click is torque-driven at the bolt's ~4.9 deg (it fired at bolt 4.41-4.71 in the recorded runs,
+# two to three degrees of hand travel before the stop) and the handle's 6 deg free swing absorbs the rest of
+# the hand's travel, so 20.5 cannot drive the bolt past the click
 PULL_S = {"demo": 6.0, "half": 6.0, "through": 12.0, "short": 3.0, "sweep": 24.0}
 EASE_DEG = 1.5
 STEP_DEG = 1.5
