@@ -52,7 +52,7 @@ from yam_arena.task_file import TABLE_TOP, Box  # noqa: E402
 SCENE = "station"
 TOP = TABLE_TOP[SCENE]
 DEBUG = False  # sim only: print the wrench's events and a readout every control step while it is loaded
-VARIANT = "demo"  # sim runs: "demo"; "half" (left holds the socket 1.5 mm engaged while the right pulls);
+VARIANT = "demo"  # sim runs: "demo"; "half" (the socket set down cocked, off the axis, never seated);
 # "through" (pulls on to 45 deg); "short" (stops at 6 deg)
 
 # Frame: x forward from the arm bases, y left, z up, metres. Left arm base (0, +0.305, 0.75), right (0, -0.305).
