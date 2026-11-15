@@ -585,33 +585,35 @@ def demo():
         R.append(Waypoint(2.0, PARK_R, WIDE, "park", YR))
         return {"left": L, "right": R}
 
+    if VARIANT == "half":  # the seating ablation aims 2.5 mm off the bolt axis - outside the chamfers'
+        # capture - so the rim jams on the head cocked and part-engaged, never seated (coax > 1 mm)
+        nb = (nb[0], nb[1] + 0.0025)
+        gb = (gb[0], gb[1] + 0.0025)
     take(n0, g0)
     two(1.5, (*n0, tzs + 0.040), NECK_CLOSE, (*g0, tgs + 0.040), GRIP_CLOSE, "lift the tool off its rest")
     two(3.0, (*nb, tzb + 0.030), NECK_CLOSE, (*gb, tzr + 0.030), GRIP_CLOSE, "carry it level over the bolt")
     two(1.0, (*nb, tzb + 0.030), NECK_CLOSE, (*gb, tzr + 0.030), GRIP_CLOSE, "settle over the head")
     two(2.5, (*nb, tzb + 0.004 + SAG_Z), NECK_CLOSE, (*gb, tzr + 0.004 + SAG_Z), GRIP_CLOSE,
-        "lower together: the chamfers meet")
+        "lower together: the chamfers meet" if VARIANT != "half" else "lower together, aimed off the axis")
     pull = PULL_DEG[VARIANT]
 
     def w(dur, deg, z, f, label):
         x, y = _grip_xy(deg)
         R.append(Waypoint(dur, (x, y, z), f, label, math.pi / 2 - math.radians(deg)))
 
-    zarc = tzr + (0.0065 if VARIANT == "half" else 0.0)  # half pulls at the crown-rest height
+    zarc = tzr + (0.0045 if VARIANT == "half" else 0.0)  # half pulls at its cocked-hold height
 
     def arc(a, b, dur, label):
         n = max(1, math.ceil(abs(b - a) / STEP_DEG))
         for k in range(1, n + 1):
             w(dur / n, a + (b - a) * k / n, zarc, STRADDLE, label)
 
-    if VARIANT == "half":  # the seating ablation: the socket is never let into the hex - the rim is set
-        # down on the head's chamfered crown (a contact, so the wrist's sag becomes press force rather than a
-        # position error) and the right pulls anyway: the grinding rim drags the bolt round unseated
-        two(3.0, (*nb, tzb + 0.0065), NECK_CLOSE, (*gb, tzr + 0.0065), GRIP_CLOSE,
-            "lower until the rim sits on the head's crown: never seated")
-        L.append(Waypoint(1.0, (*nb, tzb + 0.0065), NECK_CLOSE, "hold it there", YL))
-        w(0.6, 0.0, tzr + 0.0065, STRADDLE, "open to a straddle")
-        w(0.4, 0.0, tzr + 0.0065, STRADDLE, "settle")
+    if VARIANT == "half":  # the cocked, part-engaged hold; the left keeps it there while the right pulls
+        two(2.0, (*nb, tzb + 0.0045), NECK_CLOSE, (*gb, tzr + 0.0045), GRIP_CLOSE,
+            "press it down cocked on the head: part-engaged, never seated")
+        L.append(Waypoint(1.0, (*nb, tzb + 0.0045), NECK_CLOSE, "hold it there", YL))
+        w(0.6, 0.0, tzr + 0.0045, STRADDLE, "open to a straddle")
+        w(0.4, 0.0, tzr + 0.0045, STRADDLE, "settle")
     else:
         two(2.0, (*nb, tzb + 0.0005 + SAG_Z), NECK_CLOSE, (*gb, tzr + 0.0005 + SAG_Z), GRIP_CLOSE,
             "ease the hex home: the grip comes down on the handle rest")

@@ -19,7 +19,8 @@ bodies' poses (at least 2.8 mm of the head's 3.5 mm engaged, within 8 degrees of
 held 5 control steps), the click only counts if the socket is seated when the detent breaks over, and **any
 bolt movement of 1 degree or more while the socket is not seated is a latched 0** (half-seated torquing, camming
 the socket, dragging the head). A control run ("half" variant: the hands set the
-rim down on the head's crown, never into the hex, and the right pulls anyway) shows that latch firing. Seating credit alone is 0.1.
+socket down 2.5 mm off the bolt's axis, cocked on the head and never seated, and the right pulls anyway)
+shows that latch firing. Seating credit alone is 0.1.
 
 **TK-NP6A85 — scoring and specification** (kept from the first revision, unchanged here): full credit now
 requires the peak torque inside the joint's documented 90-110 % tolerance — the old 1.0 at nearly twice the
@@ -159,7 +160,8 @@ second with both grasp points deliberately offset; it never touches the bolt.)
 
 Set `VARIANT` at the top of the task file:
 
-- `"half"`: the rim is set down on the head's crown - never into the hex - and the right pulls anyway.
+- `"half"`: the socket is set down 2.5 mm off the bolt's axis, cocked on the head and never seated (coax
+  over the 1 mm gate), and the right pulls anyway.
   The bolt is dragged or the socket cams out: the UNSEATED-TURN latch fires and the trial scores 0.
 - `"through"`: the naive pull straight on through the click to 45 deg: OVER-TORQUED latches, score 0.
 - `"short"`: stops before the click: under-torqued, at most 0.25.
