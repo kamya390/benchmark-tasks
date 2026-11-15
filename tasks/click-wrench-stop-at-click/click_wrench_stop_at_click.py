@@ -118,6 +118,10 @@ BREAKOVER_DRIVE = 20.0  # sim drive calibration: the pipeline's joint-drive back
 # against the commanded 13/27, i.e. a backend factor of ~19.7, +-7 %). The breakover's commanded stiffness
 # is divided by this so the EFFECTIVE spring is the designed K_DETENT - a sim calibration of the same kind
 # as TORQUE_SCALE. The scored click threshold (1.5 deg of breakover, read from body poses) is untouched.
+SWEEP_CMDS = (0.20, 0.481, 0.80, 1.30)  # VARIANT "sweep": commanded breakover stiffness per 6 s window of a
+# slow pull (soft to stiff as the torque rises), to characterise the backend's super-linear stiffness mapping
+SWEEP_WIN_S = 6.0
+SWEEP_T0 = [None]  # set by demo() for the sweep variant: when the slow pull's arc begins (s)
 BREAK_DEG = 6.0  # the handle's stop: how far it kinks at the click
 REARM_DEG = 0.5  # back within this of in line (load off): the detent re-arms
 SPEC_DEG = math.degrees((T_CLICK - T0) / SLOPE)  # bolt angle at the set torque (4.9 deg)
@@ -362,6 +366,13 @@ def _rules(objects) -> None:
     if not m["init"]:  # a new episode: the detent armed, the bolt at snug
         m["init"] = True
         _set_drive("breakover", target=0.0, stiffness=K_DETENT / BREAKOVER_DRIVE)
+    if VARIANT == "sweep" and sim and SWEEP_T0[0] is not None:  # the stiffness-sweep probe drives the detent
+        w_i = int(max(0.0, m["n"] / 20.0 - SWEEP_T0[0]) // SWEEP_WIN_S)
+        if w_i != m.get("sweep_w"):
+            m["sweep_w"] = w_i
+            cmd = SWEEP_CMDS[min(w_i, len(SWEEP_CMDS) - 1)]
+            _set_drive("breakover", target=0.0, stiffness=cmd)
+            _say(f"SWEEP window {w_i}: commanded breakover stiffness {cmd:.3f} N*m/rad")
     th, d = bolt_deg(objects), break_deg(objects)
     eng, tilt, coax = seat_geom(objects)
     s_now = bool(eng >= ENG_SEAT and tilt <= TILT_MAX and coax <= COAX_MAX)
@@ -402,11 +413,13 @@ def _rules(objects) -> None:
         m["armed"], m["t_click"] = False, m["n"]
         m["clicks"] += 1
         m["click_seated"] = m["click_seated"] or s_now
-        _set_drive("breakover", target=0.0, stiffness=K_RETURN / BREAKOVER_DRIVE)
+        if VARIANT != "sweep":
+            _set_drive("breakover", target=0.0, stiffness=K_RETURN / BREAKOVER_DRIVE)
         _say(f"CLICK {m['clicks']}: handle {d:.2f} deg, bolt {th:.2f} deg past snug, seated {s_now}")
     elif not m["armed"] and d <= REARM_DEG and m["n"] - m["t_click"] >= REARM_STEPS:
         m["armed"] = True
-        _set_drive("breakover", target=0.0, stiffness=K_DETENT / BREAKOVER_DRIVE)
+        if VARIANT != "sweep":
+            _set_drive("breakover", target=0.0, stiffness=K_DETENT / BREAKOVER_DRIVE)
         _say(f"re-armed: handle {d:.2f} deg, bolt {th:.2f} deg")
     g = grip_point(objects)
     if m["prev"] is not None:
@@ -508,10 +521,10 @@ STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip 
 # straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
 # the wrist's stiffness straight past the breakover (measured: the detent never fires through a pinch).
 WIDE = -0.030
-PULL_DEG = {"demo": 18.5, "half": 18.5, "through": 45.0, "short": 6.0}  # the calibrated detent
+PULL_DEG = {"demo": 18.5, "half": 18.5, "through": 45.0, "short": 6.0, "sweep": 16.0}  # the calibrated detent
 # adds its ~1.6 deg of designed flex to the chain; the click is torque-driven at the bolt's 4.9 deg and
 # the handle's 6 deg free swing absorbs the rest, so 18.5 cannot drive past the click
-PULL_S = {"demo": 6.0, "half": 6.0, "through": 12.0, "short": 3.0}
+PULL_S = {"demo": 6.0, "half": 6.0, "through": 12.0, "short": 3.0, "sweep": 24.0}
 EASE_DEG = 1.5
 STEP_DEG = 1.5
 PARK_L = (0.150, 0.250, 0.950)
@@ -605,10 +618,12 @@ def demo():
         L.append(Waypoint(1.0, (BX, BY, zpress), 0.0, "press the head down onto the joint, firmly", YL))
         R.append(Waypoint(4.5, (*gb, tzr + 0.0005 + SAG_Z), GRIP_CLOSE,
                           "keep the tool supported until the press is on", YR))
-        arcT = {"demo": 6.0, "through": 19.0, "short": 3.0}[VARIANT]
+        arcT = {"demo": 6.0, "through": 19.0, "short": 3.0, "sweep": 24.0}[VARIANT]
         L.append(Waypoint(arcT + 3.0, (BX, BY, zpress), 0.0, "hold the head down while the right pulls", YL))
         w(0.6, 0.0, tzr, STRADDLE, "open to a straddle")
         w(0.4, 0.0, tzr, STRADDLE, "settle")
+    if VARIANT == "sweep":
+        SWEEP_T0[0] = sum(x.duration for x in R)
     if VARIANT == "through":  # the naive ablation: a pause where the demo stops, then on round to 45 deg
         arc(0.0, PULL_DEG["demo"], PULL_S["demo"], "pull the grip round, steadily")
         w(1.0, PULL_DEG["demo"], tzr, STRADDLE, "pause where the demo stops")
