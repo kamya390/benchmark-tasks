@@ -9,9 +9,9 @@ self-test), `mechkit.py` (helper), `README.md`.
 
 **TK-VCSWCB — "Robot should be responsible for seating the torque wrench."** Done; the wrench no longer starts
 on the bolt. It stands socket-down on the bench 8.5 cm from the joint, its grip on a rest block, and the robot
-does the whole job: the left arm pinches the wrench's neck at the tool's centre of mass, lifts it off the rest,
-carries it over the joint and seats the socket on the bolt head, then lets go and parks; the right arm then
-pulls the grip to the click as before. The seating is physical, not scripted bookkeeping: the bolt is now its
+does the whole job: both hands lift the wrench off its rest (the left at the neck, the right on the grip),
+carry it level over the joint and seat the socket on the bolt head; the left then presses the head down, the
+two-hand technique of the trade, while the right pulls the grip to the click as before. The seating is physical, not scripted bookkeeping: the bolt is now its
 own free body, driven only through a real hex contact (ISO 4017 M5 head, 7.88 mm across flats, chamfered crown,
 inside an 8.2 mm 6-point socket cavity built from convex meshes, 0.16 mm clearance per flat, 0.8 mm 45-degree
 mouth chamfer, steel-on-steel friction 0.3 per part). The scorer gates on it: "seated" is measured from the two
@@ -132,20 +132,21 @@ inspect-robots run --embodiment yam_arena --policy yam_scripted \
   --scorer task_score --max-steps 1200 --seed 0 --no-prompt --store-frames --log-dir ~/yam-eval/click-wrench-stop-at-click-demo
 ```
 
-The demo is `demo()` in the task file: open loop and deterministic, 35 s of plan, both arms. The left arm
-pinches the wrench's neck at the tool's balance point, lifts it off its rest, carries it over the joint,
-sets the socket down over the bolt head (the chamfers take up the last millimetre; no overdrive) with the
-grip coming down on the handle rest, opens and parks - the tool stands bolt-plus-rest, a stable tripod
-(a 0.55 kg transducer wrench cannot balance unattended on a 3.5 mm bolt head; the rest carries the handle
-the way a fitter rests a wrench on the work). Then the two-hand finish every fitter uses: the left hand
-presses the wrench head straight down onto the joint (on the bolt axis, so its sliding friction puts no
-measurable torque on the bolt; without a hold-down, pulling a loosely-fitting socket cams it off the head
-before the bolt's snug friction gives) while the right arm straddles the grip - side pushes only, so no
-finger moment bypasses the breakover, and the rest's friction acts at the pull radius so it cancels out of
-the detent's load - and pulls it round until the wrench clicks (spec angle + breakover deflection + straddle
-slack + the arm's lag under load), stops short of driving past the click and eases back 1.5 deg. Both hands
-let go and park, over 10 cm outside the wrench's bounding box, so the success hold (1 s) only starts once
-the release is plain in the video; the torqued wrench stays seated with its grip on the rest.
+The demo is `demo()` in the task file: open loop and deterministic, 34 s of plan, both arms, built on two
+rules a fitter follows with a heavy-headed wrench on a small vertical bolt: never move or leave it one-handed,
+and press the head down while pulling. Both hands lift the tool off its rest - the left pinching the steel
+neck, the right gripping the rubber grip - carry it level over the joint holding its clocking, and lower it
+together until the chamfers meet, the hex is home (no overdrive) and the grip is down on the handle rest.
+The right keeps hold while the left swaps to pressing the head straight down on the drive axis (flush ring
+selector: nothing to snag; the press's sliding friction works at a few millimetres' radius, a few hundredths
+of a N*m on the click); only then does the right let go, straddle the grip - side pushes only, so no finger
+moment bypasses the breakover and the detent carries the full drive torque, while the rest's friction acts at
+the pull radius and cancels out of the detent's load - and pull it round until the wrench clicks (spec angle +
+breakover deflection + straddle slack + the arm's lag under load), stopping short of driving past the click and
+easing back 1.5 deg. Both hands let go and park, over 10 cm outside the wrench's bounding box, so the success
+hold (1 s) only starts once the release is plain in the video; the torqued wrench stays seated with its grip
+on the rest. (`VARIANT = "pretest"` is a carry-robustness self-check: two grasp-carry-return cycles, the
+second with both grasp points deliberately offset; it never touches the bolt.)
 
 ## Control runs (ablations)
 

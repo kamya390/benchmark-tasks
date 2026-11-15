@@ -87,9 +87,8 @@ HEAD_KG, HANDLE_KG = 0.45, 0.10  # head end: ratchet head ~150 g + steel inline 
 # 40 mm, ~210 g bare, ~280 g built) + socket ~20 g; handle. This puts the tool's balance point 39 mm from the
 # socket axis, on the neck, where the demo pinches it.
 SX, SY = 0.300, 0.060  # the socket axis at the start: the wrench stands socket-down on the bench
-SPAWN_YAW = -0.0332  # rad: the wrench rests turned about 1.9 deg clockwise (seen from above). The pinched
-# wrench yaws about +1.9 deg over the carry (run telemetry, repeatable), so starting it turned the other way
-# lands the flats lined up with the head's; the hex clocking play is only about 2 deg.
+SPAWN_YAW = 0.0  # the wrench rests square on its blocks: the two-hand supported carry (see the demo)
+# holds the tool's clocking, so no rest-pose pre-bias is needed
 _SPC, _SPS = math.cos(SPAWN_YAW), math.sin(SPAWN_YAW)
 
 
@@ -467,46 +466,34 @@ def distance(objects) -> float:
 
 
 # -- the scripted demo ------------------------------------------------------------------------------------------
-# Open loop from the scene's geometry and the wrench's set torque. The LEFT arm does the seating: it pinches the
-# wrench's steel neck (16 mm across, just outboard of the head, near the tool's centre of mass), lifts the wrench
-# off its rest, carries it over the bolt (gripping at the tool's balance point so it hangs level, aiming off
-# by the wrist's measured settle, SEAT_AIM; the rest pose's SPAWN_YAW cancels the carry's yaw drift so the
-# flats arrive lined up), lowers it until the chamfers meet and the hex is home - never pushing on, which
-# would pitch the wrench and skate the socket off the head - sets the handle down on the HANDLE REST (a
-# 0.55 kg transducer wrench cannot balance unattended on a 3.5 mm bolt head: the hanging moment cams the hex
-# fit over the head's corner, in the sim as on the bench, so the scene carries the grip the way a fitter
-# rests a wrench on the work), opens and parks. The tool now stands bolt-plus-rail, a stable tripod. The
-# RIGHT arm straddles the grip (pads 36 mm apart round the 18 mm grip: side pushes only, so no finger moment
-# ever reaches the handle and the breakover detent carries the full drive torque, exactly like a hand pulling
-# at the load mark; rail friction acts at the same radius as the pull and cancels out of the detent's load).
-# Meanwhile the LEFT hand comes back and presses the wrench head down onto the joint - the two-hand
-# technique every fitter uses: without a hold-down the pull cams the loose hex fit over the head's corner
-# before the bolt's snug friction gives (run telemetry), and the press sits on the bolt axis so its sliding
-# friction puts no measurable torque on the bolt. The right pulls the grip round the bolt toward the robot;
-# the spec angle (4.9 deg), the breakover deflection (1.5 deg), the straddle slack (~2.4 deg) and the arm's
-# lag under load put the click at a commanded ~11-13 deg. The hand stops at 15 deg - within the click + the
-# handle's 6 deg free swing, so the bolt is never driven past the click - eases back 1.5 deg, opens and
-# parks; the left lifts off the head and parks; the torqued wrench stays seated on the bolt with its grip
-# on the rest through the success hold.
+# Open loop from the scene's geometry and the wrench's set torque, built around two rules a fitter follows
+# with a heavy-headed wrench on a small vertical bolt: NEVER carry or leave it one-handed (the head's weight
+# twists a single grip - measured, repeatably - and a 0.55 kg transducer wrench cannot balance unattended on
+# a 3.5 mm head), and press the head down while pulling (without a hold-down the pull cams the loose hex fit
+# over the head's corner before the bolt's snug friction gives). So: both hands lift the tool off its rest -
+# the left pinching the steel neck, the right gripping the rubber grip - and carry it level over the joint,
+# holding its clocking, then lower it together until the chamfers meet, the hex is home (no overdrive) and
+# the grip is down on the HANDLE REST. The right keeps hold while the left swaps to pressing the head down
+# on the drive axis (flush ring selector: nothing to snag; sliding friction at a few millimetres' radius
+# costs a few hundredths of a N*m on the click). Only then does the right let go, straddle the grip (pads
+# 36 mm apart: side pushes only, so no finger moment bypasses the breakover and the detent carries the full
+# drive torque; rest friction acts at the pull radius and cancels) and pull it round toward the robot. The
+# spec angle (4.9 deg), breakover deflection (1.5 deg), straddle slack (~2.4 deg) and the arm's lag put the
+# click at a commanded ~11-13 deg; the hand stops at 15 deg - inside click + the handle's 6 deg free swing,
+# so the bolt is never driven past - eases back 1.5 deg, opens and parks; the left lifts off the head and
+# parks; the torqued wrench stays seated on the bolt with its grip on the rest through the success hold.
+# VARIANT "pretest" is a carry-robustness self-check: two grasp-lift-carry-hold-return cycles, the second
+# with both grasp points deliberately offset, never touching the bolt.
 
 TIP = 0.013  # pad tips below the TCP
-PAD_DOWN = 0.004  # right grip: pad tips this far below the grip's centre plane - the proven pushing height.
-# Lower (tips 1.5 mm off the rest) the arm's sag parks the tips ON the rest and the sweep stalls before it
-# ever touches the grip (run telemetry); the slight above-centre push is fine because the firm head press
-# carries the roll.
+PAD_DOWN = 0.004  # right grip: pad tips this far below the grip's centre plane - the proven pushing height
 PAD_DOWN_L = 0.007  # left pinch: pads a little lower round the 12 mm neck (full-height contact patch)
-R_NECK = 0.040  # the left pinch point: the tool's balance point (the whole wrench's centre of mass is 39 mm
-# from the socket axis, measured from the sim bodies' COMs), still on the neck. Pinched at the balance point
-# the handle's weight puts no pitch moment on the pinch, so the carried wrench hangs level and the socket
-# tracks the hand - the key to seating a head-heavy tool with a compliant wrist.
-NECK_CLOSE = -0.004  # fingers closed 8 mm inside the 16 mm neck: about 20 N a finger, a firm pitch-proof pinch
-SEAT_AIM = (0.0043, -0.0017)  # carry aim: the wrist settles this far off the commanded point under the
-# 0.55 kg tool (run telemetry, repeatable); the bolt-side waypoints aim the same distance the other way so
-# the socket arrives centred over the head and the chamfers take it from there
-SAG_Z = 0.004  # the laden wrist also rides this far below the commanded height while the tool hangs free
-# (run telemetry: the hex seated fully at a commanded rim height of +4 mm); the seat heights command that
-# much high so the rim is set down on the washer, never pressed into it - pressing pitches the tool and
-# cams the socket off the head
+R_NECK = 0.040  # the left pinch point on the neck, just outboard of the head
+NECK_CLOSE = -0.004  # fingers closed 8 mm inside the 16 mm neck: a firm pinch
+SEAT_AIM = (0.0, 0.0)  # carry aim correction for the supported carry; the carry pretest measures any
+# residual settle of the two laden wrists and this takes it out (zero until measured otherwise)
+SAG_Z = 0.0  # height correction, likewise measured by the carry pretest (two wrists share the 0.55 kg load)
+GRIP_CLOSE = -0.006  # right hand on the 18 mm rubber grip for the carry: pads 3 mm into the rubber, firm
 STRADDLE = -0.018  # right finger target: pads 36 mm apart round the 18 mm grip (9 mm play each side). The
 # straddle pushes only on the grip's side, so no finger moment reaches the handle: a firm pinch would couple
 # the wrist's stiffness straight past the breakover (measured: the detent never fires through a pinch).
@@ -521,67 +508,64 @@ L_OPEN = -0.04695
 LIFT = 0.070  # straight up off the grip after letting go, before moving away to PARK_R
 
 
+
+
 def _grip_xy(deg):
     a = math.radians(deg)
     return (BX - R_GRIP * math.sin(a), BY - R_GRIP * math.cos(a))
 
 
 def demo():
-    """Left: pick the wrench off its rest by the neck, carry it, seat the socket on the bolt with the grip
-    coming down on the handle rest, let go and park. Right: straddle the grip, pull it round the bolt until
-    just past where the wrench clicks, ease off, open, lift clear and park; the torqued wrench stays on the
-    bolt with its grip on the rest."""
-    tzs = ZH_START - PAD_DOWN_L + TIP  # TCP at the neck, wrench on its rest
-    tzb = ZH - PAD_DOWN_L + TIP  # TCP with the socket fully seated
-    tzr = ZH - PAD_DOWN + TIP  # TCP at the grip, handle level, socket seated
-    nx, ny = _spun(0.0, -R_NECK)
-    bxn, byn = BX + SEAT_AIM[0], BY - R_NECK + SEAT_AIM[1]
-    L = []
+    """Both hands move the tool: the left pinches the neck, the right grips the handle; together they lift
+    the wrench off its rest, carry it level and lower it until the hex is home and the grip is on the handle
+    rest. The right keeps hold while the left swaps to pressing the head down on the drive axis; only then
+    does the right let go, straddle the grip and pull it round to the click."""
+    tzs = ZH_START - PAD_DOWN_L + TIP  # left TCP, neck grasp, tool on its rest
+    tgs = ZH_START - PAD_DOWN + TIP  # right TCP, grip grasp, tool on its rest
+    tzb = ZH - PAD_DOWN_L + TIP  # left TCP, socket seated
+    tzr = ZH - PAD_DOWN + TIP  # right TCP, socket seated: the pull height
+    n0, g0 = _spun(0.0, -R_NECK), _spun(0.0, -R_GRIP)
+    nb = (BX + SEAT_AIM[0], BY - R_NECK + SEAT_AIM[1])
+    gb = (BX + SEAT_AIM[0], BY - R_GRIP + SEAT_AIM[1])
+    YL, YR = -math.pi / 2, math.pi / 2
+    L, R = [], []
 
-    def lw(dur, pos, f, label, yaw=-math.pi / 2):
-        L.append(Waypoint(dur, pos, f, label, yaw))
+    def two(dur, lpos, lfin, rpos, rfin, label):
+        L.append(Waypoint(dur, lpos, lfin, label, YL))
+        R.append(Waypoint(dur, rpos, rfin, label, YR))
 
-    lw(2.0, (nx, ny, tzs + 0.055), WIDE, "over the wrench's neck")
-    lw(1.5, (nx, ny, tzs), WIDE, "down round the neck")
-    lw(0.4, (nx, ny, tzs), WIDE, "settle")
-    lw(0.8, (nx, ny, tzs), NECK_CLOSE, "pinch the neck")
-    lw(1.5, (nx, ny, tzs + 0.045), NECK_CLOSE, "lift the wrench off its rest")
-    yb = -math.pi / 2
-    zmeet = tzb + 0.004 + SAG_Z  # the socket's mouth at the head's chamfered crown
-    zhome = tzb + 0.0005 + SAG_Z  # the hex home, the rim a hair over the washer: no push
-    zhalf = tzb + 0.002 + SAG_Z  # the half variant's hold: about 1.5 mm engaged, short of the 2.8 mm gate
-    lw(3.0, (bxn, byn, tzb + 0.020), NECK_CLOSE, "carry it over the bolt", yb)
-    lw(1.2, (bxn, byn, zmeet + 0.004), NECK_CLOSE, "socket over the head", yb)
-    lw(1.5, (bxn, byn, zmeet), NECK_CLOSE, "lower: the chamfers meet", yb)
-    if VARIANT == "half":  # the seating ablation: hold the socket 1.5 mm engaged while the right arm pulls
-        lw(2.0, (bxn, byn, zhalf), NECK_CLOSE, "lower part way: about 1.5 mm engaged", yb)
-        lw(1.0, (bxn, byn, zhalf), NECK_CLOSE, "hold half-seated", yb)
-    else:
-        lw(2.0, (bxn, byn, zhome), NECK_CLOSE, "ease the hex home: no overdrive, no side load", yb)
-        lw(0.5, (bxn, byn, zhome), NECK_CLOSE, "hold: the grip is down on the handle rest", yb)
-        lw(1.2, (bxn, byn, zhome), WIDE, "open gently: the tool stands on the bolt and the rest", yb)
-        lw(1.0, (bxn, byn, zhome + 0.048), WIDE, "lift clear", yb)
-        # the two-hand finish: without a hold-down, the pull cams the loose hex fit over the head's corner
-        # before the bolt's snug friction is overcome (run telemetry), exactly as on a real bench - so the
-        # left hand presses the head down onto the joint, on the bolt axis where its sliding friction puts
-        # no measurable torque on the bolt, while the right hand pulls the handle. The press leaves before
-        # the success hold; the tool then stands on the bolt and the rest as before.
-        # dead-centre and firm: with the flush selector there is nothing to snag, so the press rides the
-        # drive axis, its sliding friction works at a few millimetres' radius - a few hundredths of a N*m
-        # on the click, inside the band - and the hold-down gives the hex the righting the pull's pry needs.
-        zpress = ZH + HEAD_T / 2 + TIP - 0.004  # closed pad tips pressed firmly into the head's top face
-        lw(1.0, (BX, BY, zpress + 0.030), 0.0, "fingers closed, over the wrench head", yb)
-        lw(1.0, (BX, BY, zpress), 0.0, "press the head down onto the joint, firmly", yb)
-        hold_s = {"demo": 6.0, "through": 19.0, "short": 3.0}[VARIANT] + 6.5
-        t_on = sum(w.duration for w in L)
-        lw(hold_s, (BX, BY, zpress), 0.0, "hold the head down while the right hand pulls", yb)
-        lw(0.8, (BX, BY, zpress + 0.040), 0.0, "lift off the head", yb)
+    def take(n, g, tag=""):
+        two(2.0, (*n, tzs + 0.055), WIDE, (*g, tgs + 0.055), WIDE, tag + "over the neck and the grip")
+        two(1.5, (*n, tzs), WIDE, (*g, tgs), WIDE, tag + "down round them")
+        two(0.5, (*n, tzs), WIDE, (*g, tgs), WIDE, tag + "settle")
+        two(0.8, (*n, tzs), NECK_CLOSE, (*g, tgs), GRIP_CLOSE, tag + "both hands take the tool")
+
+    if VARIANT == "pretest":  # carry-robustness self-check: never touches the bolt
+        for k, (dn, dg) in enumerate([((0.0, 0.0), (0.0, 0.0)), ((0.002, 0.0), (0.0, 0.003))]):
+            t = f"cycle {k}: "
+            n = (n0[0] + dn[0], n0[1] + dn[1])
+            g = (g0[0] + dg[0], g0[1] + dg[1])
+            take(n, g, t)
+            two(1.2, (*n, tzs + 0.020), NECK_CLOSE, (*g, tgs + 0.020), GRIP_CLOSE, t + "lift 2 cm")
+            two(1.0, (*n, tzs + 0.020), NECK_CLOSE, (*g, tgs + 0.020), GRIP_CLOSE, t + "hold")
+            two(1.2, (*n, tzs + 0.040), NECK_CLOSE, (*g, tgs + 0.040), GRIP_CLOSE, t + "higher")
+            two(3.0, (*nb, tzb + 0.030), NECK_CLOSE, (*gb, tzr + 0.030), GRIP_CLOSE, t + "carry over the bolt")
+            two(1.5, (*nb, tzb + 0.030), NECK_CLOSE, (*gb, tzr + 0.030), GRIP_CLOSE, t + "hold over the bolt")
+            two(3.0, (*n, tzs + 0.040), NECK_CLOSE, (*g, tgs + 0.040), GRIP_CLOSE, t + "carry back")
+            two(1.5, (*n, tzs + 0.003), NECK_CLOSE, (*g, tgs + 0.003), GRIP_CLOSE, t + "set it down")
+            two(0.8, (*n, tzs + 0.003), WIDE, (*g, tgs + 0.003), WIDE, t + "let go")
+            two(1.0, (*n, tzs + 0.045), WIDE, (*g, tgs + 0.045), WIDE, t + "lift away")
         L.append(Waypoint(2.0, PARK_L, L_OPEN, "park", 0.0))
-    t_ready = sum(w.duration for w in L)
-    t_go = t_ready if VARIANT == "half" else t_on  # the right moves in once the press (or the half hold) is on
+        R.append(Waypoint(2.0, PARK_R, WIDE, "park", YR))
+        return {"left": L, "right": R}
 
-    R = [Waypoint(2.0, PARK_R, WIDE, "start", math.pi / 2),
-         Waypoint(t_go - 2.0, PARK_R, WIDE, "wait for the left arm", math.pi / 2)]
+    take(n0, g0)
+    two(1.5, (*n0, tzs + 0.040), NECK_CLOSE, (*g0, tgs + 0.040), GRIP_CLOSE, "lift the tool off its rest")
+    two(3.0, (*nb, tzb + 0.030), NECK_CLOSE, (*gb, tzr + 0.030), GRIP_CLOSE, "carry it level over the bolt")
+    two(1.0, (*nb, tzb + 0.030), NECK_CLOSE, (*gb, tzr + 0.030), GRIP_CLOSE, "settle over the head")
+    two(2.5, (*nb, tzb + 0.004 + SAG_Z), NECK_CLOSE, (*gb, tzr + 0.004 + SAG_Z), GRIP_CLOSE,
+        "lower together: the chamfers meet")
+    pull = PULL_DEG[VARIANT]
 
     def w(dur, deg, z, f, label):
         x, y = _grip_xy(deg)
@@ -592,10 +576,27 @@ def demo():
         for k in range(1, n + 1):
             w(dur / n, a + (b - a) * k / n, tzr, STRADDLE, label)
 
-    pull = PULL_DEG[VARIANT]
-    w(2.0, 0.0, tzr + 0.060, STRADDLE, "over the grip, fingers part open")
-    w(1.5, 0.0, tzr, STRADDLE, "down round the grip")
-    w(0.5, 0.0, tzr, STRADDLE, "settle")
+    if VARIANT == "half":  # the seating ablation: hold the socket 1.5 mm engaged while the right pulls
+        two(2.0, (*nb, tzb + 0.002 + SAG_Z), NECK_CLOSE, (*gb, tzr + 0.002 + SAG_Z), GRIP_CLOSE,
+            "lower part way: about 1.5 mm engaged")
+        L.append(Waypoint(1.0, (*nb, tzb + 0.002 + SAG_Z), NECK_CLOSE, "hold half-seated", YL))
+        w(0.6, 0.0, tzr + 0.002 + SAG_Z, STRADDLE, "open to a straddle")
+        w(0.4, 0.0, tzr + 0.002 + SAG_Z, STRADDLE, "settle")
+    else:
+        two(2.0, (*nb, tzb + 0.0005 + SAG_Z), NECK_CLOSE, (*gb, tzr + 0.0005 + SAG_Z), GRIP_CLOSE,
+            "ease the hex home: the grip comes down on the handle rest")
+        two(0.5, (*nb, tzb + 0.0005 + SAG_Z), NECK_CLOSE, (*gb, tzr + 0.0005 + SAG_Z), GRIP_CLOSE, "hold")
+        zpress = ZH + HEAD_T / 2 + TIP - 0.004  # closed pad tips pressed firmly into the head's top face
+        L.append(Waypoint(1.0, (*nb, tzb + 0.0005 + SAG_Z), WIDE, "left lets go: the right still holds", YL))
+        L.append(Waypoint(1.0, (*nb, tzb + 0.045), WIDE, "left lifts clear", YL))
+        L.append(Waypoint(1.5, (BX, BY, zpress + 0.030), 0.0, "fingers closed, over the wrench head", YL))
+        L.append(Waypoint(1.0, (BX, BY, zpress), 0.0, "press the head down onto the joint, firmly", YL))
+        R.append(Waypoint(4.5, (*gb, tzr + 0.0005 + SAG_Z), GRIP_CLOSE,
+                          "keep the tool supported until the press is on", YR))
+        arcT = {"demo": 6.0, "through": 19.0, "short": 3.0}[VARIANT]
+        L.append(Waypoint(arcT + 3.0, (BX, BY, zpress), 0.0, "hold the head down while the right pulls", YL))
+        w(0.6, 0.0, tzr, STRADDLE, "open to a straddle")
+        w(0.4, 0.0, tzr, STRADDLE, "settle")
     if VARIANT == "through":  # the naive ablation: a pause where the demo stops, then on round to 45 deg
         arc(0.0, PULL_DEG["demo"], PULL_S["demo"], "pull the grip round, steadily")
         w(1.0, PULL_DEG["demo"], tzr, STRADDLE, "pause where the demo stops")
@@ -608,9 +609,16 @@ def demo():
     w(1.0, pull - EASE_DEG, tzr + LIFT, WIDE, "lift clear")
     R.append(Waypoint(2.0, PARK_R, WIDE, "move away (over 10 cm from the wrench)", math.pi / 2))
     R.append(Waypoint(2.5, PARK_R, WIDE, "wait", math.pi / 2))
-    total = sum(x.duration for x in R)
-    last = L[-1]
-    L.append(Waypoint(total - t_ready, last.pos, last.finger, "wait", last.yaw))
+    if VARIANT != "half":
+        L.append(Waypoint(0.8, (BX, BY, ZH + HEAD_T / 2 + TIP + 0.036), 0.0, "lift off the head", YL))
+        L.append(Waypoint(2.0, PARK_L, L_OPEN, "park", 0.0))
+    tl, tr = sum(x.duration for x in L), sum(x.duration for x in R)
+    if tr > tl:
+        last = L[-1]
+        L.append(Waypoint(tr - tl, last.pos, last.finger, "wait", last.yaw))
+    elif tl > tr:
+        last = R[-1]
+        R.append(Waypoint(tl - tr, last.pos, last.finger, "wait", last.yaw))
     return {"left": L, "right": R}
 
 
