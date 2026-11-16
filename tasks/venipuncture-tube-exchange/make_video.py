@@ -1,6 +1,6 @@
 """Join one run's camera videos into one H.264 video: the top camera large, the wrist cameras beside it.
 
-The run is recorded at the cameras' native render size (640 x 360); this script only lays the three views out in
+The run is recorded at 640 x 352 per camera (as in the README's demo command); this script only lays the three views out in
 one frame, so the viewer sees the whole scene and, close up, the hub, holder and tube. It changes nothing about
 the run, the commands or the scorer.
 
