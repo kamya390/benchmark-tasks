@@ -17,5 +17,5 @@
   "reset_notes": "Real trial safety: a 1/4-ton electric chain hoist with upper and lower limit switches and a pendant emergency stop, on a gantry rated at least 500 kg; the operator holds an emergency stop that cuts both the hoist and the robot, and the trial is aborted the moment the under-load gate fires. Reset: press UP until the foot undersides are 6.0 cm above the stud tips (tape from the plate); unclamp, push the hook trolley back to its marked parking stop and clamp it, checked with a plumb bob from the eyebolt to marks on the plate (1.0 cm -x, 0.5 cm +y, within 2 mm); turn the motor to the 6 deg mark against a yaw stop on a tag line (6 +- 1 deg; the free swivel has no restoring torque), then free the tag line and let the swing die below 2 mm.",
   "fidelity": "Approximate: rigid boxes (PhysX, 240 Hz) at real NEMA 182T sizes and mass; frame, feet, fins, conduit box are prisms (curvature not modelled; the skill does not ride on it). Hook to eyebolt: 85 cm polyester round sling as a spring-damper, slack below it; k 3.8e5 N/m (3% at 1 t WLL, EN 1492-2), damping 0.08 assumed. Hook moves 2 cm/s while a button is pressed 2.5 mm. Studs: chamfered octagons in square 10.3 mm holes, the real 0.4 mm clearance of a 13/32 in hole on a 3/8-16 stud; steel mu 0.25.",
   "scores": "Dream-1 run: 0.0; demo: 1.0",
-  "media": "M-AHKFB9"
+  "media": "M-XJFGUG"
 }
