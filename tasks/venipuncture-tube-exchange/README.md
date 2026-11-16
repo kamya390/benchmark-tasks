@@ -8,8 +8,28 @@ two sim controls and an offline self-test), `mechkit.py` (unchanged helper: slid
 
 ## Response to review
 
+Review 2 (of the first revision), demo video: the video lacked enough detail to make the task possible to evaluate.
+Changes in this revision (the recording only; nothing about the task, demo plan, scorer or thresholds changed):
+
+- **The demo was re-recorded at the cameras' native detail, from all three cameras.** The earlier video was the top
+  camera alone, downscaled to 320 x 176; at that size the needle, holder and tube are a few pixels and the decisive
+  contacts cannot be seen. The new demo video is 1280 x 480: the top camera large (the whole scene) with the two
+  wrist cameras beside it. The left hand holds the holder throughout, so its wrist camera watches the holder, hub
+  and tube up close for the whole trial: the tube pressed onto the back needle, the stopper giving way, the tube
+  turning red as it fills, the empty holder after the pull, and (in the right wrist camera) the filled tube laid in
+  the tray.
+- **Same run, same physics.** The re-record is the same scripted demo on the same task file, seed 0: the stopper
+  pierced at physics step 2256 (push 4.4 N) and the tube left the holder at step 7426 with fill 100 %, the same
+  steps as the earlier recording; task_score 1. Camera size changes only the recording: the scripted demo and the
+  scorer read poses and contacts, not pixels.
+- **The setup screenshot was regenerated** from the new recording (the top camera's first frame, 640 x 352).
+- **The Dream-1 video is the original run, unchanged.** Dream-1 consumes the camera images, so re-rendering would
+  change its input; its run and its score (0) stand.
+- `make_video.py` in this folder joins the three per-camera videos into the one demo video; the exact commands are
+  under "Run and score the full-score demo".
+
 Review 1, Scoring (not met): the 2 mm limit measured only axial travel, so a needle displaced sideways or pivoted
-could still earn full credit. Changes in this revision:
+could still earn full credit. Changes in the first revision:
 
 - **Numeric limits added, over the whole trial.** Besides the 2 mm along the needle, the trial is now latched 0 if
   the needle's hub ever moves more than 2 mm sideways off the needle's start line (any direction across it), or the
@@ -29,12 +49,11 @@ could still earn full credit. Changes in this revision:
   its own line), so it cannot show the sideways or pivot failure modes. They are checked in the real trial. The sim
   gates are kept so the scorer is the real-trial rule, but they cannot trip in the sim; `self_test()` shows them
   firing on hand-built poses after the fill.
-- **No sim outcome changed, so no re-record.** The scorer change only adds gates that read the holder's pose. Offline,
-  the recorded demo's pose log (run with the same code, sampled every 0.25 s) peaks at 0.06 mm sideways and 0.08 deg
-  of pivot, and both sim controls stay under 0.06 mm and 0.06 deg. One debug run of the revised task file (no frames)
+- **No sim outcome changed.** The scorer change only adds gates that read the holder's pose. Offline, the recorded
+  demo's pose log (run with the same code, sampled every 0.25 s) peaks at 0.06 mm sideways and 0.08 deg of pivot,
+  and both sim controls stay under 0.06 mm and 0.06 deg. One debug run of the revised task file (no frames)
   computed both gates in the sim and passed: hub sideways at most 0.043 mm, pivot at most 0.084 deg, no latch,
   task_score 1, with the pierce and the tube's removal at the same physics steps as in the recording (2256 and 7426).
-  The videos and scores in task.json are from the recording made before this revision.
 - Also in this revision (text only, no sim value changed): the context now names medical assistants first (that
   occupation alone is over the 500k bar) and drops the summed figure, and the README lists the sources, or the proxies where
   no direct figure was found, for each force and time.
@@ -88,9 +107,19 @@ inspect-robots run --embodiment yam_arena --policy dream \
 
 ```bash
 inspect-robots run --embodiment yam_arena --policy yam_scripted \
-  -E task=tasks/venipuncture-tube-exchange/venipuncture_tube_exchange.py -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \
+  -E task=tasks/venipuncture-tube-exchange/venipuncture_tube_exchange.py -E object_jitter=0 -E control_hz=20 -E cam_width=640 -E cam_height=352 \
   --instruction "On the practice arm, fill the blood tube, then lay it in the tray." \
   --scorer task_score --max-steps 1800 --seed 0 --no-prompt --store-frames --log-dir ~/yam-eval/venipuncture-tube-exchange-demo
+```
+
+Camera size affects only the recording: the scripted demo and the scorer read poses and contacts, not pixels (the
+Dream-1 command above keeps 320 x 176, the size its recorded run consumed). The demo video and the setup screenshot
+are made from the stored frames: per-camera videos, then one 1280 x 480 video of all three views:
+
+```bash
+for log in ~/yam-eval/venipuncture-tube-exchange-demo/*.json; do inspect-robots video "$log"; done
+python tasks/venipuncture-tube-exchange/make_video.py \
+  ~/yam-eval/venipuncture-tube-exchange-demo/frames/<run>/ demo.mp4 --setup setup.png
 ```
 
 The demo is `demo()` in the task file, 48 s of plan. In the sim run it ended on success at about step 830 (41 s), inside the run limit of 1,800 steps: the stopper pierced under a 4.4 N push, the tube went home 7.5 mm and filled to 100 %, it was drawn off and laid in a tray slot, and the needle stayed within 0.55 mm of its start throughout. In a debug run of this revision's task file (same outcome, task_score 1) the scorer logged
