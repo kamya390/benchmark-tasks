@@ -19,5 +19,5 @@
   "reset_notes": "Set the needle back to its start mark (9 mm in), replace the tube with a fresh evacuated one (a filled or pierced tube has no vacuum left) pushed into the holder to the guide line only, and empty the tray. The needle is sharp: keep people clear of the training arm while the robot works.",
   "fidelity": "Full-size rigid parts (all box geometry); holder/tube mu 0.3. Needle: a slide on its line in the arm, 0.5 N drag, lumen +-2 mm. So the sim constrains the needle to axial motion and cannot show sideways or pivot failures; those are checked in the real trial. Tube slides on that line: held at the guide line until a 4 N push pierces the stopper, then up to 1.5 N drag to a stop 8 mm in; drags yield only to a finger's load. Fill: a counter, 4 mL in 8 s, only while pierced and in vein. Refs: README.",
   "scores": "Dream-1 run: 0; demo: 1. The Dream-1 video is its original run, at the model's native input resolution (320 x 176); the demo was re-recorded at 640 x 352 per camera.",
-  "media": "M-BNARKP"
+  "media": "M-4RX528"
 }
