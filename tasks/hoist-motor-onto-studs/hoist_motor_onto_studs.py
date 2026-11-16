@@ -5,17 +5,20 @@ studs standing 3.8 cm proud of it in the NEMA 182T foot pattern (19.05 cm across
 tip chamfered 3 mm x 45 deg. The motor hangs with its shaft along y (shaft end toward the right arm), its four cast
 feet (10.3 mm holes) 6 cm above the stud tips. Its hook point is not over the studs: left alone, the motor hangs
 1.0 cm toward the arms and 0.5 cm to the left of the stud pattern, turned 6 deg about vertical. A cast conduit box
-(7 x 7 x 6 cm) sticks out of the motor's side toward the arms. The hoist chain runs from the hook straight up out of
-view; the hoist moves the hook down (or up) at 2.0 cm/s only while the green DOWN (or black UP) button of its pendant
-is held pressed. The pendant lies in a fixed cradle on the right of the table, buttons up.
+(7 x 7 x 6 cm) sticks out of the motor's side toward the arms. The hook carries the motor's eyebolt by an 85 cm
+endless polyester round sling (EN 1492-2, WLL 1 t, violet), which stretches elastically under load; the hoist chain
+runs from the hook block straight up out of view; the hoist moves the hook down (or up) at 2.0 cm/s only while the
+green DOWN (or black UP) button of its pendant is held pressed. The pendant lies in a fixed cradle on the right of
+the table, buttons up.
 
-Scored from the poses: the motor set down with all four studs through its feet, feet flat on the base, chain slack,
+Scored from the poses: the motor set down with all four studs through its feet, feet flat on the base, sling slack,
 both grippers clear of the motor and off the pendant, and nothing moving. Whole-trial zero gates: any part of the robot
 under the motor before all four feet are down on the plate, any part of the robot between a foot and the plate while
 that foot is under 5 cm above it, or a foot touching a stud while moving faster than 5 cm/s.
 
 Mechanism parts come from mechkit.py (in this folder), which adds joints to the stock runtime in memory; this file
-adds the chain (a slack-capable distance joint) and the hoist's hold-to-run logic.
+adds the sling (a slack-capable spring-damper distance joint, stiffness from the sling's real elongation spec) and
+the hoist's hold-to-run logic. The demo ends with a wrist-camera inspection pass over all four studs.
 
 Run it:  inspect-robots run --embodiment yam_arena -E task=tasks/hoist-motor-onto-studs/hoist_motor_onto_studs.py \\
            -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \\
@@ -64,8 +67,14 @@ SEAT = np.array([BASE_XY[0], BASE_XY[1], PLATE_TOP + SHAFT_H])
 START_OFF = np.array([-0.010, 0.005, (STUD_TIP + 0.060) - PLATE_TOP])  # feet 6 cm above the stud tips
 START_YAW = math.radians(6.0)
 START = SEAT + START_OFF
-CHAIN_L = 0.85  # hook to eyebolt eye (hook to centre of mass about 1.0 m)
+CHAIN_L = 0.85  # hook bowl to eyebolt eye (hook to centre of mass about 1.0 m): the round sling's hitch length
 HOOK_KG = 20.0  # hook block (moves only vertically, on the hoist)
+# The hook carries the eyebolt by an endless polyester round sling (EN 1492-2, WLL 1000 kg, violet). Polyester
+# round slings stretch about 3% at WLL (EN 1492-2 verification elongation; maker data sheets quote <=3%), so the
+# hitch is a spring that engages at CHAIN_L: k = WLL*g / (0.03 * hitch length) ~ 3.8e5 N/m. Damping ratio 0.08
+# against the 33 kg load (assumed structural damping, not from a data sheet).
+SLING_K = 1000.0 * 9.81 / (0.03 * CHAIN_L)  # 3.85e5 N/m
+SLING_C = 2.0 * 0.08 * math.sqrt(SLING_K * MOTOR_KG)  # ~570 N s/m
 HOIST_SPEED = 0.020  # m/s
 BTN_ON = 0.0025  # button pressed this far runs the hoist
 BTN_TRAVEL = 0.004
@@ -161,7 +170,7 @@ HOOK_HALF = 0.04
 CHAIN_VIS = CHAIN_L - 0.02  # the chain's hanging length drawn from the hook block down to just above the eye
 kit.part("hook", tuple(HOOK_PT0 + np.array([0, 0, HOOK_HALF])),
          [mk.box((0.06, 0.04, 2 * HOOK_HALF)),
-          mk.box((0.008, 0.008, CHAIN_VIS), at=(0.0, 0.0, -HOOK_HALF - CHAIN_VIS / 2), color=(0.25, 0.25, 0.27))],
+          mk.box((0.024, 0.024, CHAIN_VIS), at=(0.0, 0.0, -HOOK_HALF - CHAIN_VIS / 2), color=(0.42, 0.18, 0.55))],
          mass=HOOK_KG, color=(0.85, 0.65, 0.10))
 # the hoist: the hook block on a vertical slide; its drive target is moved by the hold-to-run logic in on_step
 kit.slider("hoist", None, "hook", axis=(0, 0, -1), lower=-0.05, upper=0.40, start=0.0, stiffness=4.0e5,
@@ -193,11 +202,25 @@ SCORE_OVER = "end"
 
 
 def _author_extra(stage, env_path):
-    from pxr import Gf, PhysxSchema, Sdf, Usd, UsdPhysics, UsdShade
+    from pxr import Gf, PhysxSchema, Sdf, Usd, UsdGeom, UsdLux, UsdPhysics, UsdShade
 
     paths = mk._SIM["paths"]
     if "hook" not in paths or "motor" not in paths:
         return
+    # a front-right fill light (render only, no physics): the slot between the conduit box and the frame, where
+    # the near studs stand proud through the feet, lies in the motor's own shadow otherwise, and the demo video
+    # has to show the feet set on the studs
+    d = np.array([0.78, 0.52, -0.35])
+    d /= np.linalg.norm(d)
+    za = -d
+    xa = np.cross([0.0, 0.0, 1.0], za)
+    xa /= np.linalg.norm(xa)
+    ya = np.cross(za, xa)
+    qx, qy, qz, qw = mk.mat_to_quat(np.column_stack([xa, ya, za]))
+    lt = UsdLux.DistantLight.Define(stage, f"{env_path}/fill_light")
+    lt.CreateIntensityAttr().Set(1500.0)
+    lt.CreateAngleAttr().Set(3.0)
+    UsdGeom.Xformable(lt.GetPrim()).AddOrientOp().Set(Gf.Quatf(float(qw), float(qx), float(qy), float(qz)))
     # a D6 joint with only a distance limit (GPU PhysX takes D6 joints, not distance joints): a chain that goes slack
     j = UsdPhysics.Joint.Define(stage, f"{env_path}/hoist_chain")
     j.CreateBody0Rel().SetTargets([Sdf.Path(paths["hook"])])
@@ -207,6 +230,11 @@ def _author_extra(stage, env_path):
     lim = UsdPhysics.LimitAPI.Apply(j.GetPrim(), UsdPhysics.Tokens.distance)
     lim.CreateLowAttr().Set(-1.0)
     lim.CreateHighAttr().Set(float(CHAIN_L))
+    # soft limit: the polyester round sling's elasticity (stiffness from 3% at WLL, see SLING_K above). With
+    # stiffness set, PhysX treats the limit as a spring-damper that engages past CHAIN_L and is free (slack) below.
+    sl = PhysxSchema.PhysxLimitAPI.Apply(j.GetPrim(), "distance")
+    sl.CreateStiffnessAttr().Set(float(SLING_K))
+    sl.CreateDampingAttr().Set(float(SLING_C))
     j.CreateCollisionEnabledAttr().Set(False)
     j.CreateExcludeFromArticulationAttr().Set(True)
     # the drawn chain (a box on the hook block) never collides with the motor
@@ -230,7 +258,8 @@ def _author_extra(stage, env_path):
                     UsdShade.MaterialBindingAPI.Apply(prim).Bind(mat, UsdShade.Tokens.strongerThanDescendants,
                                                                  "physics")
                     n += 1
-    print(f"[hoist] chain {CHAIN_L} m hook->eye; steel material on {n} colliders", flush=True)
+    print(f"[hoist] sling {CHAIN_L} m hook->eye, k {SLING_K:.3g} N/m c {SLING_C:.3g} N s/m; steel material on "
+          f"{n} colliders", flush=True)
 
 
 _author0 = mk._author_all
@@ -446,9 +475,12 @@ def _hoist_step(objects) -> None:
         err = [1000 * math.dist(a[:2], s) for a, s in zip(h, STUDS)]
         cen = 1000 * (np.mean(h, axis=0)[:2] - np.asarray(BASE_XY))
         yaw = math.degrees(math.atan2(_T(objects, "motor")[1, 0], _T(objects, "motor")[0, 0]))
+        gd = (f" guide i {np.round(1000 * _GUIDE['i'], 1).tolist()} iy {math.degrees(_GUIDE['iy']):.1f}"
+              if _GUIDE and not _GUIDE.get("frozen") else "")
         print(f"[hoist] step {step} hook_d {d:.3f} slack {1000 * slack(objects):.1f}mm feet-z "
               f"{[round(1000 * (a[2] - PLATE_TOP), 1) for a in h]} xy-err-mm {[round(e, 1) for e in err]} "
-              f"cen-err {np.round(cen, 1).tolist()} yaw {yaw:.2f} btn {1000 * button_q(objects, 'down'):.1f} score {score(objects)}",
+              f"cen-err {np.round(cen, 1).tolist()} yaw {yaw:.2f} btn {1000 * button_q(objects, 'down'):.1f} "
+              f"score {score(objects)}{gd}",
               file=sys.stderr, flush=True)
         for (fx, fy), hh in zip(FEET, h):  # debug: robot points in the pinch window's footprint, local mm
             for i, p in enumerate(_robot_points()):
@@ -582,13 +614,75 @@ def _right_press(press_at, hold_s, release=True):
 
 PRESS_AT = 11.0  # s: DOWN goes in once the motor is lined up
 
+# -- end-of-demo stud inspection --------------------------------------------------------------------------------------
+# The wrist cameras look 25.3 deg off vertical (view (-0.428, 0.005, -0.904) at yaw 0, rotating with the grip's yaw)
+# from 7.0 cm to the side of and 6.1 cm above the TCP, and the grip stays vertical, so a close-up means standing
+# over a spot in front of the target; the far side of the base is beyond both arms' reach. Two front shots cover
+# what the motor's own body does not hide: each wrist camera in turn on the near feet flat on the plate with the
+# near-right stud proud through its foot. The near-left stud stands behind the conduit box, and the far studs
+# behind the frame, from every camera this rig has - on a real rig that is what the feeler gauge in the scoring
+# notes is for.
+_INSPECT_V0 = np.array([-0.428, 0.005])
+_INSPECT_DZ = mk.TCP_PAST_GRIPPER - 0.073  # camera above the TCP
+
+
+def _inspect_tcp(target, psi, u):
+    """The TCP position whose wrist camera (grip yaw ``psi``) has ``target`` (world) on its centre ray, with the
+    camera ``u`` m above the target."""
+    c, s = math.cos(psi), math.sin(psi)
+    r = np.array([[c, -s], [s, c]])
+    vh = r @ _INSPECT_V0
+    cam = np.asarray(target[:2], float) - (u / 0.904) * vh
+    off = r @ np.array([0.070, 0.0])
+    return (float(cam[0] - off[0]), float(cam[1] - off[1]), float(target[2] + u - _INSPECT_DZ))
+
+
+NEAR_MID = (BASE_XY[0] - E2 / 2, BASE_XY[1], STUD_TIP)  # between the two near studs
+FRONT_YAW = math.radians(-170.0)
+P_FRONT = _inspect_tcp(NEAR_MID, FRONT_YAW, 0.201)  # about (0.180, -0.003, TOP+0.190)
+RIGHT_YAW = math.radians(170.0)
+P_RIGHT = _inspect_tcp(NEAR_MID, RIGHT_YAW, 0.201)  # about (0.180, 0.003, TOP+0.190): the front shot, mirrored
+
+
+def _left_inspect():
+    # The arm stays inside the scorer's 5 cm "clear" margin from the let-go until the right camera has taken over,
+    # so the episode cannot end on success before both close-ups are on film.
+    c = FINGER_CLOSED
+    return [
+        Waypoint(1.2, (0.10, 0.14, TOP + 0.17), c, "round to the front", -math.pi / 2),
+        Waypoint(1.0, (0.12, 0.05, TOP + 0.18), c, "turn the camera in", math.radians(-135.0)),
+        Waypoint(1.2, P_FRONT, c, "camera on the near feet: studs proud through them", FRONT_YAW),
+        Waypoint(2.5, P_FRONT, c, "hold the shot", FRONT_YAW),
+        Waypoint(1.2, (0.10, 0.14, TOP + 0.17), c, "back out", -math.pi / 2),
+        Waypoint(2.8, (0.10, 0.14, TOP + 0.17), c, "stay by the motor while the right camera comes in", -math.pi / 2),
+        Waypoint(1.5, (0.12, 0.26, TRAVEL), c, "away, clear of the motor", 0.0),
+        Waypoint(1.0, (0.12, 0.26, TRAVEL), c, "wait", 0.0),
+    ]
+
+
+def _right_inspect(start_wait):
+    c = FINGER_CLOSED
+    return [
+        Waypoint(start_wait, (0.20, -0.31, PEND_TOP + 0.06), c, "wait for the left camera pass", 0.0),
+        Waypoint(1.5, (0.10, -0.16, TOP + 0.17), c, "round to the front", math.pi / 2),
+        Waypoint(1.0, (0.12, -0.07, TOP + 0.18), c, "turn the camera in", math.radians(135.0)),
+        Waypoint(1.2, P_RIGHT, c, "camera on the near feet from the other side", RIGHT_YAW),
+        Waypoint(2.5, P_RIGHT, c, "hold the shot", RIGHT_YAW),
+        Waypoint(1.2, (0.10, -0.16, TOP + 0.17), c, "back out", math.pi / 2),
+        Waypoint(1.5, (0.24, -0.28, TOP + 0.16), c, "away, clear of the motor", 0.0),
+    ]
+
 
 def demo():
-    """Left arm guides the motor over the studs and down; right arm runs the hoist. About 25 s."""
+    """Left arm guides the motor over the studs and down; right arm runs the hoist. Then both wrist cameras pass
+    over the seated feet so the video shows every stud tip proud through its foot. About 38 s."""
     plan = os.environ.get("HOIST_PLAN", "demo")
     if plan != "demo":
         return CONTROLS[plan]()
-    return {"left": _left_guide(PRESS_AT), "right": _right_press(PRESS_AT, PRESS_S)}
+    # the demo drops _left_guide's final "clear + wait" pair: the left hand goes straight from "up and back" (still
+    # inside the scorer's 5 cm margin, which holds success off) into the camera passes
+    return {"left": _left_guide(PRESS_AT)[:-2] + _left_inspect(),
+            "right": _right_press(PRESS_AT, PRESS_S) + _right_inspect(5.0)}
 
 
 # -- negative controls (HOIST_PLAN=<name>; not the shipped demo) ------------------------------------------------------

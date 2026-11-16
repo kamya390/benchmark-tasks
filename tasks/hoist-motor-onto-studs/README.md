@@ -1,6 +1,28 @@
 # Land a hoisted motor on its base's four studs: one hand runs the hoist, the other steers the load
 
-Instruction given to the policy: `Set the motor down on its base with the hoist, all four feet over the base's studs and flat on the base, and leave the hoist chain slack. Let go of the motor and the pendant when you are done.`
+Instruction given to the policy: `Set the motor down on its base with the hoist, all four feet over the base's studs and flat on the base, and leave the sling slack. Let go of the motor and the pendant when you are done.`
+
+## Response to review (TK-8W9N6T, 2026-11-15)
+
+> "Revise demo video, show that the feet are set in the studs, also consider making the hoist physics elastic
+> instead of rigid if possible."
+
+- **The demo video now shows the feet set on the studs.** After the motor seats and the hands come away, each
+  wrist camera in turn takes a close-up from in front of the base: the near feet flat on the plate, the stud
+  proud through the near-right foot's hole, and the stud tips standing in the near holes' line. The demo video is
+  the top camera's full take followed by the same run's wrist-camera close-ups (one recorded run, no
+  re-staging). What no camera on this rig can see: the near-left stud (behind the motor's conduit box) and the
+  far studs (behind the frame) - the arms cannot reach past the base's far edge, and the wrist cameras look
+  25 deg off vertical, so there is no viewpoint for them; that is what the feeler-gauge check in `task.json`
+  `scoring` is for on a real rig, and the scorer reads all four stud-through-hole and foot-flat conditions from
+  the recorded poses.
+- **The hoist rigging is now elastic, with a cited real stiffness.** The hook carries the eyebolt by an 85 cm
+  endless polyester round sling (EN 1492-2, WLL 1 t, violet in the scene). Polyester round slings stretch about
+  3% at WLL (EN 1492-2 verification elongation; maker data sheets quote <=3%), so the hitch is a spring-damper
+  engaging at 85 cm: k = 1000 kg x g / (0.03 x 0.85 m) = 3.85e5 N/m, damping 570 N s/m (damping ratio 0.08
+  against the 33 kg load, assumed - not from a data sheet), slack below 85 cm. Measured in sim: the hung motor
+  stretches the sling 0.8 mm (= mg/k) and hangs still; the load still swings as a pendulum and the demo still
+  has to land the feet on the studs under those dynamics. No scorer rule or threshold changed.
 
 Files: `task.json`, `hoist_motor_onto_studs.py` (scene, the hoist's hold-to-run logic, `success()`, partial-credit
 `score()` with its latched gates, the scripted `demo()` and an offline self-test), `mechkit.py` (multi-box parts,
@@ -9,12 +31,14 @@ sliders and per-step hooks added to the stock yam_arena runtime in memory), `REA
 ## What the robot faces
 
 A 33 kg NEMA 182T motor hangs from a hold-to-run electric chain hoist 6 cm above its base's four studs, 1.1 cm off the
-stud pattern and turned 6 deg, because the hook is not parked exactly over the base. The hoist lowers only while the
-pendant's DOWN button is held. Lowered alone, the motor lands on the stud tips out of line. One arm has to hold DOWN
-while the other pulls the hanging motor about 1 cm against the pendulum's pull (about 3.6 N with 1.0 m from hook to
-centre of mass), turns it square, and keeps it there while it comes down, so that the 3 mm chamfers can take the feet
-onto the studs (0.4 mm radial clearance). The robot cannot lift or drag the motor itself. Neither hand may go under
-the motor before it is down on the plate, or between a foot and the base in the last 5 cm.
+stud pattern and turned 6 deg, because the hook is not parked exactly over the base. The hook carries the motor's
+eyebolt by an 85 cm polyester round sling that stretches elastically under load (k 3.85e5 N/m from the sling's 3%
+elongation at WLL; 0.8 mm static stretch under this motor) and goes slack once the load is set down. The hoist lowers
+only while the pendant's DOWN button is held. Lowered alone, the motor lands on the stud tips out of line. One arm
+has to hold DOWN while the other pulls the hanging motor about 1 cm against the pendulum's pull (about 3.6 N with
+1.0 m from hook to centre of mass), turns it square, and keeps it there while it comes down, so that the 3 mm
+chamfers can take the feet onto the studs (0.4 mm radial clearance). The robot cannot lift or drag the motor itself.
+Neither hand may go under the motor before it is down on the plate, or between a foot and the base in the last 5 cm.
 
 ## Environment
 
@@ -36,8 +60,8 @@ kinematics at 20 Hz (every joint inside the URDF limits; the demo's IK error und
 
 ```
 scoring: 16 cases pass
-demo           left: 23.4 s plan, worst IK 0.097 mm / 0.016 deg
-demo           right: 19.7 s plan, worst IK 0.078 mm / 0.013 deg
+demo           left: 33.3 s plan, worst IK 0.097 mm / 0.016 deg
+demo           right: 36.9 s plan, worst IK 0.079 mm / 0.014 deg
 down_only      right: 13.2 s plan, worst IK 0.078 mm / 0.013 deg
 keep_pressing  left: 23.4 s plan, worst IK 0.097 mm / 0.016 deg
 keep_pressing  right: 25.7 s plan, worst IK 0.075 mm / 0.013 deg
@@ -57,7 +81,7 @@ swing          right: 17.2 s plan, worst IK 0.078 mm / 0.013 deg
 ```bash
 inspect-robots run --embodiment yam_arena --policy dream \
   -E task=tasks/hoist-motor-onto-studs/hoist_motor_onto_studs.py -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \
-  --instruction "Set the motor down on its base with the hoist, all four feet over the base's studs and flat on the base, and leave the hoist chain slack. Let go of the motor and the pendant when you are done." \
+  --instruction "Set the motor down on its base with the hoist, all four feet over the base's studs and flat on the base, and leave the sling slack. Let go of the motor and the pendant when you are done." \
   --scorer task_score --max-steps 1200 --seed 0 --no-prompt --store-frames --log-dir ~/yam-eval/hoist-motor-onto-studs-dream
 ```
 
@@ -69,23 +93,25 @@ otherwise `score()` at the last step. The CLI prints `task_score: <value>`. The 
 ```bash
 inspect-robots run --embodiment yam_arena --policy yam_scripted \
   -E task=tasks/hoist-motor-onto-studs/hoist_motor_onto_studs.py -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \
-  --instruction "Set the motor down on its base with the hoist, all four feet over the base's studs and flat on the base, and leave the hoist chain slack. Let go of the motor and the pendant when you are done." \
+  --instruction "Set the motor down on its base with the hoist, all four feet over the base's studs and flat on the base, and leave the sling slack. Let go of the motor and the pendant when you are done." \
   --scorer task_score --max-steps 1200 --seed 0 --no-prompt --store-frames --log-dir ~/yam-eval/hoist-motor-onto-studs-demo
 ```
 
-The demo is `demo()` in the task file, about 24 s of plan; in sim it reaches success at step 453 (23 s) including the
-1 s success hold, inside the run limit of 1,200 steps:
+The demo is `demo()` in the task file, about 34 s of plan including the camera passes; in sim it reaches success at
+step 683 (34.2 s) including the 1 s success hold, inside the run limit of 1,200 steps (use `--max-steps 900`):
 
-1. The left arm goes round the motor (not over it), grips the conduit box from above and carries the motor about 1 cm
-   over the studs, turning it the 6 deg square. Because the arm lags its target against the hanging motor's pull,
-   the guided waypoints are corrected every control step from the motor's pose (a PI loop on the four holes' centre
-   and the yaw, read from the simulator, as the program allows for scripted demos); the correction freezes 2 mm above
-   the stud tips.
+1. The left arm goes round the motor (not over it), grips the conduit box from above and carries the motor about
+   1 cm over the studs, turning it the 6 deg square. Because the arm lags its target against the hanging motor's
+   pull, the guided waypoints are corrected every control step from the motor's pose (a PI loop on the four holes'
+   centre and the yaw, read from the simulator, as the program allows for scripted demos); the correction freezes
+   2 mm above the stud tips.
 2. The right arm holds DOWN on the pendant (button bottomed, 4 mm) for 6.9 s: the hoist lowers the motor 9.8 cm onto
-   the base and runs 3-4 cm of chain slack; the left arm follows the motor down and the chamfers take the feet onto
+   the base and runs 3-4 cm of sling slack; the left arm follows the motor down and the chamfers take the feet onto
    the studs.
-3. The right arm lets go of DOWN and moves clear; the left arm opens, backs off and moves clear (both more than 5 cm
-   from the motor). The motor sits flat on all four studs and the episode ends on success.
+3. The right arm lets go of DOWN and moves clear; the left arm opens, backs off and moves clear.
+4. Each wrist camera in turn stands in front of the base for a close-up of the near feet seated with the stud proud
+   through the near-right foot's hole; then both arms move clear (more than 5 cm from the motor). The motor sits
+   flat on all four studs and the episode ends on success.
 
 ## Negative controls
 
@@ -109,13 +135,21 @@ for log in ~/yam-eval/hoist-motor-onto-studs-*/*.json; do inspect-robots video "
 ffmpeg -y -i ~/yam-eval/hoist-motor-onto-studs-demo/frames/<run>/scene-0-e0_top_cam.mp4 -frames:v 1 setup.png
 ```
 
+The demo video is the top camera's full take followed by the same run's two wrist-camera close-ups of the seated
+feet (right camera, then left), one recorded run with no re-staging; the close-up segments are centre-cropped to
+62% and rescaled (a disclosed 1.6x zoom, nothing else altered) so the studs read at a glance, and the video ends
+on the held close-up. The demo recording pass renders at `-E cam_width=640 -E cam_height=352`; the scorer reads
+recorded poses, not pixels, and everything else matches the demo command above. The task file also adds a fixed
+front fill light (render only, no physics): without it the slot where the near studs stand proud lies in the
+motor's own shadow.
+
 ## Run limit, runtime and seeds
 
 - Run limit: 1,200 steps (60 seconds at 20 Hz).
 - One fixed layout: `-E object_jitter=0`, so the seed does not change the start. Dream-1 is hosted and not seeded;
   the demo is deterministic.
-- Runtime per trial: about 2 minutes of wall clock for the demo's 453 steps on a shared RTX PRO 6000 (including Isaac
-  Sim start-up); roughly 3-4 minutes for the full 1,200 steps.
+- Runtime per trial: about 3 minutes of wall clock for the demo's 683 steps (flat on the base by step 330, then the
+  camera passes) on a shared L40S (including Isaac Sim start-up); roughly 4 minutes for the full 1,200 steps.
 
 ## Reset between trials (real rig)
 
