@@ -20,6 +20,6 @@
   "run_limit": "6,600 steps (330 seconds at 20 Hz)",
   "reset_notes": "Set each ball with its centre on its listed point (within 0.5 cm), using a printed grid or tape marks on the cloth; every ball starts at least 2 cm outside the chalk ring. Put the rack at its waiting spot: apex away from the robot, back-bar centre at x 44.0, y 0 (its bar on the cloth). Check that no ball touches another and none is inside the ring.",
   "fidelity": "Full-size balls (57.15 mm, 165 g) and rack. Rigid spheres; angular damping (10/s) stands in for the cloth's rolling resistance, which PhysX lacks. Friction ball-ball 0.06, ball-cloth 0.20, ball-wood 0.30 (estimates); contact offset 0.1 mm. The gripper collects each ball with an equator grasp (pads open to 94 mm); three cluster sites hemmed in by three neighbours take a 20 mm drop. Tightening is the real difficulty (earlier sweep: widest gaps 0.25-0.80 mm). The cloth is a patch, not a full table.",
-  "scores": "SCORES_TBD",
-  "media": "M-V29LJM"
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-BH3V5R"
 }
