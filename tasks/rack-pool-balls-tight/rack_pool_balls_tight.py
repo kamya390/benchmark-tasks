@@ -1,14 +1,16 @@
 """On the station table, at full size: a patch of worsted pool cloth stands for the foot end of a pool table's bed,
-with the foot spot marked on it. On the cloth sits a wooden 8-ball triangle rack (apex away from the robot, back bar
-toward it) holding the fifteen 2 1/4 in balls in a legal 8-ball order, loose: they stand about 2 mm apart and the
-apex sits 15 mm past the foot spot. The job: rack them tight with the head ball on the foot spot, then take the rack
-away without disturbing them.
+with the foot spot and a chalked gather ring marked on it. The fifteen 2 1/4 in balls start scattered across the
+cloth at fifteen listed positions, all outside the ring, as after play; the wooden 8-ball triangle rack waits on the
+table beyond the foot spot, apex away from the robot. The job: collect the balls to the foot spot, rack them tight
+with the head ball on the foot spot in a legal order facing the head of the table, then take the rack away without
+disturbing them.
 
-Why it is hard: the rack's cavity is larger than the pack (269.9 mm inside from the head ball to the rear centre,
-against 255.1 mm for fifteen touching balls), so lifting it straight off a loose pack leaves the gaps in place. The
-pack has to be squeezed into the rack's apex, then the frame lifted off a group of rolling balls without dragging
-any of them (a few mm of sideways motion while the walls still touch the balls rolls them apart) and set down on the
-table away from the pack.
+Why it is hard: every ball has to be picked off the cloth and set down in a growing close-packed cluster without
+touching its neighbours; then the rack's cavity is larger than the pack (269.9 mm inside from the head ball to the
+rear centre, against 255.1 mm for fifteen touching balls), so lowering it around the cluster and lifting it straight
+off a loose pack leaves the gaps in place. The pack has to be squeezed into the rack's apex, then the frame lifted
+off a group of rolling balls without dragging any of them (a few mm of sideways motion while the walls still touch
+the balls rolls them apart) and set down on the table away from the pack.
 
 Physics: the balls are rigid spheres (0.165 kg) whose rolling resistance on the cloth is modelled by angular damping
 (PhysX has no rolling friction); contact offsets of 0.1 mm keep the 0.5 mm gap measure meaningful. The rack is a free
@@ -49,12 +51,26 @@ WALL_T, WALL_H = 0.015, 1.25 * IN  # bar thickness (UNVERIFIED), height 1.25 in
 RACK_KG = 0.227  # 0.5 lb
 CLOTH_T = 0.003
 CLOTH_TOP = TOP + CLOTH_T
-X_SPOT, Y_SPOT = 0.46, 0.0  # the foot spot
+# The foot spot sits at x 0.345 so that every site of the close-packed cluster, including the head ball's, is inside
+# the arms' straight-down reach for the collection phase (the head site is the farthest point the grippers must
+# place a ball). The earlier revision had the spot at x 0.46 with the balls already in the rack; with collection
+# added, that head site is 6 cm beyond reach, so the whole scene moved toward the robot. Everything about the rack,
+# pack and scoring is unchanged relative to the spot.
+X_SPOT, Y_SPOT = 0.345, 0.0  # the foot spot
 TABLE_X0 = 0.36 - 1.1 / 2  # the station table's edge behind the arm bases
 START_PAST = float(os.environ.get("RK_START_PAST", "0.015"))  # the loose head ball this far past the spot (+x)
-G_LOOSE = 0.002  # the balls stand this far apart at the start
-VX0 = X_SPOT + START_PAST + 2 * R  # the rack's inner apex vertex at the start (the head ball touches both sides)
+G_LOOSE = 0.002  # the balls stand this far apart in the built cluster
+VX0 = X_SPOT + START_PAST + 2 * R  # the rack's inner apex vertex when lowered to nominal (head ball touches both sides)
 L_IN = 2 * R + 4 * ROW + R + GAP_B  # inner vertex to the back bar's inner face
+# gather ring: a chalked circle the balls must be collected into, centred 90 mm behind the spot; it covers the loose
+# and the tight pack (rear corner centres 157/159 mm from its centre) and every scattered ball starts >= 20 mm
+# outside it
+X_RING, R_RING = X_SPOT - 0.090, 0.165
+# the rack starts, and is finally set down, beyond the foot spot (apex away from the robot), its back-bar centre
+# 95 mm past the spot: its bar face is 58.9 mm horizontally from the head ball even with the head dead on the spot
+# (the 50 mm clearance rule holds with margin for a perfect rack), and the pinch poses there are within reach low
+# over the table (the hands keep below about 55 mm when this far out, and do their vertical travel at x 0.40)
+X_BAR_START = X_SPOT + 0.095
 
 # legal 8-ball order by rows from the apex (1 at the head, 8 in the middle, a solid and a stripe in the back corners)
 ORDER = [[1], [9, 2], [10, 8, 3], [11, 7, 14, 4], [5, 13, 15, 6, 12]]
@@ -108,13 +124,65 @@ def rack_boxes():
 RACK_BOXES = rack_boxes()
 WOOD = (0.55, 0.33, 0.16)
 kit = mk.Kit()
-kit.part("rack", (VX0, Y_SPOT, CLOTH_TOP + 0.0003 + WALL_H / 2), RACK_BOXES, mass=RACK_KG, color=WOOD)
+# the rack starts at its waiting spot beyond the foot spot (back-bar centre at X_BAR_START); its back half lies on
+# the cloth and its apex on the bare table, so it settles with a 0.5-degree tilt over the 3 mm cloth step
+VX_START = X_BAR_START + WALL_T / 2 + L_IN  # inner apex vertex at the start
+kit.part("rack", (VX_START, Y_SPOT, CLOTH_TOP + 0.0005 + WALL_H / 2), RACK_BOXES, mass=RACK_KG, color=WOOD)
 
-START = [p for row in lattice(X_SPOT + START_PAST, Y_SPOT, D + G_LOOSE) for p in row]
+SITES = [p for row in lattice(X_SPOT + START_PAST, Y_SPOT, D + G_LOOSE) for p in row]  # the loose cluster, by NAMES
+# The fifteen scattered start positions (m, world; listed in task.json in cm): a fixed seeded layout, every ball on
+# the cloth, >= 26 mm outside the gather ring, >= 87 mm from every other ball, clear of the rack's waiting spot, and
+# within the matching arm's reach (y > 0 collected by the left arm, y < 0 by the right, by row from the apex,
+# centre-out). Each scattered position is paired with the ball number whose cluster site that arm builds.
+SCATTER_L = [(0.210, 0.275), (0.105, 0.270), (0.375, 0.265), (0.070, 0.190), (0.170, 0.175), (0.360, 0.170),
+             (0.075, 0.100)]
+SCATTER_R = [(0.075, -0.095), (0.360, -0.160), (0.165, -0.180), (0.070, -0.185), (0.270, -0.205), (0.375, -0.260),
+             (0.105, -0.270), (0.210, -0.270)]
+# site index (row i, pos j) -> NAMES index is row-major: [(0,0),(1,0),(1,1),(2,0),(2,1),(2,2),(3,0)..(4,4)]
+SITE_IX = {(i, j): i * (i + 1) // 2 + j for i in range(5) for j in range(i + 1)}
+# global fill order (rows from the apex, centre-out) and the arm that owns each site: sites with y > 0 go to the
+# left arm, y < 0 to the right; the three centre-line sites split 1 left / 2 right so each arm's load matches its
+# side of the scatter (7 left, 8 right)
+FILL = [((0, 0), "L"), ((1, 1), "L"), ((1, 0), "R"), ((2, 1), "R"), ((2, 2), "L"), ((2, 0), "R"), ((3, 2), "L"),
+        ((3, 1), "R"), ((3, 3), "L"), ((3, 0), "R"), ((4, 2), "R"), ((4, 3), "L"), ((4, 1), "R"), ((4, 4), "L"),
+        ((4, 0), "R")]
+# release grip yaw (Waypoint convention: 0 closes the fingers along world y; the pad axis repeats every 180 deg) and
+# release height (ball bottom above the cloth, m) per site, from the offline pad-clearance scan: sites with three
+# placed neighbours take a 20 mm drop (+2.4 mm pad clearance), the rest are set down 2 mm up (>= +8.9 mm). Each
+# site's yaw is the scan's optimum carried into the Waypoint frame (+90 deg), on the 180-mirror branch its arm's
+# wrist can reach.
+SITE_YAW = {(0, 0): -90, (1, 1): -30, (1, 0): 60, (2, 1): 0, (2, 2): -60, (2, 0): 60, (3, 2): 0, (3, 1): 30,
+            (3, 3): -60, (3, 0): 60, (4, 2): 180, (4, 3): 30, (4, 1): 90, (4, 4): -60, (4, 0): 60}
+SITE_DROP = {(3, 1), (4, 3), (4, 1)}
+H_SET, H_DROP = 0.002, 0.020
+
+
+def _pair_scatter():
+    """Pair each arm's scattered balls with its sites in fill order, nearest first (deterministic)."""
+    pools = {"L": list(SCATTER_L), "R": list(SCATTER_R)}
+    out = {}
+    for site, arm in FILL:
+        t = np.array(SITES[SITE_IX[site]])
+        pool = pools[arm]
+        k = int(np.argmin([np.hypot(*(np.array(p) - t)) for p in pool]))
+        out[site] = (arm, pool.pop(k))
+    return out
+
+
+SCATTER_FOR_SITE = _pair_scatter()
+START = [None] * 15
+for _site, (_arm, _sc) in SCATTER_FOR_SITE.items():
+    START[SITE_IX[_site]] = _sc
 OBJECTS = [
     *kit.objects(),
-    Box("cloth", pos=(0.43, 0.0, TOP + CLOTH_T / 2), size=(0.56, 0.62, CLOTH_T), color=(0.05, 0.38, 0.20)),
-    Cylinder("foot_spot", pos=(X_SPOT, Y_SPOT, CLOTH_TOP + 0.0001), radius=0.0127, height=0.0002, color=(0.95, 0.95, 0.92)),
+    Box("cloth", pos=(X_SPOT - 0.03, 0.0, TOP + CLOTH_T / 2), size=(0.56, 0.62, CLOTH_T), color=(0.05, 0.38, 0.20)),
+    # the gather ring: a 4 mm chalk circle of radius 165 mm about (X_RING, 0), drawn as a white disc under a
+    # cloth-green fill (painted marks: no colliders, like the foot spot)
+    Cylinder("ring_chalk", pos=(X_RING, Y_SPOT, CLOTH_TOP + 0.0001), radius=R_RING + 0.002, height=0.0002,
+             color=(0.95, 0.95, 0.92)),
+    Cylinder("ring_fill", pos=(X_RING, Y_SPOT, CLOTH_TOP + 0.0003), radius=R_RING - 0.002, height=0.0002,
+             color=(0.05, 0.38, 0.20)),
+    Cylinder("foot_spot", pos=(X_SPOT, Y_SPOT, CLOTH_TOP + 0.0005), radius=0.0127, height=0.0002, color=(0.95, 0.95, 0.92)),
     *[Sphere(name, pos=(x, y, CLOTH_TOP + R + 0.0001), radius=R, mass=BALL_KG, color=ball_color(int(name[5:])))
       for name, (x, y) in zip(NAMES, START)],
 ]
@@ -170,13 +238,14 @@ def _scene_setup(stage) -> None:
                 rb = PhysxSchema.PhysxRigidBodyAPI.Apply(root)
                 rb.CreateSolverPositionIterationCountAttr().Set(32)
                 rb.CreateSolverVelocityIterationCountAttr().Set(4)
-    spot = stage.GetPrimAtPath(f"{env}/foot_spot")
-    for p in [spot, *_descendants(spot)]:  # the spot is a printed mark: no collider
-        if p.HasAPI(UsdPhysics.CollisionAPI):
-            UsdPhysics.CollisionAPI(p).GetCollisionEnabledAttr().Set(False)
+    for mark in ("foot_spot", "ring_chalk", "ring_fill"):  # painted marks: no colliders
+        prim = stage.GetPrimAtPath(f"{env}/{mark}")
+        for p in [prim, *_descendants(prim)]:
+            if p.HasAPI(UsdPhysics.CollisionAPI):
+                UsdPhysics.CollisionAPI(p).GetCollisionEnabledAttr().Set(False)
     print(f"[rk] scene: {n_mat} materials, {n_col} colliders at contact offset {OFFS * 1000:.1f} mm / rest 0; mu {MU}; "
-          f"ball angular damping {ANG_DAMP}; start: head ball {START_PAST * 1000:.0f} mm past the spot, gaps "
-          f"{G_LOOSE * 1000:.0f} mm", flush=True)
+          f"ball angular damping {ANG_DAMP}; start: 15 balls scattered outside the gather ring (r {R_RING * 1000:.0f} mm "
+          f"at x {X_RING * 1000:.0f}), rack waiting at back-bar x {X_BAR_START * 1000:.0f}", flush=True)
 
 
 def _patch_scene(mod) -> None:
@@ -354,7 +423,8 @@ _RT: dict = {}
 def _mem() -> dict:
     m = mk.MEMORY.get(M)
     if m is None:
-        m = mk.MEMORY[M] = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "cleared": None, "tiers": "", "label": ""}
+        m = mk.MEMORY[M] = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "cleared": None,
+                            "lift_ready": False, "tiers": "", "label": ""}
     return m
 
 
@@ -382,11 +452,16 @@ def _rack_still(objects) -> bool:
 
 
 def _gate_step(m, c, low, away, still):
-    """The lift gate, one control step. Armed: the reference is taken when the rack's lowest point first rises 2 mm
-    above the cloth; from then until the rack is set down away from the pack, any ball centre moving more than 3 mm
-    horizontally from the reference latches 0. If the rack comes back down on the cloth (lowest point within 0.5 mm,
-    still) before it is away, the reference is dropped and the next rise takes a new one. Returns the event, if any."""
+    """The lift gate, one control step.
+
+    It is enabled only after the tight, correctly oriented pack is resting in the rack.  The reference is then taken
+    when that rack first rises 2 mm above the cloth; until it is set down away from the pack, a ball moving more than
+    3 mm sideways latches 0.  This deliberately excludes carrying the empty waiting rack to the cluster: that is not
+    the instructed lift-off and must not be able to fail the final score.
+    """
     if m["gate"] is not None or m["cleared"] is not None:
+        return None
+    if not m.get("lift_ready", True):
         return None
     if m["ref"] is None:
         if low > GATE_RISE:
@@ -419,6 +494,13 @@ def _on_step(objects) -> None:
     c = centres(objects)
     low = rack_low(objects)
     clear = rack_clearance(objects, c)
+    # The safety/quality condition applies to lifting the already-tight pack free, not to the earlier transport of
+    # the empty rack from its waiting position.  Once achieved it remains armed if the operator has to set the rack
+    # back down and retry the vertical lift.
+    if (not m["lift_ready"] and low <= GATE_REST and (pair_gaps(c) <= GAP_OK).all()
+            and _head_off(c) <= SPOT_100 and _oriented(c)):
+        m["lift_ready"] = True
+        print(f"[rk] lift gate armed at control step {m['n']}: tight pack resting in rack", flush=True)
     ev = _gate_step(m, c, low, rack_away(objects, c), _rack_still(objects))
     if ev == "rising":
         g = pair_gaps(c)
@@ -452,6 +534,24 @@ def _on_step(objects) -> None:
         print(f"[rk] k={m['n']} tiers {tiers} (score {score(objects):.2f}); apex {apex:.2f} deg, rear row {rear:.2f} deg",
               flush=True)
         m["tiers"] = tiers
+    if DEBUG and m["n"] % 100 == 0:
+        err = np.linalg.norm(c[:, :2] - np.asarray(SITES), axis=1) * 1000
+        print(f"[rk] k={m['n']} ball-to-site (mm): " + " ".join(f"{e:.1f}" if e < 99 else "--" for e in err)
+              + f"; collected {collected(c)}/15", flush=True)
+        vec = [(NAMES[i], (c[i, :2] - np.asarray(SITES[i])) * 1000) for i in range(15) if err[i] < 45]
+        if vec:
+            print("[rk]    site err vectors (mm): " + "; ".join(f"{n[5:]}: {v[0]:+.1f},{v[1]:+.1f}" for n, v in vec), flush=True)
+    if DEBUG and m["n"] % 20 == 0 and str(m.get("label", "")).startswith("[collect]"):
+        pts = robot_points()
+        if pts:
+            for sg, tcp in zip((1, -1), pts[:2]):
+                d = np.linalg.norm(c - np.asarray(tcp), axis=1)
+                i = int(d.argmin())
+                if d[i] < 0.065:
+                    rel = (c[i] - np.asarray(tcp)) * 1000
+                    v = np.asarray(_objects_vel(objects, NAMES[i]))
+                    print(f"[rk] k={m['n']} {'L' if sg == 1 else 'R'} near {NAMES[i]}: rel {rel[0]:+.1f},{rel[1]:+.1f},"
+                          f"{rel[2]:+.1f} mm; v {np.linalg.norm(v[:3]) * 1000:.1f} mm/s w {np.linalg.norm(v[3:]):.2f}", flush=True)
     if DEBUG and m["n"] % 10 == 0:
         g = pair_gaps(c)
         print(f"[rk] k={m['n']} rack {np.round(kit.pose(objects, 'rack')[0][:2] * 1000, 1).tolist()} low {low * 1000:+.1f} mm "
@@ -470,8 +570,18 @@ def _on_step(objects) -> None:
 kit.on_step(_on_step)
 
 
+def _objects_vel(objects, name):
+    st = objects[name]
+    return [*np.asarray(st.lin_vel, float), *np.asarray(st.ang_vel, float)]
+
+
 def _head_off(c) -> float:
     return float(math.dist(c[0][:2], (X_SPOT, Y_SPOT)))
+
+
+def collected(c) -> int:
+    """How many ball centres lie inside the gather ring (radius R_RING about (X_RING, 0))."""
+    return int((np.hypot(c[:, 0] - X_RING, c[:, 1] - Y_SPOT) <= R_RING).sum())
 
 
 def orientation(c) -> tuple:
@@ -499,6 +609,7 @@ def _still(objects) -> bool:
 def _tiers(objects, c) -> str:
     g = pair_gaps(c)
     return "".join([
+        "F" if collected(c) == 15 else format(collected(c), "x"),  # collected count (hex digit; F = all fifteen)
         "S" if _head_off(c) <= SPOT_25 else "-",
         "C" if rack_away(objects, c) else "-",
         "T" if (g <= GAP_OK).sum() >= 24 else "-",
@@ -511,18 +622,22 @@ def _tiers(objects, c) -> str:
 
 
 def score(objects) -> float:
-    """0 if any ball moved more than 3 mm sideways while the rack was rising (latched). Otherwise: 0.25 the head ball's
-    centre within 10 mm of the foot spot; 0.5 that and the rack taken away (set down on the table, still, every part of
-    it at least 50 mm horizontally from every ball); 0.75 that, at least 24 of the 30 touching pairs within 0.5 mm and the pack facing the head of the table (apex
-    within 5 deg of +x from the centroid, rear row within 3 deg of square to the long axis); 1.0 that, all 30 within
-    0.5 mm, the head ball within 5 mm of the spot, every ball still and both grippers at least 30 mm from every ball."""
+    """0 if any ball moved more than 3 mm sideways while the rack was rising (latched). Otherwise, collection first:
+    with n of the 15 ball centres inside the gather ring, fewer than 15 collected scores 0.25 * n / 15. All fifteen
+    collected: 0.25; 0.5 that, the head ball's centre within 10 mm of the foot spot and the rack taken away (set down
+    on the table, still, every part of it at least 50 mm horizontally from every ball); 0.75 that, at least 24 of the
+    30 touching pairs within 0.5 mm and the pack facing the head of the table (apex within 5 deg of +x from the
+    centroid, rear row within 3 deg of square to the long axis); 1.0 that, all 30 within 0.5 mm, the head ball within
+    5 mm of the spot, every ball still and both grippers at least 30 mm from every ball. The tightness, orientation,
+    head-ball and clearance thresholds are those of the previous revision, unchanged."""
     m = _mem()
     if m["gate"] is not None:
         return 0.0
     c = centres(objects)
-    if _head_off(c) > SPOT_25:
-        return 0.0
-    if not rack_away(objects, c):
+    n = collected(c)
+    if n < 15:
+        return 0.25 * n / 15
+    if _head_off(c) > SPOT_25 or not rack_away(objects, c):
         return 0.25
     g = pair_gaps(c)
     if (g <= GAP_OK).sum() < 24 or not _oriented(c):
@@ -539,19 +654,24 @@ def success(objects) -> bool:
 def distance(objects) -> float:
     c = centres(objects)
     g = pair_gaps(c)
-    return float(_head_off(c) + np.clip(g, 0, None).sum() + max(0.0, CLEAR - rack_clearance(objects, c))
+    out = np.clip(np.hypot(c[:, 0] - X_RING, c[:, 1] - Y_SPOT) - R_RING, 0, None).sum()  # uncollected shortfall
+    return float(out + _head_off(c) + np.clip(g, 0, None).sum() + max(0.0, CLEAR - rack_clearance(objects, c))
                  + max(0.0, float(np.asarray(objects["rack"].low)[2]) - TOP))
 
 
 # -- the scripted demo -----------------------------------------------------------------------------------------------------
-# Both hands pinch the back bar in the cusps between back-row balls 1-2 and 4-5, fingers closing across the bar, and lift
-# the rear bar about 1 mm (the apex stays on the cloth); pull it back toward the robot (its apex squeezes the
-# pack tight and walks the head ball onto the spot), the last 3.5 mm slowly; let the pack settle; ease the rack 1.5 mm
-# forward so its bars stand off the balls; lift it straight up, slowly past the balls' equators; carry it toward the
-# robot, set it down on the table well behind the pack, let go and raise the hands.
+# Three phases. 1) Collection: the arms pick the scattered balls off the cloth one by one (left arm the y > 0 side,
+# right the y < 0 side) and build the loose cluster on its sites, rows from the apex, centre-out; only one hand is
+# over the cluster at a time, the other fetches its next ball and waits at its staging hover. 2) The rack: both
+# hands pinch the waiting rack's back bar, carry it over the cluster and lower it around the balls, 3.5 mm forward
+# of the apex-touching pose, and let go. 3) As in the previous revision: pinch the back bar in the cusps between
+# back-row balls 1-2 and 4-5, lift the rear bar about 1 mm, pull the rack back (its apex squeezes the pack tight and
+# walks the head ball onto the spot; the pull is longer by the same 3.5 mm, so it ends at the same place), the last
+# 3.5 mm slowly; settle; ease 1.5 mm forward; lift straight up, slowly past the equators; then carry it forward to
+# its waiting spot beyond the pack, set it down, let go and raise the hands.
 SP0 = D + G_LOOSE
 Y_HAND = 1.5 * SP0
-X_BAR0 = VX0 - L_IN - WALL_T / 2
+X_BAR0 = VX0 - L_IN - WALL_T / 2  # back-bar centre of the apex-touching rack pose (where the pull ends relative to)
 TIP_Z = 0.018  # pad tips this far above the cloth (the bar is 31.75 mm tall)
 from yam_arena.constants import PAD_TIP_PAST_TCP  # noqa: E402
 
@@ -559,28 +679,109 @@ Z_PINCH = CLOTH_TOP + TIP_Z + PAD_TIP_PAST_TCP
 YAW = {1: -math.pi / 2, -1: math.pi / 2}  # per arm (left +y, right -y): fingers close along x, across the bar
 W_OPEN, W_HOLD = 0.021, WALL_T - 0.004  # 3 mm clear of each face going down
 RAISE = float(os.environ.get("RK_RAISE", "0.001"))  # hands 1 mm up while pulling (rear bar up, apex on the cloth)
-PULL = float(os.environ.get("RK_PULL", "0.016"))  # total pull back
+PULL = float(os.environ.get("RK_PULL", "0.016"))  # pull back past the apex-touching pose (the tuned tightening pull)
 PULL_SLOW = 0.0035  # the last part of the pull, at about 1 mm/s
 SETTLE = 3.0  # s
+# The lift-disturbance gate arms when phase 2 first raises the waiting rack.  Let the last
+# placed ball dissipate its residual contact motion before that independent lift begins.
+# This is demo timing only; scoring thresholds and the rack/pack geometry are unchanged.
+PRE_PICKUP_SETTLE = 15.0  # s
 EASE = float(os.environ.get("RK_EASE", "0.0015"))  # forward ease-off before the lift: the side bars stand off 0.75 mm
 LIFT_SLOW, LIFT = 0.035, 0.100  # the first 35 mm at 5 mm/s (bars past the balls' equators), then at 2 cm/s
-# set-down spot: the rack's apex (20.5 mm past its inner vertex) 65 mm horizontally behind the back row's outline
-X_APEX_SET = X_SPOT - 4 * ROW - R - CLEAR - 0.015
-X_BAR_SET = X_APEX_SET - 0.0205 - L_IN - WALL_T / 2
+# the rack is lowered this far forward of the apex-touching pose, so its V walls clear the head ball by ~1.8 mm and
+# its back bar stays ~4.4 mm clear of the rear row on the way down; the pull is longer by the same amount
+PLACE_FWD = float(os.environ.get("RK_PLACE_FWD", "0.0035"))
 DRIFT = float(os.environ.get("RK_DRIFT", "0.0"))  # controls only: sideways drift over the first 20 mm of the lift
+ONLY_N = int(os.environ.get("RK_ONLY_N", "0"))  # controls only: collect only the first N balls, then park
+# collection geometry
+W_BALL_OPEN = 0.065  # pad gap descending around a ball (3.9 mm a side; a neighbour 80 mm away stays clear)
+W_BALL_HOLD = D - 0.004  # squeeze 2 mm a side to hold the ball
+Z_GRASP = CLOTH_TOP + R  # TCP at the held ball's centre
+Z_CARRY = TOP + 0.108  # carrying height: the held ball's bottom 76 mm up, clear of standing balls (60) and the rack
+STAGE_Y = 0.21  # each arm waits here (its own side) while the other hand is over the cluster
 
 
 def fw(w):
     return -w / 2
 
 
-def _go(plan, dur, pos, w, label, sg):
-    plan.append(Waypoint(float(dur), tuple(float(v) for v in pos), fw(w), label, YAW[sg]))
+def _go(plan, dur, pos, w, label, sg, yaw=None):
+    plan.append(Waypoint(float(dur), tuple(float(v) for v in pos), fw(w), label, YAW[sg] if yaw is None else yaw))
+
+
+def _collection():
+    """Both arms' collection waypoints, serialized over the cluster; returns {1: plan, -1: plan} (equal durations)."""
+    plans = {1: [], -1: []}
+    t = {1: 0.0, -1: 0.0}
+    pose = {1: None, -1: None}
+
+    def add(sg, dur, pos, w, label, yaw=0.0):
+        _go(plans[sg], dur, pos, w, label, sg, yaw)
+        t[sg] += dur
+        pose[sg] = (pos, w, yaw)
+
+    def hold(sg, until, label):
+        if until > t[sg] + 1e-9:
+            pos, w, yaw = pose[sg]
+            add(sg, until - t[sg], pos, w, label, yaw)
+
+    cluster_free = 0.0
+    fill = FILL[:ONLY_N] if ONLY_N else FILL
+    first = {1: True, -1: True}
+    for site, arm in fill:
+        sg = 1 if arm == "L" else -1
+        tx, ty = SITES[SITE_IX[site]]
+        sx, sy = SCATTER_FOR_SITE[site][1]
+        yaw_t = math.radians(SITE_YAW[site])
+        h = H_DROP if site in SITE_DROP else H_SET
+        # fetch (own timeline)
+        lbl = "[collect] to the first ball" if first[sg] else "[collect] to the next ball"
+        add(sg, 2.6 if first[sg] else 2.0, (sx, sy, Z_CARRY), W_BALL_OPEN, lbl)
+        first[sg] = False
+        add(sg, 1.2, (sx, sy, Z_GRASP), W_BALL_OPEN, "[collect] down around the ball")
+        add(sg, 0.6, (sx, sy, Z_GRASP), W_BALL_HOLD, "[collect] hold the ball")
+        add(sg, 1.0, (sx, sy, Z_CARRY), W_BALL_HOLD, "[collect] lift it")
+        add(sg, 1.6, (X_RING, sg * STAGE_Y, Z_CARRY), W_BALL_HOLD, "[collect] to the staging hover")
+        # placement (cluster slot)
+        start = max(t[sg], cluster_free)
+        hold(sg, start, "[collect] wait for the cluster")
+        add(sg, 1.2, (tx, ty, Z_CARRY), W_BALL_HOLD, "[collect] over the site", yaw_t)
+        add(sg, 1.2, (tx, ty, CLOTH_TOP + R + h), W_BALL_HOLD, f"[collect] down to {h * 1000:.0f} mm", yaw_t)
+        add(sg, 0.5, (tx, ty, CLOTH_TOP + R + h), W_BALL_OPEN, "[collect] let it go", yaw_t)
+        add(sg, 0.8, (tx, ty, Z_CARRY), W_BALL_OPEN, "[collect] back up", yaw_t)
+        cluster_free = t[sg] + 0.3
+    end = max(t[1], t[-1]) + 0.4 + PRE_PICKUP_SETTLE
+    for sg in (1, -1):
+        hold(sg, end, "[collect] let the placed balls settle" if not ONLY_N else "[ctl-c] parked")
+    return plans, end
+
+
+def _rack_in(plans, sg):
+    """Phase 2 for one arm: carry the waiting rack in and lower it around the cluster (equal durations per arm).
+    The waiting spot (x 0.440) is reachable only low over the table, so the hands come in and leave it at x 0.40 and
+    stay below 55 mm while out there; every ball is already in the cluster, so the low pass crosses empty cloth."""
+    y = sg * Y_HAND
+    xl = X_BAR0 + PLACE_FWD
+    zlow = TOP + 0.055  # bar bottom 21 mm over empty cloth
+    p = plans[sg]
+    _go(p, 2.0, (0.40, sg * 0.17, Z_CARRY), W_OPEN, "[rack] around the cluster, high", sg)
+    _go(p, 1.4, (0.40, y, zlow), W_OPEN, "[rack] low, short of the waiting rack", sg)
+    _go(p, 1.2, (X_BAR_START, y, zlow), W_OPEN, "[rack] out over its back bar", sg)
+    _go(p, 1.2, (X_BAR_START, y, Z_PINCH), W_OPEN, "[rack] down astride the bar", sg)
+    _go(p, 1.0, (X_BAR_START, y, Z_PINCH), W_HOLD, "[rack] pinch the bar", sg)
+    _go(p, 1.0, (X_BAR_START, y, zlow), W_HOLD, "[rack] raise it a little", sg)
+    _go(p, 1.4, (0.40, y, zlow), W_HOLD, "[rack] bring it to x 0.40", sg)
+    _go(p, 1.6, (0.40, y, Z_PINCH + LIFT), W_HOLD, "[rack] up to carrying height", sg)
+    _go(p, 5.5, (xl, y, Z_PINCH + LIFT), W_HOLD, "[rack] carry it over the cluster", sg)
+    _go(p, 2.2, (xl, y, Z_PINCH + 0.030), W_HOLD, "[rack] lower it", sg)
+    _go(p, 5.0, (xl, y, Z_PINCH + 0.0005), W_HOLD, "[rack] down around the balls, slowly", sg)
+    _go(p, 0.8, (xl, y, Z_PINCH + 0.0005), W_OPEN, "[rack] let go of the bar", sg)
+    _go(p, 1.6, (xl, y, Z_PINCH + 0.10), W_OPEN, "[rack] hands up off the bar", sg)
 
 
 def _arm(sg, pull=PULL):
     y = sg * Y_HAND
-    x0 = X_BAR0
+    x0 = X_BAR0 + PLACE_FWD  # the rack stands where phase 2 lowered it
     zr = Z_PINCH + RAISE
     p = []
     _go(p, 3.0, (x0, y, Z_PINCH + 0.10), W_OPEN, "over the back bar", sg)
@@ -588,6 +789,7 @@ def _arm(sg, pull=PULL):
     _go(p, 1.0, (x0, y, Z_PINCH), W_HOLD, "pinch the back bar", sg)
     _go(p, 0.5, (x0, y, zr), W_HOLD, "lift the rear bar 1 mm", sg)
     if pull > 0:
+        pull = pull + PLACE_FWD  # the extra placement offset is taken up in the fast stage; the end point is the same
         fast = pull - PULL_SLOW
         _go(p, fast / 0.003, (x0 - fast, y, zr), W_HOLD, "[tighten] pull the rack back: its apex squeezes the pack", sg)
         _go(p, PULL_SLOW / 0.001, (x0 - pull, y, zr), W_HOLD, "[tighten] the last 3.5 mm slowly", sg)
@@ -600,11 +802,14 @@ def _arm(sg, pull=PULL):
     else:
         _go(p, LIFT_SLOW / 0.005, (xl, y, Z_PINCH + LIFT_SLOW), W_HOLD, "[lift] lift slowly past the equators", sg)
     _go(p, (LIFT - LIFT_SLOW) / 0.02, (xl + 0, p[-1].pos[1], Z_PINCH + LIFT), W_HOLD, "[lift] lift it clear", sg)
-    xs = X_BAR_SET
-    _go(p, 6.0, (xs, y, Z_PINCH + LIFT), W_HOLD, "[carry] carry the rack toward the robot", sg)
-    _go(p, 2.5, (xs, y, Z_PINCH - CLOTH_T + 0.0015), W_HOLD, "[set down] set it on the table", sg)
-    _go(p, 1.0, (xs, y, Z_PINCH - CLOTH_T + 0.0015), W_OPEN, "let go", sg)
-    _go(p, 2.0, (xs, y, Z_PINCH + 0.10), W_OPEN, "hands up", sg)
+    xs = X_BAR_START
+    _go(p, 4.5, (0.40, y, Z_PINCH + LIFT), W_HOLD, "[carry] carry the rack forward, over and past the pack", sg)
+    _go(p, 1.8, (0.40, y, TOP + 0.055), W_HOLD, "[carry] down low over empty cloth", sg)
+    _go(p, 1.4, (xs, y, TOP + 0.055), W_HOLD, "[carry] out to its waiting spot", sg)
+    _go(p, 1.4, (xs, y, Z_PINCH + 0.0015), W_HOLD, "[set down] set it down there", sg)
+    _go(p, 1.0, (xs, y, Z_PINCH + 0.0015), W_OPEN, "let go", sg)
+    _go(p, 1.2, (xs, y, TOP + 0.055), W_OPEN, "hands off the bar", sg)
+    _go(p, 1.5, (0.40, y, TOP + 0.098), W_OPEN, "hands up", sg)
     return p
 
 
@@ -615,7 +820,8 @@ CL_KEY = "rk_cl"
 
 
 def _cl() -> dict:
-    return mk.MEMORY.setdefault(CL_KEY, {"corr": {1: np.zeros(3), -1: np.zeros(3)}, "target": {}, "on": {1: False, -1: False}})
+    return mk.MEMORY.setdefault(CL_KEY, {"corr": {1: np.zeros(3), -1: np.zeros(3)}, "target": {}, "label": {},
+                                         "on": {1: False, -1: False}})
 
 
 def _patch_arm_plan() -> None:
@@ -633,7 +839,10 @@ def _patch_arm_plan() -> None:
         sg = 1 if self.base_pos[1] > 0 else -1
         cl = _cl()
         cl["target"][sg] = np.asarray(pos, float).copy()
-        cl["on"][sg] = label != "over the back bar"
+        cl["label"][sg] = label
+        # the correction keeps applying but stops UPDATING while a ball is being released and the hand backs off:
+        # a correction step at those moments jerks the just-opened pads into the placed ball
+        cl["on"][sg] = label not in ("[collect] to the first ball", "[collect] let it go", "[collect] back up")
         if sg == 1:
             _mem()["label"] = label
         return pos + cl["corr"][sg], rot, finger, label
@@ -653,25 +862,38 @@ def _cl_step(_objects) -> None:
     for sg, tcp in zip((1, -1), t):
         if sg in cl["target"] and cl["on"][sg]:
             err = cl["target"][sg] - tcp
-            err[1] = 0.0  # x and z only (along the bar a few mm do not matter)
+            if not str(cl["label"].get(sg, "")).startswith("[collect]"):
+                err[1] = 0.0  # rack phases: x and z only (along the bar a few mm do not matter; a y loop once
+                # pushed the rack sideways during the pull); placing balls, y accuracy matters, so it stays on
             cl["corr"][sg] = np.clip(cl["corr"][sg] + CL_GAIN * err, -CL_MAX, CL_MAX)
 
 
 kit.on_step(_cl_step)
 
 
+def _full(pull=PULL):
+    plans, _ = _collection()
+    if not ONLY_N:
+        for sg in (1, -1):
+            _rack_in(plans, sg)
+            plans[sg] += _arm(sg, pull=pull)
+    return {"left": plans[1], "right": plans[-1]}
+
+
 def demo():
-    """Both hands: pinch the back bar between back-row balls and lift it about 1 mm; pull it back 16 mm (12.5 mm at
-    3 mm/s, the last 3.5 mm at 1 mm/s) to tighten; let the pack settle 3 s; ease the rack 1.5 mm forward; lift it
-    straight up (35 mm at 5 mm/s, then to 100 mm at 2 cm/s); carry it toward the robot, set it on the table with its
-    apex 65 mm behind the pack, let go and raise the hands."""
-    return {"left": _arm(1), "right": _arm(-1)}
+    """Collect the fifteen scattered balls into the loose cluster (one hand over the cluster at a time); carry the
+    waiting rack in and lower it around them; then as before: pinch the back bar between back-row balls, lift it
+    about 1 mm, pull back to the tuned end point (12.5 mm at 3 mm/s, the last 3.5 mm at 1 mm/s) to tighten, settle
+    3 s, ease 1.5 mm forward, lift straight up (35 mm at 5 mm/s, then to 100 mm at 2 cm/s), carry it forward to its
+    waiting spot beyond the pack, set it down, let go and raise the hands. With RK_NO_PULL set (control b, run with
+    RK_START_PAST=0) the pull is skipped and the rack is lifted straight off the loose pack."""
+    return _full(pull=0.0 if os.environ.get("RK_NO_PULL") else PULL)
 
 
 def controls_no_tighten():
-    """Control (b): the same pinch and lift with no pull back (run with RK_START_PAST=0 so the head ball starts on the
-    spot): the pack keeps its gaps."""
-    return {"left": _arm(1, pull=0.0), "right": _arm(-1, pull=0.0)}
+    """Control (b): the whole demo with no tightening pull (run with RK_START_PAST=0 so the cluster is built with the
+    head ball on the spot): the rack is lowered, pinched and lifted straight off, and the pack keeps its 2 mm gaps."""
+    return _full(pull=0.0)
 
 
 # -- offline self-test --------------------------------------------------------------------------------------------------
@@ -700,32 +922,40 @@ def self_test():
     some = [list(p) for p in tight]
     for k in range(10, 15):  # back row pulled 1 mm back: 5 pairs of the back row + 4 diagonals... count below
         some[k][0] -= 0.001
-    up = (0.0, 0.0, 0.10)  # lifted 100 mm straight up: above the pack, not taken away
-    away = (X_BAR_SET - X_BAR0, 0.0, -(CLOTH_T + 0.0003))  # set down on the table where the demo puts it
-    near = (X_BAR_SET - X_BAR0 + 0.040, 0.0, -(CLOTH_T + 0.0003))  # set down 40 mm short of that (25 mm from the pack)
+    partial5 = [list(p) for p in START]
+    for site, _arm_ in FILL[:5]:  # the first five balls collected to their sites, the rest still scattered
+        partial5[SITE_IX[site]] = list(SITES[SITE_IX[site]])
+    # rack shifts from its default (waiting) pose, which is also where the demo finally sets it down
+    on_pack = (VX0 - PULL - VX_START, 0.0, 0.0)  # lowered around the pack, at the pull's end point
+    up = (on_pack[0], 0.0, 0.10)  # lifted 100 mm straight up: above the pack, not taken away
+    away = (0.0, 0.0, 0.0)
+    near = (-0.0529, 0.0, 0.0)  # set down with its bar face 6 mm from the head ball (too close)
 
     def turned(deg):  # the tight pack rotated about the head ball, which stays on the spot
         a = math.radians(deg)
         return [(X_SPOT + (x - X_SPOT) * math.cos(a) - (y - Y_SPOT) * math.sin(a),
                  Y_SPOT + (x - X_SPOT) * math.sin(a) + (y - Y_SPOT) * math.cos(a)) for x, y in tight]
+    FRAC, ORIENT = "collected fraction", "0.5 if all collected"
     cases = {
-        "start (loose, 15 mm past, rack on)": (_states(START), {}, [], 0.0),
-        "tight on the spot, rack still on": (_states(tight, (-(START_PAST), 0, 0)), {}, [], 0.25),
+        "start (15 scattered outside the ring, rack waiting)": (_states(START), {}, [], 0.0),
+        "five collected to their sites, ten still scattered": (_states(partial5), {}, [], 0.25 * 5 / 15),
+        "cluster complete (loose, 15 mm past the spot), rack still waiting": (_states(SITES), {}, [], 0.25),
+        "tight on the spot, rack still on it": (_states(tight, on_pack), {}, [], 0.25),
         "tight on the spot, rack lifted 100 mm straight up (not taken away)": (_states(tight, up), {}, [], 0.25),
-        "tight on the spot, rack carried away but still 60 mm up": (_states(tight, (away[0], 0, 0.06)), {}, [], 0.25),
-        "tight on the spot, rack set down 25 mm behind the pack": (_states(tight, near), {}, [], 0.25),
-        "tight on the spot, rack set down away but still sliding": (_states(tight, away, rack_moving=True), {}, [], 0.25),
-        "loose on the spot, rack set down away": (_states(loose_on, away), {}, [], 0.5),
-        "tight on the spot, rack set down away, still, hands away": (_states(tight, away), {}, [], 1.0),
+        "tight on the spot, rack carried away but still 60 mm up": (_states(tight, (0.0, 0.0, 0.06)), {}, [], 0.25),
+        "tight on the spot, rack set down 6 mm from the head ball": (_states(tight, near), {}, [], 0.25),
+        "tight on the spot, rack at its spot but still sliding": (_states(tight, away, rack_moving=True), {}, [], 0.25),
+        "loose on the spot, rack at its waiting spot": (_states(loose_on, away), {}, [], 0.5),
+        "tight on the spot, rack at its waiting spot, still, hands away": (_states(tight, away), {}, [], 1.0),
         "tight, head 7 mm off the spot, rack away": (_states(tight_off7, away), {}, [], 0.75),
         "tight, rack away, balls rolling": (_states(tight, away, moving=True), {}, [], 0.75),
         "tight, rack away, a pad touching the head ball": (_states(tight, away), {}, [np.array([X_SPOT + R + 0.005, 0, CLOTH_TOP + R])], 0.75),
         "tight but the lift disturbed it (latched)": (_states(tight, away), {"gate": 5}, [], 0.0),
         "back row 1 mm off, rack away": (_states(some, away), {}, [], None),
         "orientation: correct pack, rotated 2 deg (inside both limits)": (_states(turned(2.0), away), {}, [], 1.0),
-        "orientation: rotated 180 deg, head ball on the spot (apex faces the foot)": (_states(turned(180.0), away), {}, [], 0.5),
-        "orientation: rotated 10 deg, head ball on the spot": (_states(turned(10.0), away), {}, [], 0.5),
-        "orientation: rotated 4 deg (apex inside 5, rear row outside 3)": (_states(turned(4.0), away), {}, [], 0.5),
+        "orientation: rotated 180 deg, head ball on the spot (apex faces the foot)": (_states(turned(180.0), away), {}, [], FRAC),
+        "orientation: rotated 10 deg, head ball on the spot": (_states(turned(10.0), away), {}, [], ORIENT),
+        "orientation: rotated 4 deg (apex inside 5, rear row outside 3)": (_states(turned(4.0), away), {}, [], ORIENT),
     }
     try:
         for name, (st, flags, pts, want) in cases.items():
@@ -737,7 +967,15 @@ def self_test():
                 g = pair_gaps(centres(st))
                 want = 0.75 if (g <= GAP_OK).sum() >= 24 else 0.5
                 print(f"   ({name}: {int((g <= GAP_OK).sum())}/30 pairs tight -> {want})", file=sys.stderr)
-            assert abs(got - want) < 1e-9 and success(st) == (want >= 1.0), (name, got, want)
+            elif want in (FRAC, ORIENT):
+                # a turned pack swings its rear corners toward the ring's edge: if a corner leaves the ring the
+                # score is collection credit; still inside, the orientation check stops it at 0.5
+                n = collected(centres(st))
+                if want == FRAC:
+                    assert n < 15, (name, n)
+                want = 0.5 if n == 15 else 0.25 * n / 15
+                print(f"   ({name}: {n}/15 inside the ring -> {want:.3f})", file=sys.stderr)
+            assert abs(got - want) < 1e-9 and success(st) == (want >= 1.0 - 1e-9), (name, got, want)
         g = pair_gaps(np.array([[x, y, 0] for x, y in tight]))
         assert np.abs(g).max() < 1e-9
         # lift gate sequences: (lowest point m, ball shift m, away, still) per step -> latched?
@@ -767,17 +1005,35 @@ def self_test():
             print(f"   (pack turned {deg:+.0f} deg about the head ball: apex {o[0]:.2f} deg, rear row {o[1]:.2f} deg, "
                   f"oriented {_oriented(np.array([[x, y, 0] for x, y in turned(deg)]))})", file=sys.stderr)
         assert len(PAIRS) == 30
-        st = _states(START)
-        print(f"start: rack clearance {rack_clearance(st, centres(st)) * 1000:.2f} mm (balls touching the V), widest gap "
-              f"{pair_gaps(centres(st)).max() * 1000:.2f} mm, head ball {_head_off(centres(st)) * 1000:.1f} mm past the spot; "
-              f"back bar centre x {X_BAR0:.4f}", file=sys.stderr)
-        assert rack_clearance(st, centres(st)) > -1e-6
-        for name, sh in (("away", away), ("near", near)):
-            sa = _states(tight, sh)
-            print(f"rack set down {name}: {rack_clearance(sa, centres(sa)) * 1000:.1f} mm horizontally from the pack, lowest "
-                  f"point {(float(sa['rack'].low[2]) - TOP) * 1000:.1f} mm above the table, nearest rack x "
-                  f"{float(sa['rack'].low[0]):.3f}..{float(sa['rack'].high[0]):.3f}", file=sys.stderr)
-        assert float(_states(tight, away)["rack"].low[0]) > TABLE_X0 + 0.005  # on the table
+        # scatter and ring geometry
+        assert all(p is not None for p in START)
+        sc = np.array(START)
+        d_ring = np.hypot(sc[:, 0] - X_RING, sc[:, 1] - Y_SPOT)
+        pair_d = min(np.hypot(*(sc[i] - sc[j])) for i in range(15) for j in range(i + 1, 15))
+        print(f"scatter: 15 balls, min spacing {pair_d * 1000:.0f} mm, nearest {d_ring.min() * 1000:.0f} mm from the "
+              f"ring centre (ring r {R_RING * 1000:.0f} + 20 mm clear zone)", file=sys.stderr)
+        assert pair_d >= 0.080 - 1e-9 and d_ring.min() >= R_RING + 0.020 - 1e-9
+        cx, cy = X_SPOT - 0.03, 0.0  # the cloth
+        assert np.all(sc[:, 0] >= cx - 0.28 + R) and np.all(sc[:, 0] <= cx + 0.28 - R)
+        assert np.all(np.abs(sc[:, 1]) <= 0.31 - R)  # every scattered ball fully on the cloth
+        assert np.all(sc[:, 0] + R <= X_BAR_START - WALL_T / 2 - 0.010)  # clear of the waiting rack
+        for pts, lbl in ((SITES, "loose"), (tight, "tight")):
+            dd = np.hypot(np.array(pts)[:, 0] - X_RING, np.array(pts)[:, 1] - Y_SPOT)
+            assert dd.max() <= R_RING - 0.005, (lbl, dd.max())  # the whole cluster/pack inside the ring
+        st = _states(SITES)
+        print(f"cluster built: head ball {_head_off(centres(st)) * 1000:.1f} mm past the spot, widest gap "
+              f"{pair_gaps(centres(st)).max() * 1000:.2f} mm; rack lowering pose back-bar x {X_BAR0 + PLACE_FWD:.4f} "
+              f"(apex-touching {X_BAR0:.4f} + {PLACE_FWD * 1000:.1f} mm forward)", file=sys.stderr)
+        sl = _states(SITES, (VX0 + PLACE_FWD - VX_START, 0.0, 0.0))  # rack lowered around the loose cluster
+        assert rack_clearance(sl, centres(sl)) > 1e-4, rack_clearance(sl, centres(sl))  # bars clear of every ball
+        sa = _states(tight, away)
+        print(f"rack at its waiting spot: {rack_clearance(sa, centres(sa)) * 1000:.1f} mm horizontally from the tight "
+              f"pack, lowest point {(float(sa['rack'].low[2]) - TOP) * 1000:.1f} mm above the table, rack x "
+              f"{float(sa['rack'].low[0]):.3f}..{float(sa['rack'].high[0]):.3f}", file=sys.stderr)
+        assert rack_clearance(sa, centres(sa)) >= CLEAR + 0.005
+        th = _states([p for row in lattice(X_SPOT - 0.0, Y_SPOT, D) for p in row], away)  # head DEAD on the spot
+        assert rack_clearance(th, centres(th)) >= CLEAR + 0.005  # a perfect rack still clears the waiting spot
+        assert float(sa["rack"].low[0]) > TABLE_X0 + 0.005 and float(sa["rack"].high[0]) < 0.36 + 0.55 - 0.005
     finally:
         mk.new_episode()
         _TEST_POINTS = None
