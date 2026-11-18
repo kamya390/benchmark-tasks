@@ -28,9 +28,19 @@ requires the peak torque inside the joint's documented 90-110 % tolerance — th
 setting is a latched 0 (anything past 110 %), and the "pull on through the click" ablation scores 0. The bolt
 (M5 x 0.8 x 16 class 8.8, ISO 4017 head geometry), washer (ISO 7089), lug (16 mm2 tube lug, M5 hole), cable
 (8 mm over PVC), busbar (20 x 6 mm copper), wrench (ISO 6789-1 Type II class A, 1/4-inch drive, 2-10 N*m,
-checked per ISO 6789-2), socket (8 mm 6-point, ISO 2725-1, ISO 1174-1 drive) and the snug and torque-angle
-calibration are specified below with how a real trial is verified (inline peak-hold transducer). The demo
+with the low-cost batch check below), socket (8 mm 6-point, ISO 2725-1, ISO 1174-1 drive) and the snug and torque-angle
+calibration are specified below with how a real trial is verified (low-cost peak-torque adapter plus camera). The demo
 releases the wrench, parks both arms over 10 cm clear and holds success within the run limit.
+
+**TK-Y3KR6S — full force and affordable verification.** The simulation now uses the real joint's 3.01 N*m
+set torque and 14 N grip load; the validated demo clicks at 4.22 degrees / 93 % and scores 1.0. The unspecified
+specialist torque-angle transducer and separate wrench tester are replaced by one named, commercially available
+1/4-inch digital peak-torque adapter, the Eclatorq TD2-030CN (or an equivalent 1.5-30 N*m adapter with peak hold).
+The cited supplier lists it in stock at INR 16,560 including tax as of 2026-11-18; it has 0.01 N*m resolution,
+3 % clockwise accuracy and peak/track modes. It remains in the drive line for trials and is also used to check
+the click wrench before a batch. Angle comes from the existing top-camera video: a high-contrast radial marker
+on the wrench head is tracked against a fixed marker on the busbar. Thus there is one available low-cost meter,
+no angle transducer and no separate bench tester.
 
 ## Environment
 
@@ -53,8 +63,9 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
   10 N*m), 1/4-inch square drive (ISO 1174-1), 2-10 N*m range, about 26 cm long; the grip's load mark 21.5 cm from
   the drive axis, so 3 N*m takes **14 N at the load mark** (snug 7 N; the tolerance's top 15.3 N). The reverse
   selector is modelled as a flush ring, the low-profile pattern common on quarter-inch click wrenches (ring or
-  push-through reverse, no proud paddle on the head's top face); the ratchet internals are not modelled. Check it at
-  3 N*m on a torque-wrench tester before the trials and calibrate it as ISO 6789-2 asks.
+  push-through reverse, no proud paddle on the head's top face); the ratchet internals are not modelled. Before
+  a batch, exercise it three times, then make five steady pulls at 3 N*m through the same digital adapter used in
+  the trials; replace or professionally calibrate the wrench if any peak lies outside its +/-6 % specification.
 - **Socket:** an 8 mm 6-point socket, 1/4-inch drive, ISO 2725-1 dimensions: 25 mm long, 12 mm OD, hex opening
   8.2 mm across flats (0.16 mm clearance per flat on the 7.88 mm head), with the usual ~1 mm 45-degree mouth
   chamfer. The hex fit, both chamfers and the clearances are modelled as real convex meshes; the socket drives
@@ -63,44 +74,53 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
   its rubber grip on a 6.3 cm block (any bench block; only its height matters), handle toward the right arm.
 - **Handle rest:** a second block (9.8 x 4 cm, 9.7 cm tall, any rigid block) stands under the handle's pull arc
   beside the joint, its top level with the seated grip's underside: it carries the grip whenever the wrench is
-  on the bolt - nobody balances a 550 g transducer wrench on a 3.5 mm bolt head - and the grip rides along it
+  on the bolt - nobody balances the instrumented wrench on a 3.5 mm bolt head - and the grip rides along it
   through the pull. Its friction acts at the same radius as the pull, so it does not shift the click torque.
-- **Inline transducer (in the scene):** a rotary torque-angle transducer with 1/4-inch square drive in and out
-  (strain-gauge torque cell, 0-10 N*m, angle encoder, peak hold), 26 x 26 mm and 4 cm tall, between the wrench's
-  drive and the socket. Seated, the wrench's centre plane is 10.6 cm above the table, as in the sim.
-- **Sim drive calibration** (sim only; declared in `fidelity` beside the 1/7 torque scale): the pipeline's
-  joint-drive backend's realised angular stiffness is super-linear in the command and softens with
-  amplitude (a four-window stiffness-sweep probe plus two measured break points: commanded 0.481 N*m/rad
-  breaks the detent at 69 % of the set torque, 0.65 does not break it by 110 %). The commanded stiffness is
-  therefore bracket-fitted so the interpolated 1.5-deg break lands at the set torque:
-  `BREAKOVER_DRIVE = 22`, commanding 0.59 N*m/rad for the designed 13 N*m/rad detent.
-  The scored click threshold (1.5 deg of breakover, read from body poses) is unchanged.
-- **Snug (the zero for every angle):** run the bolt down by hand, then tighten until the transducer reads 1.5 N*m
-  (half the marked torque). Paint a line across the bolt head, washer and lug. The sim starts here: the bolt turns on
-  at half the set torque.
+- **Available peak-torque adapter (in the scene):** Eclatorq TD2-030CN, or an equivalent low-range digital
+  adapter, with 1/4-inch square drive in and out, 1.5-30 N*m range, 0.01 N*m resolution, +/-3 % clockwise
+  accuracy and peak-hold mode. Goodwill Enterprises lists the TD2-030CN in stock at INR 16,560 including tax
+  (observed 2026-11-18):
+  <https://goodwill.in/eclatorq-digital-angle-torque-adaptor-angle-meter-1-4-ad2-030cn-1-5nm-to-30nm.html>.
+  Its listed overall length is 67 mm; the simulation models the approximately 26 x 26 x 40 mm instrument body
+  between its square-drive interfaces. The simulated 450 g head-end mass is conservative relative to available
+  adapters. Seated, the wrench's centre plane is 10.6 cm above the table.
+- **Camera angle measurement:** put a high-contrast radial marker on the wrench head and a fixed reference marker
+  on the busbar. The existing top camera records their relative yaw throughout the pull; because the seated socket
+  physically keys the head to the bolt, maximum head yaw is the bolt's maximum turn past snug. Zero the markers
+  after snugging. This supplies the angle channel without buying a torque-angle transducer.
+- **Sim drive calibration** (sim only): the pipeline's realised angular stiffness is super-linear in its
+  command, so the detent was bracketed directly against the full-force joint. A command of 1.15 N*m/rad
+  clicked early at 2.64 degrees past snug; 1.35 did not click before the 110 % limit. The selected
+  `DETENT_DRIVE_CMD = 1.25` clicked at 4.22 degrees / 93 % of set torque in the validation run. The designed
+  detent stiffness, the 14 N grip load and the scored 1.5-degree physical breakover threshold are unchanged.
+- **Snug (the zero for every angle):** run the bolt down by hand, then tighten until the digital adapter reads
+  1.5 N*m (half the marked torque). Align the wrench-head and busbar camera markers at zero. The sim starts here:
+  the bolt turns on at half the set torque.
 - **Torque-angle calibration** (the turn-of-nut idea: a defined snug, then an angle): on the actual joint, or a joint
   simulator built from the same bolt lot, washer, lug, bar and nut, tighten from snug slowly and steadily and record
-  the transducer's torque against angle: the angle at 3 N*m and at 3.3 N*m. On three sacrificial bolts carry on until
-  the curve's slope falls (yield).
+  the digital adapter's torque against the camera-marker angle: the angle at 3 N*m and at 3.3 N*m. On three
+  sacrificial bolts carry on until the curve's slope falls (yield).
   - The sim's angles are an estimate from the joint's stiffness, not a measurement. With a nut factor of 0.2 the
     preload is 1 kN per N*m, so snug to set adds 1.5 kN; the bolt (with its head and engaged thread) and the lug-bar
     stack give about 7.5 um per kN, so about 11 um of stretch, about 5 deg on a 0.8 mm pitch (the sim uses 4.9 deg, a
     straight line of 3.27 deg per N*m above snug). On that line 3.3 N*m (110 %) is at 5.9 deg. A class 8.8 M5 starts
     to yield under tightening at about 7 kN of preload (640 MPa on 14.2 mm2, less the share taken by thread torsion),
     about 6.9 N*m or 230 % of the set torque, which the same line puts at 17.7 deg, as in the sim.
-- **Angles are sim-only.** A real trial is scored from the transducer's peak-hold reading and the seating gates,
-  not from angles.
+- **Angle in a real trial:** track the maximum relative yaw of the wrench-head and busbar markers in the existing
+  top-camera video. The camera angle is an independent cross-check on the adapter's peak torque and is also used
+  for the backed-off and unseated-turn gates.
 - **Seating in a real trial:** "seated" and "bolt moved while unseated" are geometry (engagement depth, squareness,
   coaxiality, head angle), read in the sim from the two bodies' poses; on a real rig the same gates come from the
-  video (socket rim flush on the washer, no visible ride-up) plus the transducer's angle channel against the paint
-  mark: any angle change before the socket is flush is the unseated-turn fail.
-- **Peak torque in a real trial:** the transducer stays in the drive line for every trial, and its peak-hold reading
-  is the trial's peak torque P: 2.7-3.3 N*m with the click is in tolerance (1.0); over 3.3 N*m, as when the hand pulls
-  on through the click, scores 0. The video shows the click (the handle's kink).
-- **Force scale:** the sim's torques are 1/7 of the real ones (0.43 N*m set, 2 N at the grip, not 14 N), because
-  the simulated arm is soft (at 2 N on the grip it already lags its command by about 11 mm). Sizes, angles and ratios (snug 50 %, tolerance +/-10 %,
-  yield 230 %) are the real joint's. The sim's bolt body is 30 g (the real bolt and washer are about 8 g) for
-  solver stability; the bolt's dynamics are set by its thread-friction hinge, not its mass.
+  video (socket rim flush on the washer, no visible ride-up) and the camera-marker track: any driven rotation before
+  the socket is flush is the unseated-turn fail.
+- **Peak torque in a real trial:** the digital adapter stays in the drive line for every trial, and its peak-hold
+  reading is the trial's peak torque P: 2.7-3.3 N*m with the click is in tolerance (1.0); over 3.3 N*m, as when the
+  hand pulls on through the click, scores 0. The video shows the click (the handle's kink) and supplies the angle.
+- **Force scale:** the sim uses the real joint's full 3 N*m set torque and approximately 14 N at the grip.
+  The validated demo seated to 3.72 mm engagement, clicked once while seated at 4.22 degrees / 93 % torque,
+  released cleanly and scored 1.0. Sizes, angles and ratios (snug 50 %, tolerance +/-10 %, yield 230 %) are
+  also the real joint's. The sim's bolt body is 30 g (the real bolt and washer are about 8 g) for solver
+  stability; the bolt's dynamics are set by its thread-friction hinge, not its mass.
 
 ## Offline check, no GPU
 
@@ -115,9 +135,9 @@ outcome) and replays both arms' demo plans through the kinematics at 20 Hz (ever
 IK error under 0.5 mm). Expected output:
 
 ```
-scoring: 29 cases pass (set torque 0.43 N*m = 2.0 N at the grip, reached 4.9 deg past snug; tolerance 90-110 % = 3.9-5.9 deg; yield 0.99 N*m = 4.6 N at 17.7 deg; real joint x7.0: 3 N*m set; seated = 2.8 of 3.5 mm engaged, tilt <= 8 deg, coax <= 1 mm)
-left: 35.2 s plan, worst IK 0.097 mm / 0.014 deg
-right: 35.2 s plan, worst IK 0.084 mm / 0.015 deg
+scoring: 29 cases pass (set torque 3.01 N*m = 14.0 N at the grip, reached 4.9 deg past snug; tolerance 90-110 % = 3.9-5.9 deg; yield 6.92 N*m = 32.2 N at 17.7 deg; real joint x1.0: 3 N*m set; seated = 2.8 of 3.5 mm engaged, tilt <= 8 deg, coax <= 1 mm)
+left: 34.0 s plan, worst IK 0.099 mm / 0.014 deg
+right: 34.0 s plan, worst IK 0.099 mm / 0.012 deg
 ```
 
 ## Run and score one Dream-1 trial
@@ -187,5 +207,6 @@ ffmpeg -y -i ~/yam-eval/click-wrench-stop-at-click-demo/frames/<run>/scene-0-e0_
 ## Reset between trials
 
 Back the bolt off (fit a new bolt if its peak went over 110 % or the head was rounded); run it down by hand, then
-to 1.5 N*m on the transducer, and paint-mark the head and lug; check the wrench is set to 3 N*m and stand it back
-on its bench rest, socket down, grip on the block, handle toward the right arm.
+to 1.5 N*m on the digital adapter, zero the camera markers, clear the adapter's peak memory, check the wrench at
+3 N*m against the same adapter, and stand it back on its bench rest, socket down, grip on the block, handle toward
+the right arm.

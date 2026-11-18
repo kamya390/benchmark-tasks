@@ -26,11 +26,11 @@ past snug); a pull on past 110 % scores 0.
 The real joint this models (README, "Real hardware and calibration"): an M5 x 0.8 class 8.8 hex bolt (ISO 4017,
 7.88 mm across flats, head 3.5 mm) with a flat washer (ISO 7089), through a 16 mm2 tinned-copper tube lug and a
 20 x 6 mm copper bar into a self-clinching M5 nut pressed into the bar; marked 3 N*m, snug 1.5 N*m; a 1/4-inch
-drive click wrench of 2-10 N*m range, an inline torque transducer under its drive, an 8 mm 6-point socket
-(ISO 2725-1 / ISO 1174-1 drive, opening 8.2 mm). At the grip's load mark 3 N*m is 14 N. The angles are estimated
-from the joint's stiffness; the sim's torques are 1/7 of the real ones (0.43 N*m set, 2 N at the grip) so the
-soft simulated arm can apply them. Steel-on-steel fit surfaces have mu 0.3 (zinc-plated/phosphated, lightly
-oiled); only the rubber grip is grippy.
+drive click wrench of 2-10 N*m range, a low-cost 1/4-inch digital peak-torque adapter under its drive, and an
+8 mm 6-point socket (ISO 2725-1 / ISO 1174-1 drive, opening 8.2 mm). At the grip's load mark 3 N*m is 14 N.
+The simulation uses that full force and torque; its angles are estimated from the joint's stiffness. On the
+real rig the adapter supplies peak torque and the existing camera tracks angle from a marker on the wrench head.
+Steel-on-steel fit surfaces have mu 0.3 (zinc-plated/phosphated, lightly oiled); only the rubber grip is grippy.
 
 Run it:  inspect-robots run --embodiment yam_arena -E task=tasks/click-wrench-stop-at-click/click_wrench_stop_at_click.py \\
            -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \\
@@ -75,7 +75,7 @@ CAV = 0.0060  # hex cavity depth to its ceiling (ISO 2725 sockets cut the hex we
 # 3.5 mm; max engagement is still the head's 3.5 mm, rim on the washer, so 2.5 mm of wall stand above the
 # crown: the hanging wrench binds wall-on-corner, with no ceiling-on-chamfer ramp to cam it off)
 MOUTH_CH = 0.0008  # 45 deg mouth chamfer
-XDCR = (0.026, 0.040)  # inline rotary torque transducer between the drive and the socket: width, height
+XDCR = (0.026, 0.040)  # low-cost digital peak-torque adapter body between drive and socket: width, height
 HEAD_T = 0.014  # ratchet head thickness
 SOCK_BOT = -(HEAD_T / 2 + XDCR[1] + SOCKET_H)  # local z of the socket's bottom rim in the wrench-head frame
 # -- the wrench: head (free body) and handle (on the head's pivot); it starts standing on its rest -----------------
@@ -83,9 +83,9 @@ R_PIVOT = 0.045  # handle pivot, from the socket axis
 R_GRIP = 0.215  # grip centre, from the socket axis
 GRIP = (0.018, 0.070, 0.018)  # rubber grip: across (x at the start), along the handle, height
 TUBE = (0.014, 0.012)  # handle tube: width, height
-HEAD_KG, HANDLE_KG = 0.45, 0.10  # head end: ratchet head ~150 g + steel inline rotary transducer (26 x 26 x
-# 40 mm, ~210 g bare, ~280 g built) + socket ~20 g; handle. This puts the tool's balance point 39 mm from the
-# socket axis, on the neck, where the demo pinches it.
+HEAD_KG, HANDLE_KG = 0.45, 0.10  # conservative head-end mass: ratchet head + digital adapter + square-drive
+# interfaces + socket; handle. This puts the tool's balance point 39 mm from the socket axis, on the neck,
+# where the demo pinches it. Available adapters are no heavier, so the real carry is not harder than the sim.
 SX, SY = 0.300, 0.060  # the socket axis at the start: the wrench stands socket-down on the bench
 SPAWN_YAW = 0.0  # the wrench rests square on its blocks: the two-hand supported carry (see the demo)
 # holds the tool's clocking, so no rest-pose pre-bias is needed
@@ -105,20 +105,19 @@ TILT_MAX = 8.0  # deg, socket axis off vertical
 COAX_MAX = 0.001  # m, socket axis off the bolt axis at the head
 SEAT_STEPS = 5  # seated held this many consecutive control steps to latch SEATED
 UNSEAT_TURN_DEG = 1.0  # the bolt turned this far while the socket was not seated: latched fail
-# -- the mechanism (forces at the grip are 1/7 of the real joint's, for the soft simulated arm) -------------------
-F0, F_CLICK, F_OVER = 1.0, 2.0, 4.6  # N at the grip: bolt starts to turn; the wrench's set torque; the bolt yields
+# -- the mechanism (full force at the grip for the real 3 N*m joint) ---------------------------------------------
+F0, F_CLICK, F_OVER = 7.0, 14.0, 32.2  # N at grip: bolt starts to turn; wrench set torque; joint yields
 T0, T_CLICK, T_OVER = F0 * R_GRIP, F_CLICK * R_GRIP, F_OVER * R_GRIP  # N*m
-SLOPE = 2.5  # N*m/rad: the bolt's turning torque rises this much per radian past snug
+SLOPE = 17.5  # N*m/rad: the real joint's estimated torque-angle slope above snug
 CLICK_DEG = 1.5  # the detent breaks over at this deflection (= the set torque, pulled at the grip's centre)
 K_DETENT = F_CLICK * (R_GRIP - R_PIVOT) / math.radians(CLICK_DEG)  # N*m/rad about the pivot, the armed detent
 K_RETURN = 0.3  # N*m/rad, the reset spring once it has broken over
-BREAKOVER_DRIVE = 22.0  # sim drive calibration, bracket-fitted: the joint-drive backend's realised
-# stiffness is super-linear in the command and softens with amplitude (stiffness-sweep probe + two measured
-# break points: commanded 0.481 N*m/rad breaks at 69 % of the set torque, 0.65 does not break by 110 %), so
-# the commanded value is set where the interpolated 1.5-deg break lands at the set torque: 13/22 = 0.59
-# N*m/rad. The press's small sliding drag biases the click a shade early, into the 90-110 % band. A sim
-# calibration of the same kind as TORQUE_SCALE; the scored click threshold (1.5 deg of breakover, read from
-# body poses) is untouched.
+# PhysX's realised joint-drive stiffness is strongly super-linear in its command.  The original 2 N model used
+# 0.59 N*m/rad; scaling that command by seven made the 14 N detent about eight times too stiff and prevented a
+# click.  This command is calibrated directly against the restored 14 N joint; K_DETENT and the scored 1.5-deg
+# physical breakover threshold remain unchanged.
+DETENT_DRIVE_CMD = 1.25  # N*m/rad; clicks at 4.22 deg / 93 % in the validated full-force demo
+BREAKOVER_DRIVE = K_DETENT / DETENT_DRIVE_CMD
 SWEEP_CMDS = (0.20, 0.481, 0.80, 1.30)  # VARIANT "sweep": commanded breakover stiffness per 6 s window of a
 # slow pull (soft to stiff as the torque rises), to characterise the backend's super-linear stiffness mapping
 SWEEP_WIN_S = 6.0
@@ -127,9 +126,9 @@ BREAK_DEG = 6.0  # the handle's stop: how far it kinks at the click
 REARM_DEG = 0.5  # back within this of in line (load off): the detent re-arms
 SPEC_DEG = math.degrees((T_CLICK - T0) / SLOPE)  # bolt angle at the set torque (4.9 deg)
 YIELD_DEG = math.degrees((T_OVER - T0) / SLOPE)  # bolt angle at the yield torque (17.7 deg, 230 %)
-# The real joint (documentation; the sim's torques are these times TORQUE_SCALE, its angles are the real ones):
+# The real joint and simulation use the same torque scale and torque-angle curve:
 REAL_SET_NM = 3.0  # M5 class 8.8 steel bolt on copper, the marked torque (14 N at the load mark); snug = half
-TORQUE_SCALE = T_CLICK / REAL_SET_NM  # 0.143 = 1/7
+TORQUE_SCALE = T_CLICK / REAL_SET_NM  # 1.003 (3.01 N*m represented versus the 3 N*m marked value)
 # The joint's documented tolerance on the peak torque: 90-110 % of the specified torque.
 TOL = 0.10
 TOL_LO_DEG = math.degrees(((1 - TOL) * T_CLICK - T0) / SLOPE)  # 3.9 deg past snug: 90 % of the set torque
@@ -208,15 +207,15 @@ kit = mk.Kit()
 kit.part("lug_bolt", (BX, BY, ZLUG), _bolt_pieces(), mass=BOLT_KG, color=STEEL)
 kit.hinge("bolt", None, "lug_bolt", anchor=(BX, BY, ZLUG), axis=(0, 0, -1), lower_deg=-30.0, upper_deg=90.0,
           friction=T0, damping=DAMP)
-# the wrench head: socket + transducer + ratchet head + neck, one free body, standing socket-down on the bench
+# the wrench head: socket + digital torque adapter + ratchet head + neck, one free body, socket-down on the bench
 _hy = R_PIVOT  # head frame: origin on the socket axis at the centre plane, the handle along -y
 kit.part("wrench_head", (SX, SY, ZH_START), yaw=SPAWN_YAW, boxes=[
     *_socket_pieces(),
     mk.box((XDCR[0], XDCR[0], XDCR[1]), at=(0, 0, -HEAD_T / 2 - XDCR[1] / 2), color=(0.15, 0.25, 0.45),
-           mu=MU_METAL),  # transducer
+           mu=MU_METAL),  # digital peak-torque adapter body
     mk.box((0.032, 0.032, HEAD_T), mu=MU_METAL),  # ratchet head
     mk.box((0.016, _hy - 0.016, 0.012), at=(0, -(_hy + 0.016) / 2, 0), mu=MU_METAL),  # neck to the pivot
-    mk.box((0.010, 0.004, 0.002), at=(0, 0.004, HEAD_T / 2 - 0.0005), color=RED),  # direction selector:
+    mk.box((0.010, 0.004, 0.002), at=(0, 0.004, HEAD_T / 2 - 0.0005), color=RED),  # selector + angle marker:
     # a flush ring-style reverse selector (the low-profile pattern common on quarter-inch click
     # wrenches), 0.5 mm proud - visible, but nothing for a hold-down press to snag or pin
 ], mass=HEAD_KG, color=CHROME)
@@ -236,11 +235,13 @@ FIXTURES = [
     Box("clinch_nut", pos=(BX, BY, TOP + 0.0215), size=(0.008, 0.008, 0.005), color=CHROME),  # M5, under the bar
     Box("insulator_b", pos=(BX + 0.075, BY, TOP + 0.012), size=(0.020, 0.020, 0.024), color=EPOXY),
     Box("busbar", pos=(BX + 0.030, BY, TOP + 0.027), size=(0.120, 0.020, 0.006), color=COPPER),
+    Box("angle_reference", pos=(BX + 0.030, BY + 0.009, TOP + 0.0301),
+        size=(0.030, 0.001, 0.0002), color=(0.95, 0.95, 0.95)),  # fixed camera-angle marker on busbar edge
     Box("lug_palm", pos=(BX + 0.003, BY, ZLUG - 0.0015), size=(0.018, 0.012, 0.003), color=TIN),
     Box("lug_barrel", pos=(BX + 0.023, BY, ZLUG + 0.001), size=(0.022, 0.008, 0.008), color=TIN),
     Box("cable", pos=(BX + 0.074, BY, ZLUG + 0.001), size=(0.080, 0.008, 0.008), color=PVC),
     Box("bench_rest", pos=(*_spun(0.0, -R_GRIP), TOP + 0.0315), size=(0.030, 0.030, 0.063), color=BLOCK),  # grip block
-    # the handle rest: carries the grip while the wrench is on the bolt (a 0.55 kg transducer wrench cannot
+    # the handle rest: carries the grip while the wrench is on the bolt (the instrumented wrench cannot
     # balance unattended on a 3.5 mm head - a fitter rests the handle on the work). Its top sits half a
     # millimetre under the seated grip; it spans the grip's whole pull arc, so the grip rides along it, and
     # it reaches 30 mm past the grip on the +x side so the resting tool cannot roll over its edge (the
@@ -323,7 +324,7 @@ def bolt_torque(deg: float) -> float:
 
 def peak_pct(deg: float) -> float:
     """The torque that turned the bolt to ``deg`` past snug, in % of the set torque (what a peak-hold torque
-    transducer between the wrench and the socket would read on the real joint)."""
+    digital peak-torque adapter between the wrench and the socket would read on the real joint)."""
     return 100.0 * bolt_torque(deg) / T_CLICK
 
 
@@ -406,7 +407,10 @@ def _rules(objects) -> None:
     if th >= YIELD_DEG and not m["yielded"]:
         m["yielded"] = True
         _say(f"YIELDED: bolt {th:.2f} deg past snug (yields at {YIELD_DEG:.1f})")
-    if th < m["peak"] - BACKOFF_DEG and not m["loose"]:
+    # Latch a back-off only after the bolt has first reached the torque-tolerance band.  Hex contact can nudge
+    # the snug bolt in both directions while the socket's chamfers settle; that is not an undone torque if the
+    # joint is subsequently tightened correctly.  A bolt left turned backwards is rejected directly by score().
+    if m["peak"] >= TOL_LO_DEG and th < m["peak"] - BACKOFF_DEG and not m["loose"]:
         m["loose"] = True
         _say(f"LOOSENED: bolt {th:.2f} deg, its tightest was {m['peak']:.2f}")
     # the detent: breaks over at the set torque, re-arms once the handle is back in line
@@ -463,7 +467,7 @@ def score(objects) -> float:
         _mem()["last"] = objects  # per-step rule has already run
         _rules(objects)
     m = _mem()
-    if m["over"] or m["loose"] or m["unseated_turn"]:
+    if m["over"] or m["loose"] or m["unseated_turn"] or bolt_deg(objects) <= -BACKOFF_DEG:
         return 0.0
     th = bolt_deg(objects)
     base = 1.0 if torqued(objects) else (0.25 if th >= TURNED_DEG else (0.1 if m["seated"] else 0.0))
@@ -479,7 +483,7 @@ def success(objects) -> bool:
 def distance(objects) -> float:
     """3 on a latched fail; else the seating, the click and the turn still missing."""
     m = _mem()
-    if m["over"] or m["loose"] or m["unseated_turn"]:
+    if m["over"] or m["loose"] or m["unseated_turn"] or bolt_deg(objects) <= -BACKOFF_DEG:
         return 3.0
     return float((not m["seated"]) + (m["clicks"] == 0)
                  + max(0.0, TOL_LO_DEG - bolt_deg(objects)) / TOL_LO_DEG)
@@ -488,7 +492,7 @@ def distance(objects) -> float:
 # -- the scripted demo ------------------------------------------------------------------------------------------
 # Open loop from the scene's geometry and the wrench's set torque, built around two rules a fitter follows
 # with a heavy-headed wrench on a small vertical bolt: NEVER carry or leave it one-handed (the head's weight
-# twists a single grip - measured, repeatably - and a 0.55 kg transducer wrench cannot balance unattended on
+# twists a single grip - measured, repeatably - and the instrumented wrench cannot balance unattended on
 # a 3.5 mm head), and press the head down while pulling (without a hold-down the pull cams the loose hex fit
 # over the head's corner before the bolt's snug friction gives). So: both hands lift the tool off its rest -
 # the left pinching the steel neck, the right gripping the rubber grip - and carry it level over the joint,
