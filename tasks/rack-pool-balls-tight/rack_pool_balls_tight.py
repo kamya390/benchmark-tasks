@@ -91,17 +91,10 @@ def lattice(x_head, y0, spacing):
 
 NAMES = [f"ball_{n}" for row in ORDER for n in row]  # row by row from the head
 HEAD = "ball_1"
-PAIRS = []
 _ix = {}
 for _i in range(5):
     for _j in range(_i + 1):
         _ix[(_i, _j)] = len(_ix)
-for (_i, _j), _a in _ix.items():
-    if (_i, _j + 1) in _ix:
-        PAIRS.append((_a, _ix[(_i, _j + 1)]))
-    if _i < 4:
-        PAIRS += [(_a, _ix[(_i + 1, _j)]), (_a, _ix[(_i + 1, _j + 1)])]
-assert len(PAIRS) == 30
 
 
 # -- the rack (a free body of three bars) --------------------------------------------------------------------------------
@@ -306,15 +299,19 @@ STILL = 0.005  # m/s
 # 6.0 mm (a tenth of a ball) of square. A tight pack is rigid, so this also bounds its rotation to +-3 deg. Overhead
 # grid photo, centres to ~1 mm: angle error about 0.6 deg (apex) and 0.3 deg (rear-row fit), well inside both.
 APEX_TOL, REAR_TOL = 5.0, 3.0  # deg
-REAR = slice(10, 15)  # NAMES indices of the rear row (5, 13, 15, 6, 12)
-
-
 def centres(objects) -> np.ndarray:
     return np.array([np.asarray(objects[b].pos, float) for b in NAMES])
 
 
 def pair_gaps(c) -> np.ndarray:
-    return np.array([np.linalg.norm(c[a] - c[b]) - D for a, b in PAIRS])
+    """The 30 smallest pair gaps, independent of ball identity.
+
+    Fifteen equal balls in a complete triangular pack have exactly 30 neighbouring pairs.  Every non-neighbour is
+    at least sqrt(3) diameters away, so selecting the 30 shortest centre distances finds the physical contacts while
+    accepting any legal permutation of the non-head balls.
+    """
+    d = [float(np.linalg.norm(c[a] - c[b]) - D) for a in range(15) for b in range(a + 1, 15)]
+    return np.sort(np.asarray(d))[:30]
 
 
 def _hull(p) -> np.ndarray:
@@ -367,6 +364,24 @@ def rack_away(objects, c) -> bool:
 
 def rack_low(objects) -> float:
     return float(np.asarray(objects["rack"].low)[2] - CLOTH_TOP)
+
+
+def rack_contains(objects, c) -> bool:
+    """All ball outlines lie inside the three inner rack faces, independent of rack height and velocity.
+
+    In the rack frame the inner apex is (0, 0), the rear face is x=-L_IN and the side faces are the two
+    60-degree V lines.  Distances are reduced by one ball radius, so a centre outside a face cannot count.
+    """
+    t = kit._pose_T(objects, "rack")
+    q = (c - t[:3, 3]) @ t[:3, :3]
+    rear_in = q[:, 0] + L_IN >= R
+    sides_in = -0.5 * q[:, 0] - math.cos(math.radians(30)) * np.abs(q[:, 1]) >= R
+    return bool(np.all(rear_in & sides_in))
+
+
+def rack_encloses(objects, c) -> bool:
+    """All ball outlines are inside the rack while it is down and still."""
+    return rack_low(objects) <= GATE_REST and _rack_still(objects) and rack_contains(objects, c)
 
 
 # robot points: TCP, both pad tips and both pad middles of each gripper (pad points from the URDF collision meshes, in
@@ -423,8 +438,9 @@ _RT: dict = {}
 def _mem() -> dict:
     m = mk.MEMORY.get(M)
     if m is None:
-        m = mk.MEMORY[M] = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "cleared": None,
-                            "lift_ready": False, "tiers": "", "label": ""}
+        m = mk.MEMORY[M] = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "enclosed": None,
+                            "cleared": None, "lift_ready": False, "rise_pairs": 0, "rise_head": float("inf"),
+                            "rise_oriented": False, "tiers": "", "label": ""}
     return m
 
 
@@ -451,21 +467,39 @@ def _rack_still(objects) -> bool:
     return float(np.linalg.norm(np.asarray(objects["rack"].lin_vel))) < STILL
 
 
-def _gate_step(m, c, low, away, still):
-    """The lift gate, one control step.
+def _gate_step(m, c, low, away, still, valid_enclosure=False):
+    """The rack-use sequence and lift gate, one control step.
 
-    It is enabled only after the tight, correctly oriented pack is resting in the rack.  The reference is then taken
-    when that rack first rises 2 mm above the cloth; until it is set down away from the pack, a ball moving more than
-    3 mm sideways latches 0.  This deliberately excludes carrying the empty waiting rack to the cluster: that is not
-    the instructed lift-off and must not be able to fail the final score.
+    All fifteen balls must be inside the three inner faces in the rack's last down state immediately before the rise.
+    If the rack leaves that enclosure while still down, the episode evidence is invalidated.  Until the valid rise is
+    set down away, moving any ball more than 3 mm sideways latches 0.  Carrying the empty waiting rack therefore
+    neither fails nor satisfies the sequence.
     """
     if m["gate"] is not None or m["cleared"] is not None:
         return None
-    if not m.get("lift_ready", True):
-        return None
     if m["ref"] is None:
-        if low > GATE_RISE:
+        # Enclosure must remain geometrically true on every step from the last down observation through the 2 mm
+        # crossing.  This closes both low horizontal departures and the 0.5--2 mm pre-rise deadband.
+        if not valid_enclosure:
+            m["enclosed"] = None
+            m["lift_ready"] = False
+            m["max_move"] = 0.0
+            m["rise_pairs"] = 0
+            m["rise_head"] = float("inf")
+            m["rise_oriented"] = False
+            return None
+        if low <= GATE_REST and still:
+            first = m.get("enclosed") is None or not m.get("lift_ready", False)
+            m["enclosed"] = m["n"]
+            m["lift_ready"] = True
+            if first:
+                return "enclosed"
+        if low > GATE_RISE and m.get("lift_ready", False) and m.get("enclosed") is not None:
             m["ref"] = c.copy()
+            gaps = pair_gaps(c)
+            m["rise_pairs"] = int((gaps <= GAP_OK).sum())
+            m["rise_head"] = _head_off(c)
+            m["rise_oriented"] = _oriented(c)
             return "rising"
         return None
     mv = float(np.linalg.norm((c - m["ref"])[:, :2], axis=1).max())
@@ -476,9 +510,16 @@ def _gate_step(m, c, low, away, still):
     if away:
         m["cleared"] = m["n"]
         return "cleared"
-    if low <= GATE_REST and still:
+    # A retry means returning the rack flat around the pack.  Touching empty cloth near the pack during carry-out is
+    # still part of the same removal episode; keep monitoring until that rack reaches the clear set-down region.
+    if low <= GATE_REST and still and valid_enclosure:
         m["ref"] = None
         m["max_move"] = 0.0
+        m["enclosed"] = None
+        m["lift_ready"] = False
+        m["rise_pairs"] = 0
+        m["rise_head"] = float("inf")
+        m["rise_oriented"] = False
         return "rearmed"
     return None
 
@@ -494,15 +535,13 @@ def _on_step(objects) -> None:
     c = centres(objects)
     low = rack_low(objects)
     clear = rack_clearance(objects, c)
-    # The safety/quality condition applies to lifting the already-tight pack free, not to the earlier transport of
-    # the empty rack from its waiting position.  Once achieved it remains armed if the operator has to set the rack
-    # back down and retry the vertical lift.
-    if (not m["lift_ready"] and low <= GATE_REST and (pair_gaps(c) <= GAP_OK).all()
-            and _head_off(c) <= SPOT_100 and _oriented(c)):
-        m["lift_ready"] = True
-        print(f"[rk] lift gate armed at control step {m['n']}: tight pack resting in rack", flush=True)
-    ev = _gate_step(m, c, low, rack_away(objects, c), _rack_still(objects))
-    if ev == "rising":
+    # Height and stillness are handled by the state machine.  Keeping geometric containment separate lets a valid
+    # observation survive the first fraction of a millimetre of upward motion, but never a low horizontal departure.
+    valid_enclosure = rack_contains(objects, c)
+    ev = _gate_step(m, c, low, rack_away(objects, c), _rack_still(objects), valid_enclosure)
+    if ev == "enclosed":
+        print(f"[rk] rack enclosed all fifteen balls and lift gate armed at control step {m['n']}", flush=True)
+    elif ev == "rising":
         g = pair_gaps(c)
         print(f"[rk] rack rising (lowest point {low * 1000:.1f} mm up) at control step {m['n']}: pairs <= 0.5 mm "
               f"{int((g <= GAP_OK).sum())}/30, widest gap {g.max() * 1000:.2f} mm, head ball "
@@ -591,7 +630,12 @@ def orientation(c) -> tuple:
     xy = c[:, :2]
     v = xy[0] - xy.mean(axis=0)
     apex = abs(math.degrees(math.atan2(v[1], v[0])))
-    r = xy[REAR] - xy[REAR].mean(axis=0)
+    # The actual rear row is the five centres farthest behind the head ball along the pack's own axis, not five
+    # named balls.  Using the pack axis (rather than world x) also finds that row when testing a reversed pack.
+    rear_axis = xy.mean(axis=0) - xy[0]
+    rear_axis /= np.linalg.norm(rear_axis)
+    rear_ix = np.argsort((xy - xy[0]) @ rear_axis, kind="stable")[-5:]
+    r = xy[rear_ix] - xy[rear_ix].mean(axis=0)
     d = np.linalg.svd(r)[2][0]  # principal direction of the rear-row centres
     rear = math.degrees(math.atan2(abs(d[0]), abs(d[1])))
     return apex, rear
@@ -611,7 +655,7 @@ def _tiers(objects, c) -> str:
     return "".join([
         "F" if collected(c) == 15 else format(collected(c), "x"),  # collected count (hex digit; F = all fifteen)
         "S" if _head_off(c) <= SPOT_25 else "-",
-        "C" if rack_away(objects, c) else "-",
+        "C" if rack_away(objects, c) and _mem()["cleared"] is not None else "-",
         "T" if (g <= GAP_OK).sum() >= 24 else "-",
         "A" if (g <= GAP_OK).all() else "-",
         "O" if _oriented(c) else "-",
@@ -624,12 +668,10 @@ def _tiers(objects, c) -> str:
 def score(objects) -> float:
     """0 if any ball moved more than 3 mm sideways while the rack was rising (latched). Otherwise, collection first:
     with n of the 15 ball centres inside the gather ring, fewer than 15 collected scores 0.25 * n / 15. All fifteen
-    collected: 0.25; 0.5 that, the head ball's centre within 10 mm of the foot spot and the rack taken away (set down
-    on the table, still, every part of it at least 50 mm horizontally from every ball); 0.75 that, at least 24 of the
-    30 touching pairs within 0.5 mm and the pack facing the head of the table (apex within 5 deg of +x from the
-    centroid, rear row within 3 deg of square to the long axis); 1.0 that, all 30 within 0.5 mm, the head ball within
-    5 mm of the spot, every ball still and both grippers at least 30 mm from every ball. The tightness, orientation,
-    head-ball and clearance thresholds are those of the previous revision, unchanged."""
+    collected: 0.25; 0.5 that, the scorer observed the rack enclosing all balls, rising around them and being set down
+    clear, and the head ball is within 10 mm of the spot; 0.75 that, at least 24 of the 30 physically closest pairs are
+    within 0.5 mm and the pack is oriented; 1.0 that, all 30 pass, the head is within 5 mm, every ball is still and
+    both grippers are at least 30 mm clear. Non-head identities do not select contacts or the actual rear row."""
     m = _mem()
     if m["gate"] is not None:
         return 0.0
@@ -637,12 +679,16 @@ def score(objects) -> float:
     n = collected(c)
     if n < 15:
         return 0.25 * n / 15
-    if _head_off(c) > SPOT_25 or not rack_away(objects, c):
+    if _head_off(c) > SPOT_25 or not rack_away(objects, c) or m["cleared"] is None:
         return 0.25
     g = pair_gaps(c)
-    if (g <= GAP_OK).sum() < 24 or not _oriented(c):
+    final_pairs = int((g <= GAP_OK).sum())
+    if (final_pairs < 24 or not _oriented(c) or m.get("rise_pairs", 0) < 24
+            or not m.get("rise_oriented", False) or m.get("rise_head", float("inf")) > SPOT_25):
         return 0.5
-    if (g <= GAP_OK).all() and _head_off(c) <= SPOT_100 and _still(objects) and hand_clearance(c) >= HAND_CLEAR:
+    if (final_pairs == 30 and m.get("rise_pairs", 0) == 30 and _head_off(c) <= SPOT_100
+            and m.get("rise_head", float("inf")) <= SPOT_100 and _still(objects)
+            and hand_clearance(c) >= HAND_CLEAR):
         return 1.0
     return 0.75
 
@@ -930,6 +976,16 @@ def self_test():
     up = (on_pack[0], 0.0, 0.10)  # lifted 100 mm straight up: above the pack, not taken away
     away = (0.0, 0.0, 0.0)
     near = (-0.0529, 0.0, 0.0)  # set down with its bar face 6 mm from the head ball (too close)
+    removed = {"enclosed": 10, "cleared": 20, "lift_ready": True, "rise_pairs": 30,
+               "rise_head": 0.0, "rise_oriented": True}
+    removed_loose = {"enclosed": 10, "cleared": 20, "lift_ready": True, "rise_pairs": 20,
+                     "rise_head": 0.0, "rise_oriented": True}
+
+    # A legal alternative arrangement: ball 1 remains the head ball, while non-head identities are permuted across
+    # rows.  Its geometry, tightness and orientation must be identical.
+    permuted = list(tight)
+    for a, b in ((1, 11), (2, 7), (5, 14), (8, 10)):
+        permuted[a], permuted[b] = permuted[b], permuted[a]
 
     def turned(deg):  # the tight pack rotated about the head ball, which stays on the spot
         a = math.radians(deg)
@@ -945,17 +1001,20 @@ def self_test():
         "tight on the spot, rack carried away but still 60 mm up": (_states(tight, (0.0, 0.0, 0.06)), {}, [], 0.25),
         "tight on the spot, rack set down 6 mm from the head ball": (_states(tight, near), {}, [], 0.25),
         "tight on the spot, rack at its spot but still sliding": (_states(tight, away, rack_moving=True), {}, [], 0.25),
-        "loose on the spot, rack at its waiting spot": (_states(loose_on, away), {}, [], 0.5),
-        "tight on the spot, rack at its waiting spot, still, hands away": (_states(tight, away), {}, [], 1.0),
-        "tight, head 7 mm off the spot, rack away": (_states(tight_off7, away), {}, [], 0.75),
-        "tight, rack away, balls rolling": (_states(tight, away, moving=True), {}, [], 0.75),
-        "tight, rack away, a pad touching the head ball": (_states(tight, away), {}, [np.array([X_SPOT + R + 0.005, 0, CLOTH_TOP + R])], 0.75),
+        "perfect pack beside untouched rack cannot claim removal": (_states(tight, away), {}, [], 0.25),
+        "loose on the spot after a valid rack removal": (_states(loose_on, away), removed, [], 0.5),
+        "tight on the spot after a valid rack removal": (_states(tight, away), removed, [], 1.0),
+        "tightened only after a loose rack removal cannot exceed 0.5": (_states(tight, away), removed_loose, [], 0.5),
+        "legal non-head permutation after a valid rack removal": (_states(permuted, away), removed, [], 1.0),
+        "tight, head 7 mm off the spot, rack away": (_states(tight_off7, away), removed, [], 0.75),
+        "tight, rack away, balls rolling": (_states(tight, away, moving=True), removed, [], 0.75),
+        "tight, rack away, a pad touching the head ball": (_states(tight, away), removed, [np.array([X_SPOT + R + 0.005, 0, CLOTH_TOP + R])], 0.75),
         "tight but the lift disturbed it (latched)": (_states(tight, away), {"gate": 5}, [], 0.0),
-        "back row 1 mm off, rack away": (_states(some, away), {}, [], None),
-        "orientation: correct pack, rotated 2 deg (inside both limits)": (_states(turned(2.0), away), {}, [], 1.0),
-        "orientation: rotated 180 deg, head ball on the spot (apex faces the foot)": (_states(turned(180.0), away), {}, [], FRAC),
-        "orientation: rotated 10 deg, head ball on the spot": (_states(turned(10.0), away), {}, [], ORIENT),
-        "orientation: rotated 4 deg (apex inside 5, rear row outside 3)": (_states(turned(4.0), away), {}, [], ORIENT),
+        "back row 1 mm off, rack away": (_states(some, away), removed, [], None),
+        "orientation: correct pack, rotated 2 deg (inside both limits)": (_states(turned(2.0), away), removed, [], 1.0),
+        "orientation: rotated 180 deg, head ball on the spot (apex faces the foot)": (_states(turned(180.0), away), removed, [], FRAC),
+        "orientation: rotated 10 deg, head ball on the spot": (_states(turned(10.0), away), removed, [], ORIENT),
+        "orientation: rotated 4 deg (apex inside 5, rear row outside 3)": (_states(turned(4.0), away), removed, [], ORIENT),
     }
     try:
         for name, (st, flags, pts, want) in cases.items():
@@ -978,25 +1037,51 @@ def self_test():
             assert abs(got - want) < 1e-9 and success(st) == (want >= 1.0 - 1e-9), (name, got, want)
         g = pair_gaps(np.array([[x, y, 0] for x, y in tight]))
         assert np.abs(g).max() < 1e-9
-        # lift gate sequences: (lowest point m, ball shift m, away, still) per step -> latched?
+        assert np.allclose(pair_gaps(np.array([[x, y, 0] for x, y in tight])),
+                           pair_gaps(np.array([[x, y, 0] for x, y in permuted])))
+        assert np.allclose(orientation(np.array([[x, y, 0] for x, y in tight])),
+                           orientation(np.array([[x, y, 0] for x, y in permuted])))
+        # Whole rack-use sequences: (lowest point m, ball shift m, away, still, valid tight enclosure) per step.
+        # Expected tuple is (latched, cleared).
         c0 = np.array([[x, y, CLOTH_TOP + R] for x, y in tight])
         seqs = {
-            "rise, a ball moves 4 mm, rack set down away": ([(0.003, 0, 0, 0), (0.02, 0.004, 0, 0), (-0.003, 0.004, 1, 1)], True),
-            "rise, balls still, rack set down away": ([(0.003, 0, 0, 0), (0.05, 0.001, 0, 0), (-0.003, 0.001, 1, 1)], False),
+            "valid enclosure, rise, ball moves 4 mm": (
+                [(0.0, 0, 0, 1, 1), (0.003, 0, 0, 0, 1), (0.02, 0.004, 0, 0, 0)], (True, False)),
+            "valid enclosure, clean rise, set down away": (
+                [(0.0, 0, 0, 1, 1), (0.003, 0, 0, 0, 1), (0.05, 0.001, 0, 0, 0),
+                 (-0.003, 0.001, 1, 1, 0)], (False, True)),
+            "valid rise, flat touch on empty near cloth, then slide to clear": (
+                [(0.0, 0, 0, 1, 1), (0.003, 0, 0, 0, 1), (0.05, 0.001, 0, 0, 0),
+                 (0.0, 0.001, 0, 1, 0), (0.0, 0.001, 1, 1, 0)], (False, True)),
+            "empty rack lift then final pack beside it cannot count": (
+                [(0.003, 0, 0, 0, 0), (0.05, 0, 0, 0, 0), (-0.003, 0, 1, 1, 0)], (False, False)),
+            "old loose enclosure, rack removed low, hand-packed balls, empty rack lifted cannot count": (
+                [(0.0, 0, 0, 1, 1), (0.0, 0, 1, 0, 0), (0.0, 0, 1, 1, 0),
+                 (0.003, 0, 0, 0, 0), (-0.003, 0, 1, 1, 0)], (False, False)),
+            "enclosure lost in the 0.5--2 mm deadband cannot start a later rise": (
+                [(0.0, 0, 0, 1, 1), (0.001, 0, 0, 0, 0), (0.003, 0, 0, 0, 1),
+                 (-0.003, 0, 1, 1, 0)], (False, False)),
             "rise, back flat on the cloth, a ball moves 4 mm, rise again": (
-                [(0.003, 0, 0, 0), (0.0, 0, 0, 1), (0.0, 0.004, 0, 1), (0.003, 0.004, 0, 0), (0.05, 0.0045, 0, 0)], False),
+                [(0.0, 0, 0, 1, 1), (0.003, 0, 0, 0, 1), (0.0, 0, 0, 1, 1),
+                 (0.0, 0.004, 0, 1, 1), (0.003, 0.004, 0, 0, 1), (0.05, 0.0045, 0, 0, 0)], (False, False)),
             "rise, back down but still moving (not re-armed), a ball moves 4 mm": (
-                [(0.003, 0, 0, 0), (0.0, 0, 0, 0), (0.0, 0.004, 0, 0)], True),
-            "set down away, then a ball moves 4 mm (gate over)": ([(0.003, 0, 0, 0), (-0.003, 0, 1, 1), (-0.003, 0.004, 1, 1)], False),
+                [(0.0, 0, 0, 1, 1), (0.003, 0, 0, 0, 1), (0.0, 0, 0, 0, 0),
+                 (0.0, 0.004, 0, 0, 0)], (True, False)),
+            "set down away, then a ball moves 4 mm (gate over)": (
+                [(0.0, 0, 0, 1, 1), (0.003, 0, 0, 0, 1), (-0.003, 0, 1, 1, 0),
+                 (-0.003, 0.004, 1, 1, 0)], (False, True)),
         }
-        for name, (steps, latched) in seqs.items():
-            m = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "cleared": None}
-            for low_s, dx, away_s, still_s in steps:
+        for name, (steps, expected) in seqs.items():
+            m = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "enclosed": None,
+                 "cleared": None, "lift_ready": False, "rise_pairs": 0, "rise_head": float("inf"),
+                 "rise_oriented": False}
+            for low_s, dx, away_s, still_s, enclosed_s in steps:
                 m["n"] += 1
                 cc = c0.copy()
                 cc[7, 0] += dx  # ball 7 (fourth row)
-                _gate_step(m, cc, low_s, bool(away_s), bool(still_s))
-            assert (m["gate"] is not None) == latched, (name, m)
+                _gate_step(m, cc, low_s, bool(away_s), bool(still_s), bool(enclosed_s))
+            got = (m["gate"] is not None, m["cleared"] is not None)
+            assert got == expected, (name, got, expected, m)
         print(f"lift gate: {len(seqs)} sequences pass", file=sys.stderr)
         for deg, want in ((0.0, (0.0, 0.0)), (180.0, (180.0, 0.0)), (10.0, (10.0, 10.0)), (-4.0, (4.0, 4.0))):
             o = orientation(np.array([[x, y, 0] for x, y in turned(deg)]))
@@ -1004,7 +1089,7 @@ def self_test():
             assert np.abs(pair_gaps(np.array([[x, y, 0] for x, y in turned(deg)]))).max() < 1e-9  # still tight
             print(f"   (pack turned {deg:+.0f} deg about the head ball: apex {o[0]:.2f} deg, rear row {o[1]:.2f} deg, "
                   f"oriented {_oriented(np.array([[x, y, 0] for x, y in turned(deg)]))})", file=sys.stderr)
-        assert len(PAIRS) == 30
+        assert len(pair_gaps(c0)) == 30
         # scatter and ring geometry
         assert all(p is not None for p in START)
         sc = np.array(START)
@@ -1026,6 +1111,7 @@ def self_test():
               f"(apex-touching {X_BAR0:.4f} + {PLACE_FWD * 1000:.1f} mm forward)", file=sys.stderr)
         sl = _states(SITES, (VX0 + PLACE_FWD - VX_START, 0.0, 0.0))  # rack lowered around the loose cluster
         assert rack_clearance(sl, centres(sl)) > 1e-4, rack_clearance(sl, centres(sl))  # bars clear of every ball
+        assert rack_encloses(sl, centres(sl)), "the lowered rack must contain all fifteen loose-cluster balls"
         sa = _states(tight, away)
         print(f"rack at its waiting spot: {rack_clearance(sa, centres(sa)) * 1000:.1f} mm horizontally from the tight "
               f"pack, lowest point {(float(sa['rack'].low[2]) - TOP) * 1000:.1f} mm above the table, rack x "
