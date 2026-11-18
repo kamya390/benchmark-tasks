@@ -2,21 +2,20 @@
 
 Instruction given to the policy: `Set the motor down on its base with the hoist, all four feet over the base's studs and flat on the base, and leave the sling slack. Let go of the motor and the pendant when you are done.`
 
-## Response to review (TK-8W9N6T, 2026-11-15)
+## Response to latest review (TK-CXPKK6, 2026-11-16)
 
-> "Revise demo video, show that the feet are set in the studs, also consider making the hoist physics elastic
-> instead of rigid if possible."
+> "The elastic sling addresses the physics suggestion, but the revised video shows only one stud through its
+> foot. Please record the same full-score run with additional views that show all four feet seated on their
+> studs, without restaging the motor."
 
-- **The demo video now shows the feet set on the studs.** After the motor seats and the hands come away, each
-  wrist camera in turn takes a close-up from in front of the base: the near feet flat on the plate, the stud
-  proud through the near-right foot's hole, and the stud tips standing in the near holes' line. The demo video is
-  the top camera's full take followed by the same run's wrist-camera close-ups (one recorded run, no
-  re-staging). What no camera on this rig can see: the near-left stud (behind the motor's conduit box) and the
-  far studs (behind the frame) - the arms cannot reach past the base's far edge, and the wrist cameras look
-  25 deg off vertical, so there is no viewpoint for them; that is what the feeler-gauge check in `task.json`
-  `scoring` is for on a real rig, and the scorer reads all four stud-through-hole and foot-flat conditions from
-  the recorded poses.
-- **The hoist rigging is now elastic, with a cited real stiffness.** The hook carries the eyebolt by an 85 cm
+- **All four feet are now shown, without restaging.** The revised demo is one 683-step full-score run: its full
+  top-camera take is followed by four fixed observer-camera clips from that same run, one aimed at each
+  stud/foot interface, and a simultaneous four-view final frame. Each close-up shows its distinct stud proud
+  through the corresponding foot. At step 670 all four foot undersides were on the plate (reported z error
+  0.0 mm), hole-to-stud errors were 0.2-0.3 mm, yaw error was 0.03 deg, the sling was 45.4 mm slack and the
+  score was 1.0. The observer-camera option was enabled only for this scripted recording; it is absent from the
+  normal three-camera Dream-1 run and does not change task physics, scripted actions or scoring.
+- **The earlier elastic-sling feedback remains addressed.** The hook carries the eyebolt by an 85 cm
   endless polyester round sling (EN 1492-2, WLL 1 t, violet in the scene). Polyester round slings stretch about
   3% at WLL (EN 1492-2 verification elongation; maker data sheets quote <=3%), so the hitch is a spring-damper
   engaging at 85 cm: k = 1000 kg x g / (0.03 x 0.85 m) = 3.85e5 N/m, damping 570 N s/m (damping ratio 0.08
@@ -44,6 +43,17 @@ Neither hand may go under the motor before it is down on the plate, or between a
 
 The program's Brev launchable (Isaac Lab-Arena 0.3.1, Isaac Sim, L40S) with yam-arena and inspect-robots as it
 installs them. Before every shell: `source ~/IsaacLab-Arena/yam.env`.
+
+### Real-trial equipment and affordable route
+
+No custom lifting mechanism has to be bought or fabricated. Use an unpowered used or failed 3 hp NEMA 182T motor
+(its electrical condition is irrelevant), or an inert 182T frame shell ballasted to 33 kg. Rent the lifting gear
+for the trial: a published United Rentals schedule lists a 1,000 lb electric chain hoist at about $105 per day, and
+Sunbelt Rentals lists its portable 2 ton gantry as CAT CLASS 044-0075 alongside electric-chain-hoist rentals.
+Request a pendant-controlled unit with a low landing speed close to 1.2 m/min; any equivalent gear rated above
+the 33 kg load is acceptable. This keeps the one-day equipment route to standard rental items rather than a
+four-figure hoist/gantry purchase. Catalogs: [United Rentals hoists](https://www.unitedrentals.com/marketplace/equipment/tools-power-hand-surveying/hoist),
+[Sunbelt gantry and hoist rentals](https://www.sunbeltrentals.com/equipment-rental/general-construction-tools/chain-hoists-air-winches/gantry-cranes/).
 
 ## Offline check, no GPU
 
@@ -109,9 +119,10 @@ step 683 (34.2 s) including the 1 s success hold, inside the run limit of 1,200 
    the base and runs 3-4 cm of sling slack; the left arm follows the motor down and the chamfers take the feet onto
    the studs.
 3. The right arm lets go of DOWN and moves clear; the left arm opens, backs off and moves clear.
-4. Each wrist camera in turn stands in front of the base for a close-up of the near feet seated with the stud proud
-   through the near-right foot's hole; then both arms move clear (more than 5 cm from the motor). The motor sits
-   flat on all four studs and the episode ends on success.
+4. Each wrist camera in turn stands in front of the base while both arms finish moving clear (more than 5 cm from
+   the motor). The motor sits flat on all four studs and the episode ends on success. Four fixed observer cameras
+   record the four stud/foot interfaces for the review video; they are not enabled for Dream-1 and are not used by
+   the scripted policy, entering that scripted run's observation only so the recorder captures them.
 
 ## Negative controls
 
@@ -135,13 +146,20 @@ for log in ~/yam-eval/hoist-motor-onto-studs-*/*.json; do inspect-robots video "
 ffmpeg -y -i ~/yam-eval/hoist-motor-onto-studs-demo/frames/<run>/scene-0-e0_top_cam.mp4 -frames:v 1 setup.png
 ```
 
-The demo video is the top camera's full take followed by the same run's two wrist-camera close-ups of the seated
-feet (right camera, then left), one recorded run with no re-staging; the close-up segments are centre-cropped to
-62% and rescaled (a disclosed 1.6x zoom, nothing else altered) so the studs read at a glance, and the video ends
-on the held close-up. The demo recording pass renders at `-E cam_width=640 -E cam_height=352`; the scorer reads
-recorded poses, not pixels, and everything else matches the demo command above. The task file also adds a fixed
-front fill light (render only, no physics): without it the slot where the near studs stand proud lies in the
-motor's own shadow.
+The submitted demo is one full-score recording with no re-staging: the top camera's complete 683-step take,
+followed by final-state clips from four fixed observer cameras aimed at the four distinct stud/foot interfaces,
+then all four views simultaneously. The four observer streams were captured at every control step of the same
+run; only their brightness/gamma was graded in the edit to make shadowed interfaces legible, and labels were
+added. There are no cuts within the top-camera action and no geometry or state edits. The recording pass renders
+at 640 x 352; the submitted 1280 x 704 encode preserves each stream's full resolution in the four-view frame.
+The scorer reads recorded poses, not pixels, and everything else matches the demo command above. The task file
+also adds a fixed front fill light (render only, no physics).
+
+For exact media reproduction, apply `recording_cameras.patch` to the clean `yam-isaac-lab-arena` checkout used by
+the program and replace the scripted-demo command's camera options with
+`-E overview_cam=True -E cam_width=640 -E cam_height=352`. The patch adds the four fixed observer streams with
+their exact poses, focal length and clipping plane; it does not alter the task scene or physics. Render all streams
+with `inspect-robots video <run.json>`.
 
 ## Run limit, runtime and seeds
 
@@ -160,6 +178,11 @@ hoist and robot, abort on the under-load gate; reset with UP to 6.0 cm above the
 ## Scoring
 
 Evaluated every control step; levels are read at the last step except 0.25, which is latched.
+
+On the real rig, synchronize fixed top, x-side and y-side cameras at 60 fps and calibrate image scale from the
+known 190.5 x 114.3 mm stud pattern. For the 5 cm/s strike gate, measure a contacting foot's displacement over
+the preceding 0.10 s; the same views show the under-load and pinch regions. Use a feeler gauge for the 1 mm flat
+check and a tape for sling slack.
 
 - 0 (whole trial, latched) if any part of the robot was below the motor's lowest point inside its plan outline grown
   by 1 cm before all four feet were down on the plate, or between a foot and the plate while that foot was under

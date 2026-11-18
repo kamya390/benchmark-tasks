@@ -18,7 +18,8 @@ that foot is under 5 cm above it, or a foot touching a stud while moving faster 
 
 Mechanism parts come from mechkit.py (in this folder), which adds joints to the stock runtime in memory; this file
 adds the sling (a slack-capable spring-damper distance joint, stiffness from the sling's real elongation spec) and
-the hoist's hold-to-run logic. The demo ends with a wrist-camera inspection pass over all four studs.
+the hoist's hold-to-run logic. The demo ends with two wrist-camera views of the near feet; the submitted review
+video also uses four fixed recording-only observer views, one per stud/foot interface, from the same run.
 
 Run it:  inspect-robots run --embodiment yam_arena -E task=tasks/hoist-motor-onto-studs/hoist_motor_onto_studs.py \\
            -E object_jitter=0 -E control_hz=20 -E cam_width=320 -E cam_height=176 \\
@@ -620,8 +621,9 @@ PRESS_AT = 11.0  # s: DOWN goes in once the motor is lined up
 # over a spot in front of the target; the far side of the base is beyond both arms' reach. Two front shots cover
 # what the motor's own body does not hide: each wrist camera in turn on the near feet flat on the plate with the
 # near-right stud proud through its foot. The near-left stud stands behind the conduit box, and the far studs
-# behind the frame, from every camera this rig has - on a real rig that is what the feeler gauge in the scoring
-# notes is for.
+# behind the frame, from the stock wrist cameras - on a real rig that is what the feeler gauge in the scoring
+# notes is for. Four fixed observer cameras recorded the submitted review evidence; they are not part of the
+# normal three-camera model run (see recording_cameras.patch and the README).
 _INSPECT_V0 = np.array([-0.428, 0.005])
 _INSPECT_DZ = mk.TCP_PAST_GRIPPER - 0.073  # camera above the TCP
 
@@ -651,7 +653,7 @@ def _left_inspect():
     return [
         Waypoint(1.2, (0.10, 0.14, TOP + 0.17), c, "round to the front", -math.pi / 2),
         Waypoint(1.0, (0.12, 0.05, TOP + 0.18), c, "turn the camera in", math.radians(-135.0)),
-        Waypoint(1.2, P_FRONT, c, "camera on the near feet: studs proud through them", FRONT_YAW),
+        Waypoint(1.2, P_FRONT, c, "camera on the near feet", FRONT_YAW),
         Waypoint(2.5, P_FRONT, c, "hold the shot", FRONT_YAW),
         Waypoint(1.2, (0.10, 0.14, TOP + 0.17), c, "back out", -math.pi / 2),
         Waypoint(2.8, (0.10, 0.14, TOP + 0.17), c, "stay by the motor while the right camera comes in", -math.pi / 2),
@@ -675,7 +677,7 @@ def _right_inspect(start_wait):
 
 def demo():
     """Left arm guides the motor over the studs and down; right arm runs the hoist. Then both wrist cameras pass
-    over the seated feet so the video shows every stud tip proud through its foot. About 38 s."""
+    over the seated near feet; fixed observer views provide the four-interface review evidence. About 34 s."""
     plan = os.environ.get("HOIST_PLAN", "demo")
     if plan != "demo":
         return CONTROLS[plan]()

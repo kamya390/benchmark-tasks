@@ -1,0 +1,88 @@
+diff --git a/yam_arena/embodiment.py b/yam_arena/embodiment.py
+--- a/yam_arena/embodiment.py
++++ b/yam_arena/embodiment.py
+@@ -200,6 +200,33 @@ class BimanualYamEmbodiment(EmbodimentBase):
+                     ),
+                 )
+             )
++            # Recording-only close-ups for the four motor feet in hoist-motor-onto-studs.
++            # Each shallow ray targets one stud/foot interface without passing through the motor body.
++            for name, pos, rot in (
++                ("inspect_nw_cam", (0.10475, -0.15715, 0.8425),
++                 (-0.07286189, 0.17590417, 0.37568305, 0.90697911)),
++                ("inspect_ne_cam", (0.10475, 0.15715, 0.8425),
++                 (0.07286189, 0.17590417, -0.37568305, 0.90697911)),
++                ("inspect_sw_cam", (0.49525, -0.15715, 0.8425),
++                 (-0.17590417, 0.07286189, 0.90697911, 0.37568305)),
++                ("inspect_se_cam", (0.49525, 0.15715, 0.8425),
++                 (0.17590417, 0.07286189, -0.90697911, 0.37568305)),
++            ):
++                fields.append(
++                    (
++                        name,
++                        CameraCfg,
++                        CameraCfg(
++                            prim_path="{ENV_REGEX_NS}/" + name,
++                            height=height,
++                            width=width,
++                            data_types=["rgb"],
++                            spawn=sim_utils.PinholeCameraCfg(focal_length=28.0, clipping_range=(0.03, 20.0)),
++                            offset=CameraCfg.OffsetCfg(pos=pos, rot=rot, convention="world"),
++                            renderer_cfg=RENDERER,
++                        ),
++                    )
++                )
+         return make_configclass("YamCameraCfg", fields, bases=(ArenaCameraCfg,))()
+ 
+     # -- EmbodimentBase overrides: the base class assumes one root called `robot` ----------
+diff --git a/yam_arena/inspect_embodiment.py b/yam_arena/inspect_embodiment.py
+--- a/yam_arena/inspect_embodiment.py
++++ b/yam_arena/inspect_embodiment.py
+@@ -187,6 +187,7 @@ class YamArenaEmbodiment(EmbodimentBase):
+         cam_width: int = 224,
+         control_hz: float = CONTROL_HZ,
+         wrist_cam_mount: str = "link",
++        overview_cam: bool = False,
+         scene: str | None = None,
+         top_cam: str | None = None,
+         task: str | None = None,
+@@ -207,6 +208,11 @@ class YamArenaEmbodiment(EmbodimentBase):
+         self.device = device
+         self.cam_height, self.cam_width = int(cam_height), int(cam_width)
+         self.wrist_cam_mount = wrist_cam_mount
++        self.overview_cam = bool(overview_cam)
++        self._cameras = tuple(DEFAULT_CAMERAS) + (
++            ("overview_cam", "inspect_nw_cam", "inspect_ne_cam", "inspect_sw_cam", "inspect_se_cam")
++            if self.overview_cam else ()
++        )
+         self.scene = scene
+         self.rig = station.rig(top_cam or "calibrated") if scene == "station" else TABLETOP
+         lower, upper = _urdf_arm_limits()
+@@ -220,7 +227,7 @@ class YamArenaEmbodiment(EmbodimentBase):
+         self.info = EmbodimentInfo(
+             name="yam_arena",
+             action_space=action_box(self._low, self._high),
+-            observation_space=observation_space(self.cam_height, self.cam_width, DEFAULT_CAMERAS),
++            observation_space=observation_space(self.cam_height, self.cam_width, self._cameras),
+             control_hz=float(control_hz),
+             is_simulated=True,
+             capabilities=frozenset({SEEDABLE, RESETTABLE} | ({PRIVILEGED_SUCCESS} if scored else set())),
+@@ -268,7 +275,8 @@ class YamArenaEmbodiment(EmbodimentBase):
+         from yam_arena.scene import FREE_OBJECTS, make_env
+ 
+         emb = BimanualYamEmbodiment(
+-            enable_cameras=True, wrist_cam_mount=self.wrist_cam_mount, contact_sensors=False, rig=self.rig
++            enable_cameras=True, wrist_cam_mount=self.wrist_cam_mount, overview_cam=self.overview_cam,
++            contact_sensors=False, rig=self.rig
+         )
+         if self.task is not None:
+             scene, build = "task", {"task": self.task}
+@@ -380,7 +388,7 @@ class YamArenaEmbodiment(EmbodimentBase):
+ 
+         base = self._base
+         images = {}
+-        for name in DEFAULT_CAMERAS:
++        for name in self._cameras:
+             out = base.scene[name].data.output["rgb"]
+             out = out.torch if hasattr(out, "torch") else out
+             rgb = out[0, ..., :3].cpu().numpy()
