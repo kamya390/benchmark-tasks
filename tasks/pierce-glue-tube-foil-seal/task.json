@@ -1,0 +1,21 @@
+{
+  "title": "Open a new superglue tube: unscrew the cap, flip it and pierce the foil seal with its pin",
+  "category": "Societal relatability",
+  "keywords": [
+    "superglue",
+    "household repair",
+    "foil seal",
+    "threaded cap",
+    "soft tube",
+    "piercing"
+  ],
+  "instruction": "Unscrew the glue tube's cap, flip it over, and use the pin on top of the cap to pierce the foil seal on the nozzle without squeezing the tube. Leave the cap and tube released.",
+  "context": "Opening a new tube of superglue is a familiar household moment: the nozzle is sealed with foil and the cap carries a pin for breaking it. You unscrew the cap, turn it upside down, and push the pin squarely into the nozzle. Squeezing the soft tube while doing it squirts glue onto your fingers and the bench. The task combines a real thread turn, reorienting a small part in the hand, and a square, centred push that must not crush the soft body beside it.",
+  "setup": "A large superglue-gel-style tube stands upright in a 70 x 50 x 20 mm rigid bench holder at the centre of the bench: soft blue LDPE body 42 x 14 x 80 mm, rigid 20 mm shoulder, 14 mm threaded neck (1.5 mm pitch), 2.5 mm radius nozzle sealed by a 9 mm aluminium foil disc that tears at about 3 N. The red polypropylene cap (18 mm diameter, 22 mm tall, 8 g) is screwed on the neck, its 3 mm piercing pin on the crown pointing up. Tube and holder are fixed. Nothing else is on the bench.",
+  "scoring": "0.25 once the cap has been turned 1.5 turns counter-clockwise and lifted 25 mm from its seat; 0.5 once it is also upside down (pin within 5 degrees of straight down) with the pin tip within 1.5 mm of the nozzle axis; 0.75 once the tip is 2 mm past the foil face, aligned, and the foil has broken; 1.0 once the tip has also been withdrawn 30 mm, both gripper centre points (TCPs) are at least 4 cm from the cap and nozzle, and all is still for 1 s. Any gripper touching within 5 mm of the soft body, a pin driven at more than 10 degrees tilt, foil breached without the pin, or the cap dropped off the bench scores 0 for the episode.",
+  "run_limit": "3000 steps (150 seconds at 20 Hz)",
+  "reset_notes": "Seat the cap on the neck at its start angle and replace the broken foil disc with a new one.",
+  "fidelity": "Rigid-body prototype for Isaac Sim/PhysX at 20 Hz. The soft body is a rigid block; squeezing is flagged when a finger pad or TCP comes within 5 mm of it, not by force. The thread is a spring-driven slide fed by cap rotation and released after 1.5 turns. The foil is a disc on a joint that breaks at 3 N; the nozzle bore is not modelled, so the cap and foil pass through the solid nozzle primitive. Values are uncalibrated. No glue is simulated.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-TS2BLM"
+}
