@@ -290,6 +290,12 @@ DOWN_Z = 0.005  # m: ...and set down: its lowest point within this of the table 
 GAP_OK = 0.0005  # m: a pair counts as tight at <= 0.5 mm (feeler gauge)
 SPOT_25, SPOT_100 = 0.010, 0.005  # m: head-ball centre to the spot's centre
 HAND_CLEAR = 0.030  # m: every robot point this far from every ball surface
+# Hands off after the rise: from the valid 2 mm rise to the end of the trial no gripper point (TCPs, pad tips, pad
+# middles) may come within 10 mm of any ball surface, or the score is capped at collection credit (0.25).  Packing
+# needs contact, so this is what stops a pack being tightened after the rack has gone.  10 mm is several times the
+# real rig's error (logged joints + forward kinematics against ball centres read to ~1 mm overhead); the demo's
+# pads, which hold the rack's back bar 14.8 mm behind the rear row, stay at least 12 mm away while lifting it.
+HANDS_OFF = 0.010
 STILL = 0.005  # m/s
 # Orientation (for 0.75 and 1.0). The table's long axis is x; the head of the table (head string) is +x, the way the
 # apex points in the setup. APEX_TOL: the direction from the pack's centroid (132 mm behind the head ball) to the head
@@ -440,7 +446,7 @@ def _mem() -> dict:
     if m is None:
         m = mk.MEMORY[M] = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "enclosed": None,
                             "cleared": None, "lift_ready": False, "rise_pairs": 0, "rise_head": float("inf"),
-                            "rise_oriented": False, "tiers": "", "label": ""}
+                            "rise_oriented": False, "touched": None, "tiers": "", "label": ""}
     return m
 
 
@@ -520,8 +526,23 @@ def _gate_step(m, c, low, away, still, valid_enclosure=False):
         m["rise_pairs"] = 0
         m["rise_head"] = float("inf")
         m["rise_oriented"] = False
+        m["touched"] = None
         return "rearmed"
     return None
+
+
+def _hands_step(m, hand_clear) -> bool:
+    """Hands off from the valid rise to the end of the trial (after a clear set-down too).
+
+    Returns True on the step a gripper point first comes within HANDS_OFF of a ball.  A retry (the rack back flat
+    around the pack, `rearmed`) starts a new removal and clears this, because touching balls while racking is allowed.
+    """
+    if m.get("touched") is not None or m["gate"] is not None:
+        return False
+    if (m["ref"] is not None or m["cleared"] is not None) and hand_clear < HANDS_OFF:
+        m["touched"] = m["n"]
+        return True
+    return False
 
 
 def _on_step(objects) -> None:
@@ -539,6 +560,12 @@ def _on_step(objects) -> None:
     # observation survive the first fraction of a millimetre of upward motion, but never a low horizontal departure.
     valid_enclosure = rack_contains(objects, c)
     ev = _gate_step(m, c, low, rack_away(objects, c), _rack_still(objects), valid_enclosure)
+    hc = hand_clearance(c)
+    m["min_hand_after_rise"] = min(m.get("min_hand_after_rise", 9.0), hc) if m["ref"] is not None else m.get(
+        "min_hand_after_rise", 9.0)
+    if _hands_step(m, hc):
+        print(f"[rk] HANDS-OFF broken: a gripper point came {hc * 1000:.1f} mm from a ball after the rack rose "
+              f"(limit {HANDS_OFF * 1000:.0f} mm), control step {m['n']}: score capped at collection credit", flush=True)
     if ev == "enclosed":
         print(f"[rk] rack enclosed all fifteen balls and lift gate armed at control step {m['n']}", flush=True)
     elif ev == "rising":
@@ -558,7 +585,9 @@ def _on_step(objects) -> None:
               f"pairs <= 0.5 mm {int((g <= GAP_OK).sum())}/30, widest gap {g.max() * 1000:.2f} mm, head ball "
               f"{_head_off(c) * 1000:.1f} mm from the spot; most any ball moved "
               f"while it rose: {m['max_move'] * 1000:.2f} mm; orientation: apex {apex:.2f} deg off +x (limit "
-              f"{APEX_TOL:.0f}), rear row {rear:.2f} deg off square (limit {REAR_TOL:.0f})", flush=True)
+              f"{APEX_TOL:.0f}), rear row {rear:.2f} deg off square (limit {REAR_TOL:.0f}); nearest gripper point to a "
+              f"ball since the rise: {m.get('min_hand_after_rise', 9.0) * 1000:.1f} mm (hands-off limit "
+              f"{HANDS_OFF * 1000:.0f} mm)", flush=True)
     if m["label"] != m.get("phase"):
         m["phase"] = m["label"]
         g = pair_gaps(c)
@@ -669,9 +698,11 @@ def score(objects) -> float:
     """0 if any ball moved more than 3 mm sideways while the rack was rising (latched). Otherwise, collection first:
     with n of the 15 ball centres inside the gather ring, fewer than 15 collected scores 0.25 * n / 15. All fifteen
     collected: 0.25; 0.5 that, the scorer observed the rack enclosing all balls, rising around them and being set down
-    clear, and the head ball is within 10 mm of the spot; 0.75 that, at least 24 of the 30 physically closest pairs are
-    within 0.5 mm and the pack is oriented; 1.0 that, all 30 pass, the head is within 5 mm, every ball is still and
-    both grippers are at least 30 mm clear. Non-head identities do not select contacts or the actual rear row."""
+    clear, no gripper point came within 10 mm of a ball from that rise on, and the head ball is within 10 mm of the
+    spot; 0.75 that, at least 24 of the 30 physically closest pairs are within 0.5 mm and the pack is oriented; 1.0
+    that, all 30 pass, the head is within 5 mm, every ball is still and both grippers are at least 30 mm clear.
+    Tightness is read on the final state only: the hands-off rule is what rules out tightening after the rack has
+    gone. Non-head identities do not select contacts or the actual rear row."""
     m = _mem()
     if m["gate"] is not None:
         return 0.0
@@ -679,16 +710,14 @@ def score(objects) -> float:
     n = collected(c)
     if n < 15:
         return 0.25 * n / 15
-    if _head_off(c) > SPOT_25 or not rack_away(objects, c) or m["cleared"] is None:
+    if (_head_off(c) > SPOT_25 or not rack_away(objects, c) or m["cleared"] is None
+            or m.get("touched") is not None):
         return 0.25
     g = pair_gaps(c)
     final_pairs = int((g <= GAP_OK).sum())
-    if (final_pairs < 24 or not _oriented(c) or m.get("rise_pairs", 0) < 24
-            or not m.get("rise_oriented", False) or m.get("rise_head", float("inf")) > SPOT_25):
+    if final_pairs < 24 or not _oriented(c):
         return 0.5
-    if (final_pairs == 30 and m.get("rise_pairs", 0) == 30 and _head_off(c) <= SPOT_100
-            and m.get("rise_head", float("inf")) <= SPOT_100 and _still(objects)
-            and hand_clearance(c) >= HAND_CLEAR):
+    if final_pairs == 30 and _head_off(c) <= SPOT_100 and _still(objects) and hand_clearance(c) >= HAND_CLEAR:
         return 1.0
     return 0.75
 
@@ -1004,7 +1033,10 @@ def self_test():
         "perfect pack beside untouched rack cannot claim removal": (_states(tight, away), {}, [], 0.25),
         "loose on the spot after a valid rack removal": (_states(loose_on, away), removed, [], 0.5),
         "tight on the spot after a valid rack removal": (_states(tight, away), removed, [], 1.0),
-        "tightened only after a loose rack removal cannot exceed 0.5": (_states(tight, away), removed_loose, [], 0.5),
+        "tight after a valid removal, hands came within 10 mm of a ball after the rise (tightened by hand)": (
+            _states(tight, away), {**removed, "touched": 25}, [], 0.25),
+        "loose at the rise, tight finally, hands kept off (rack-free tightening is impossible)": (
+            _states(tight, away), removed_loose, [], 1.0),
         "legal non-head permutation after a valid rack removal": (_states(permuted, away), removed, [], 1.0),
         "tight, head 7 mm off the spot, rack away": (_states(tight_off7, away), removed, [], 0.75),
         "tight, rack away, balls rolling": (_states(tight, away, moving=True), removed, [], 0.75),
@@ -1083,6 +1115,36 @@ def self_test():
             got = (m["gate"] is not None, m["cleared"] is not None)
             assert got == expected, (name, got, expected, m)
         print(f"lift gate: {len(seqs)} sequences pass", file=sys.stderr)
+        # Hands-off sequences: (rack lowest point m, away, still, valid enclosure, gripper-to-ball clearance m) per
+        # step; expected: (hands-off broken, removal completed) at the end.
+        hseqs = {
+            "racking touches balls before the rise (allowed)": (
+                [(0.0, 0, 1, 1, 0.0), (0.0, 0, 1, 1, 0.002), (0.003, 0, 0, 1, 0.013), (-0.003, 1, 1, 0, 0.10)],
+                (False, True)),
+            "pads 12 mm from the pack while lifting, then withdrawn (the demo)": (
+                [(0.0, 0, 1, 1, 0.011), (0.003, 0, 0, 1, 0.012), (0.05, 0, 0, 0, 0.03), (-0.003, 1, 1, 0, 0.10)],
+                (False, True)),
+            "a pad pokes the pack while the rack is in the air": (
+                [(0.0, 0, 1, 1, 0.011), (0.003, 0, 0, 1, 0.012), (0.05, 0, 0, 0, 0.004), (-0.003, 1, 1, 0, 0.10)],
+                (True, True)),
+            "rack set down clear, then a hand nudges the pack tighter": (
+                [(0.0, 0, 1, 1, 0.011), (0.003, 0, 0, 1, 0.012), (-0.003, 1, 1, 0, 0.10), (-0.003, 1, 1, 0, 0.0)],
+                (True, True)),
+            "a touch after the rise, then a full retry with the rack flat around the pack": (
+                [(0.0, 0, 1, 1, 0.011), (0.003, 0, 0, 1, 0.012), (0.01, 0, 0, 1, 0.003), (0.0, 0, 1, 1, 0.0),
+                 (0.0, 0, 1, 1, 0.011), (0.003, 0, 0, 1, 0.013), (-0.003, 1, 1, 0, 0.10)], (False, True)),
+        }
+        for name, (steps, expected) in hseqs.items():
+            m = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "enclosed": None, "cleared": None,
+                 "lift_ready": False, "rise_pairs": 0, "rise_head": float("inf"), "rise_oriented": False,
+                 "touched": None}
+            for low_s, away_s, still_s, enclosed_s, hc in steps:
+                m["n"] += 1
+                _gate_step(m, c0.copy(), low_s, bool(away_s), bool(still_s), bool(enclosed_s))
+                _hands_step(m, hc)
+            got = (m["touched"] is not None, m["cleared"] is not None)
+            assert got == expected, (name, got, expected, m)
+        print(f"hands off: {len(hseqs)} sequences pass", file=sys.stderr)
         for deg, want in ((0.0, (0.0, 0.0)), (180.0, (180.0, 0.0)), (10.0, (10.0, 10.0)), (-4.0, (4.0, 4.0))):
             o = orientation(np.array([[x, y, 0] for x, y in turned(deg)]))
             assert abs(o[0] - want[0]) < 1e-6 and abs(o[1] - want[1]) < 1e-6, (deg, o)

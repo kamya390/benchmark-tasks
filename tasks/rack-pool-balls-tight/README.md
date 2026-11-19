@@ -8,6 +8,35 @@ sim control plan and an offline self-test), `mechkit.py` (unchanged helper: mult
 
 ## Response to review
 
+Review verdict (2026-11-18), verbatim:
+
+> Scoring (not met): The specified feeler-gauge check occurs after removal and cannot establish all 30 submillimetre
+> gaps at the earlier rack rise.
+>
+> What to change: A new scoring issue, not raised in the earlier review: the feeler-gauge check after rack removal
+> does not establish whether the 30 gaps met the 0.5 mm threshold at the earlier rise. Specify a practical,
+> non-disturbing real-trial check at that moment, or replace the rise-time threshold with a measurable condition that
+> still prevents tightening the pack after removal.
+
+We took the second option, in the scorer and its tests:
+
+- **The rise-time gap threshold is gone.** Tightness (24 or 30 of the 30 neighbour gaps within 0.5 mm), head
+  distance and orientation are now read once, on the final state, which is exactly what the after-trial feeler-gauge
+  check and the final overhead frame measure on a real table.
+- **Hands off after the rise replaces it.** From the valid 2 mm rise to the end of the trial, no gripper point (both
+  TCPs, all four pad tips and pad middles) may come within 10 mm of any ball surface; if one does, the score is
+  capped at 0.25 (collection credit). Closing a gap needs contact, so once the rack has risen nothing can tighten the
+  pack: the rack is in the air or set down 50 mm clear, and the hands are kept off. A full retry (the rack set back
+  flat around the pack) starts a new removal, because touching balls while racking is allowed. `_hands_step` does
+  this every control step; five whole sequences test it (touch before the rise allowed; the demo's 12 mm lift
+  clearance passes; a poke while the rack is in the air, and a nudge after a clear set-down, both cap the score; a
+  touch followed by a full retry passes).
+- **Measurable on the real rig without disturbing anything.** The 10 mm distance comes from the robot's logged joint
+  angles (forward kinematics of the pads) against ball centres in the calibrated overhead video, both good to a few
+  millimetres, and contact is also visible in that video. The feeler gauge is used only after the trial has ended.
+- **The submitted demo is unchanged and still scores 1.0** (re-scored offline below). Every other threshold is
+  unchanged.
+
 Review verdict (2026-11-17), verbatim:
 
 > Construct validity (not met): The rack starts far enough from a completed pack to satisfy the clearance condition,
@@ -26,16 +55,17 @@ Each new point is addressed in the scorer, not just in this description:
   three inner rack faces in the rack's last down, still state and continuously through the 2 mm rise crossing. Losing
   that enclosure at any pre-rise height invalidates the observation; only setting the validly lifted rack 50 mm clear
   completes removal. A perfect final pack next to the untouched waiting rack remains at 0.25, as does enclosing loose
-  balls once, sliding that rack away, hand-forming a tight pack and later lifting the empty rack. Tightness and
-  orientation for the 0.75 and 1.0 tiers must pass both at that rise and finally, so tightening only after the rack
-  has been removed cannot earn those tiers. The old 3 mm no-disturbance latch runs from valid rise through set-down.
+  balls once, sliding that rack away, hand-forming a tight pack and later lifting the empty rack. (Tightening after
+  the rack has been removed is now ruled out by the hands-off rule above, which replaced the rise-time tightness
+  check.) The old 3 mm no-disturbance latch runs from valid rise through set-down.
 - **Contacts and rear row come from geometry.** `pair_gaps` sorts all pairwise centre distances and checks the thirty
   physical neighbours; `orientation` selects the five centres farthest behind the head ball along the pack's own
   axis. Neither depends on non-head ball identities. A test swaps four pairs of non-head balls across rows and still
   scores 1.0 after a valid removal.
 - **Real evaluation shows the sequence.** Continuous calibrated overhead video retains the frame with all ball
   outlines inside the rack, the rack passing above the pack, and the final clear set-down. The same view supports the
-  before/after 3 mm check and identifies the physical thirty neighbour gaps for the later feeler-gauge check.
+  before/after 3 mm check, the hands-off distance, and identifies the physical thirty neighbour gaps for the
+  after-trial feeler-gauge check.
 
 Earlier review verdict (2026-11-16), verbatim:
 
@@ -79,15 +109,18 @@ From the root of this repository, with yam-arena importable:
 python tasks/rack-pool-balls-tight/rack_pool_balls_tight.py
 ```
 
-It asserts the scoring rules on 22 hand-built states: the scattered start (0); five balls collected (0.0833); the
+It asserts the scoring rules on 23 hand-built states: the scattered start (0); five balls collected (0.0833); the
 cluster complete with the rack still waiting (0.25); a tight pack on the spot with the rack on it, lifted 100 mm
 straight over it, carried away but still 60 mm up, set down 6 mm from the head ball, or at its waiting spot but
 still sliding (all 0.25); a perfect pack beside the untouched rack (0.25); a loose pack after a valid rack removal
-(0.5); a tight pack after valid removal (1.0), including after non-head balls are permuted across rows; with the head
+(0.5); a tight pack after valid removal (1.0), including after non-head balls are permuted across rows and when the
+pack was loose at the rise but tightened by the rack before it rose clear with hands kept off; a tight pack after a
+hand came within 10 mm of a ball after the rise (0.25); with the head
 ball 7 mm off, balls rolling or a pad touching a ball (0.75); the lift gate
 latched (0); the back row 1 mm off; and four orientation cases (a correct pack turned 2 degrees passes; turned 180
 or 10 degrees the pack's rear leaves the gather ring, so the score falls to collection credit; turned 4 degrees it
-stays inside and the orientation check stops it at 0.5). It runs nine whole rack-use/lift-gate sequences, checks the orientation
+stays inside and the orientation check stops it at 0.5). It runs nine whole rack-use/lift-gate sequences and five
+hands-off sequences, checks the orientation
 angles directly, the scatter's spacing and clearances, that the whole cluster and pack lie inside the ring, that the
 rack's waiting spot keeps 50 mm clearance even from a perfect pack, and replays both plans (the demo and control b)
 through the kinematics at 20 Hz, every joint inside the URDF limits, IK error under 0.5 mm. Expected output:
@@ -98,6 +131,7 @@ through the kinematics at 20 Hz, every joint inside the URDF limits, IK error un
    (orientation: rotated 10 deg, head ball on the spot: 14/15 inside the ring -> 0.233)
    (orientation: rotated 4 deg (apex inside 5, rear row outside 3): 15/15 inside the ring -> 0.500)
 lift gate: 9 sequences pass
+hands off: 5 sequences pass
    (pack turned +0 deg about the head ball: apex 0.00 deg, rear row 0.00 deg, oriented True)
    (pack turned +180 deg about the head ball: apex 180.00 deg, rear row 0.00 deg, oriented False)
    (pack turned +10 deg about the head ball: apex 10.00 deg, rear row 10.00 deg, oriented False)
@@ -105,7 +139,7 @@ lift gate: 9 sequences pass
 scatter: 15 balls, min spacing 87 mm, nearest 191 mm from the ring centre (ring r 165 + 20 mm clear zone)
 cluster built: head ball 15.0 mm past the spot, widest gap 2.00 mm; rack lowering pose back-bar x 0.1147 (apex-touching 0.1112 + 3.5 mm forward)
 rack at its waiting spot: 58.9 mm horizontally from the tight pack, lowest point 3.5 mm above the table, rack x 0.432..0.766
-scoring: 22 cases pass
+scoring: 23 cases pass
 demo left: 180.7 s plan, worst IK 0.099 mm / 0.018 deg
 demo right: 180.7 s plan, worst IK 0.099 mm / 0.018 deg
 control b (not the demo) left: 171.8 s plan, worst IK 0.099 mm / 0.018 deg
@@ -154,11 +188,18 @@ The demo is `demo()` in the task file, 180.7 s of plan in three phases:
    rack is then carried forward, past the pack, back to its waiting spot and set down there (58.9 mm from the head
    ball even with the head dead on the spot), and the hands withdraw.
 
-Recorded run: the final scorer first observed all fifteen balls enclosed at control step 2,614; its last valid down
-observation was at 3,032 and enclosure remained true through the 2 mm rise at 3,243. It observed the rack set down
-61 mm from the nearest ball at 3,528. At rise and set-down all 30 physical neighbour gaps were within 0.5 mm
-(widest 0.39 mm), the head ball was 4.4 mm from the spot, maximum ball motion during removal was 0.00 mm, the apex
-and actual rear row were each 0.01 degrees from target, and `task_score` was 1.0.
+Recorded run (scored live by the previous revision's scorer): it first observed all fifteen balls enclosed at
+control step 2,614; its last valid down observation was at 3,032 and enclosure remained true through the 2 mm rise
+at 3,243. It observed the rack set down 61 mm from the nearest ball at 3,528. At rise and set-down all 30 physical
+neighbour gaps were within 0.5 mm (widest 0.39 mm), the head ball was 4.4 mm from the spot, maximum ball motion
+during removal was 0.00 mm, the apex and actual rear row were each 0.01 degrees from target, and `task_score` was 1.0.
+
+Offline re-score under this revision's scorer: 1.0. The final-state terms are the logged values above. For the new
+hands-off rule, a debug run with `RK_DEBUG=1` sent bit-identical joint commands at all 3,555 steps and hit the same
+events (rise 3,243, set-down 3,528, same gaps); it logged the nearest gripper point to any ball every 10 steps: 11.9 mm
+at step 3,240 just before the rise (the pads hold the back bar, 14.8 mm behind the rear row), 13.0 mm at 3,250, and
+rising from there to over 100 mm after the set-down. So no gripper point came within the 10 mm limit after the rise.
+The live scorer also prints this minimum when the rack is set down.
 
 ## Real objects and sources
 
@@ -213,18 +254,24 @@ The table's long axis runs along x; the head of the table and its head string ar
 - Collection: a ball is collected once its centre is inside the gather ring. With n < 15 collected the score is
   0.25 n/15; collection is read from the final overhead photo against the chalk ring.
 - 0.25 all fifteen collected; 0.5 that, the valid rack-use sequence completed, the head (1) ball's centre within
-  10 mm of the spot, and the rack set down on the table (lowest point within 5 mm, under 5 mm/s) with every part at
-  least 50 mm horizontally from every ball; 0.75 that, both at the scored rise and finally, at least 24 of the 30
-  physically closest pairs are within 0.5 mm, the head is within 10 mm and the pack faces the head of the table;
-  1.0 that, at both times all 30 are within 0.5 mm and the head is within 5 mm, and finally all balls are still
-  (under 5 mm/s) and no gripper
-  point (both TCPs, all four pad tips and pad middles) within 30 mm of any ball. Held 1 s. All thresholds unchanged
-  from the previous revision.
+  10 mm of the spot, the hands-off rule kept, and the rack set down on the table (lowest point within 5 mm, under
+  5 mm/s) with every part at least 50 mm horizontally from every ball; 0.75 that, finally at least 24 of the 30
+  physically closest pairs are within 0.5 mm and the pack faces the head of the table; 1.0 that, finally all 30 are
+  within 0.5 mm, the head is within 5 mm, all balls are still (under 5 mm/s) and no gripper point (both TCPs, all
+  four pad tips and pad middles) is within 30 mm of any ball. Held 1 s. Every earlier threshold is unchanged; the
+  rise-time copies of the tightness, head and orientation checks were removed.
+- **Hands off after the rise.** From the valid 2 mm rise to the end of the trial, any gripper point within 10 mm of
+  any ball surface caps the score at 0.25. Packing needs contact, so this is what prevents tightening the pack after
+  the rack has been removed. A full retry (rack back flat around the pack) starts a new removal and clears it.
 - Real rig: continuous calibrated overhead video shows the rack enclosing every ball before the final rise, passing
-  above the pack, and set down clear. Compare the frame just before rise and the final frame; the trial fails (0) if
-  any ball centre moved more than 3 mm. The final frame also gives collection count, the head ball's distance from
-  the spot, the rack's horizontal clearance from the pack and both orientation angles. Only after both photos (the
-  gauge can nudge a ball) are the 30 touching pairs checked with a 0.5 mm feeler gauge: a leaf held vertical, square
+  above the pack, and set down clear. Compare the frame just before rise with the frames up to set-down; the trial
+  fails (0) if any ball centre moved more than 3 mm. The robot logs its joint angles at 20 Hz; forward kinematics of
+  the pads against the ball centres in the synchronized overhead video (both to a few mm) gives the hands-off
+  distance, and any visible contact after the rise also breaks it. The final frame gives collection count, the head
+  ball's distance from the spot, the rack's horizontal clearance from the pack and both orientation angles. Only
+  after the trial has ended and the final photo is taken (the gauge can nudge a ball) are the 30 touching pairs
+  checked with a 0.5 mm feeler gauge; because the hands were kept off since the rise, these final gaps are the gaps
+  the rack left: a leaf held vertical, square
   to the line between the two centres, is lowered into the gap midway between them. Two spheres are closest at their
   equators on that line, so the pair is within 0.5 mm unless the leaf passes the equators and reaches the cloth. The
   leaf must not push either ball.
@@ -263,8 +310,8 @@ the pull a y loop once pushed the rack sideways, so there it stays off).
 ## Dream-1 run
 
 Dream-1 ran the full 6,600-step limit on the submitted collection layout, did not collect a ball, and scored 0.0.
-The instruction and physical scene are unchanged in this scorer-only revision; the added ordered rack-use condition
-cannot increase that result.
+The instruction and physical scene are unchanged in this scorer-only revision; the scoring changes only affect the
+tiers above full collection, so they cannot change that result.
 
 ## Run limit, runtime and seeds
 
@@ -273,7 +320,8 @@ cannot increase that result.
   revision's 1,200 over its 41 s plan.
 - One fixed layout: `-E object_jitter=0`. Dream-1 is hosted and not seeded. The demo is deterministic on one host
   (repeat runs on the same machine give the same numbers); results can differ slightly across GPU hosts.
-- Exact final scorer: 1/1 full recording run scored 1.0; it stored all 3,556 frames and is the submitted demo.
+- Recorded run: 1/1 full recording run scored 1.0 live under the previous revision's scorer; it stored all 3,556
+  frames and is the submitted demo. Re-scored offline under this revision's scorer: 1.0 (see "Recorded run").
 - Background, the variant sweep (previous revision, unchanged tightening): six debug trials of demo variants on the
   same host ended with widest gaps of 0.25-0.80 mm when the rack was set down; the shipped tightening is the variant
   that reached 0.25 mm.
