@@ -296,6 +296,9 @@ HAND_CLEAR = 0.030  # m: every robot point this far from every ball surface
 # real rig's error (logged joints + forward kinematics against ball centres read to ~1 mm overhead); the demo's
 # pads, which hold the rack's back bar 14.8 mm behind the rear row, stay at least 12 mm away while lifting it.
 HANDS_OFF = 0.010
+# Rack stays away: once set down clear, every rack part must stay at least CLEAR (50 mm) horizontally from every ball
+# to the end of the trial, or the score is capped at 0.25.  Otherwise the rack could be picked up again and its bars
+# used to push a loose pack tight after the scored lift-off.
 STILL = 0.005  # m/s
 # Orientation (for 0.75 and 1.0). The table's long axis is x; the head of the table (head string) is +x, the way the
 # apex points in the setup. APEX_TOL: the direction from the pack's centroid (132 mm behind the head ball) to the head
@@ -446,7 +449,7 @@ def _mem() -> dict:
     if m is None:
         m = mk.MEMORY[M] = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "enclosed": None,
                             "cleared": None, "lift_ready": False, "rise_pairs": 0, "rise_head": float("inf"),
-                            "rise_oriented": False, "touched": None, "tiers": "", "label": ""}
+                            "rise_oriented": False, "touched": None, "rack_back": None, "tiers": "", "label": ""}
     return m
 
 
@@ -545,6 +548,16 @@ def _hands_step(m, hand_clear) -> bool:
     return False
 
 
+def _rack_back_step(m, clear) -> bool:
+    """After the clear set-down, the rack coming back within CLEAR of any ball is recorded (True on that step)."""
+    if m.get("rack_back") is not None or m["cleared"] is None or m["gate"] is not None:
+        return False
+    if clear < CLEAR:
+        m["rack_back"] = m["n"]
+        return True
+    return False
+
+
 def _on_step(objects) -> None:
     """Every control step: the lift gate (`_gate_step`), rack clearance, and a trace."""
     if mk._EP.get("env") is None:
@@ -566,6 +579,9 @@ def _on_step(objects) -> None:
     if _hands_step(m, hc):
         print(f"[rk] HANDS-OFF broken: a gripper point came {hc * 1000:.1f} mm from a ball after the rack rose "
               f"(limit {HANDS_OFF * 1000:.0f} mm), control step {m['n']}: score capped at collection credit", flush=True)
+    if _rack_back_step(m, clear):
+        print(f"[rk] RACK-BACK: after its clear set-down the rack came {clear * 1000:.0f} mm from a ball (limit "
+              f"{CLEAR * 1000:.0f} mm), control step {m['n']}: score capped at collection credit", flush=True)
     if ev == "enclosed":
         print(f"[rk] rack enclosed all fifteen balls and lift gate armed at control step {m['n']}", flush=True)
     elif ev == "rising":
@@ -698,8 +714,8 @@ def score(objects) -> float:
     """0 if any ball moved more than 3 mm sideways while the rack was rising (latched). Otherwise, collection first:
     with n of the 15 ball centres inside the gather ring, fewer than 15 collected scores 0.25 * n / 15. All fifteen
     collected: 0.25; 0.5 that, the scorer observed the rack enclosing all balls, rising around them and being set down
-    clear, no gripper point came within 10 mm of a ball from that rise on, and the head ball is within 10 mm of the
-    spot; 0.75 that, at least 24 of the 30 physically closest pairs are within 0.5 mm and the pack is oriented; 1.0
+    clear, no gripper point came within 10 mm of a ball from that rise on, the rack stayed 50 mm clear after its
+    set-down, and the head ball is within 10 mm of the spot; 0.75 that, at least 24 of the 30 physically closest pairs are within 0.5 mm and the pack is oriented; 1.0
     that, all 30 pass, the head is within 5 mm, every ball is still and both grippers are at least 30 mm clear.
     Tightness is read on the final state only: the hands-off rule is what rules out tightening after the rack has
     gone. Non-head identities do not select contacts or the actual rear row."""
@@ -711,7 +727,7 @@ def score(objects) -> float:
     if n < 15:
         return 0.25 * n / 15
     if (_head_off(c) > SPOT_25 or not rack_away(objects, c) or m["cleared"] is None
-            or m.get("touched") is not None):
+            or m.get("touched") is not None or m.get("rack_back") is not None):
         return 0.25
     g = pair_gaps(c)
     final_pairs = int((g <= GAP_OK).sum())
@@ -1035,6 +1051,8 @@ def self_test():
         "tight on the spot after a valid rack removal": (_states(tight, away), removed, [], 1.0),
         "tight after a valid removal, hands came within 10 mm of a ball after the rise (tightened by hand)": (
             _states(tight, away), {**removed, "touched": 25}, [], 0.25),
+        "rack set down clear, then brought back to push the pack tight and set down clear again": (
+            _states(tight, away), {**removed, "rack_back": 30}, [], 0.25),
         "loose at the rise, tight finally, hands kept off (rack-free tightening is impossible)": (
             _states(tight, away), removed_loose, [], 1.0),
         "legal non-head permutation after a valid rack removal": (_states(permuted, away), removed, [], 1.0),
@@ -1145,6 +1163,30 @@ def self_test():
             got = (m["touched"] is not None, m["cleared"] is not None)
             assert got == expected, (name, got, expected, m)
         print(f"hands off: {len(hseqs)} sequences pass", file=sys.stderr)
+        # Rack-stays-away sequences: (lowest point m, away, still, valid enclosure, rack clearance m); expected:
+        # (rack came back, removal completed).
+        rseqs = {
+            "set down 61 mm clear and left there (the demo)": (
+                [(0.0, 0, 1, 1, 0.0), (0.003, 0, 0, 1, 0.0), (0.05, 0, 0, 0, 0.02), (-0.003, 1, 1, 0, 0.061),
+                 (-0.003, 1, 1, 0, 0.062)], (False, True)),
+            "set down clear, picked up again and pushed against the pack, set down clear again": (
+                [(0.0, 0, 1, 1, 0.0), (0.003, 0, 0, 1, 0.0), (-0.003, 1, 1, 0, 0.061), (0.01, 0, 0, 0, 0.0),
+                 (-0.003, 1, 1, 0, 0.061)], (True, True)),
+            "rack passes over the pack before its set-down (carry-out, allowed)": (
+                [(0.0, 0, 1, 1, 0.0), (0.003, 0, 0, 1, 0.0), (0.08, 0, 0, 0, 0.0), (-0.003, 1, 1, 0, 0.061)],
+                (False, True)),
+        }
+        for name, (steps, expected) in rseqs.items():
+            m = {"n": 0, "ref": None, "gate": None, "max_move": 0.0, "enclosed": None, "cleared": None,
+                 "lift_ready": False, "rise_pairs": 0, "rise_head": float("inf"), "rise_oriented": False,
+                 "touched": None, "rack_back": None}
+            for low_s, away_s, still_s, enclosed_s, cl in steps:
+                m["n"] += 1
+                _gate_step(m, c0.copy(), low_s, bool(away_s), bool(still_s), bool(enclosed_s))
+                _rack_back_step(m, cl)
+            got = (m["rack_back"] is not None, m["cleared"] is not None)
+            assert got == expected, (name, got, expected, m)
+        print(f"rack stays away: {len(rseqs)} sequences pass", file=sys.stderr)
         for deg, want in ((0.0, (0.0, 0.0)), (180.0, (180.0, 0.0)), (10.0, (10.0, 10.0)), (-4.0, (4.0, 4.0))):
             o = orientation(np.array([[x, y, 0] for x, y in turned(deg)]))
             assert abs(o[0] - want[0]) < 1e-6 and abs(o[1] - want[1]) < 1e-6, (deg, o)
