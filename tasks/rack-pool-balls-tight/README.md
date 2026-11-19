@@ -40,9 +40,11 @@ We took the second option, in the scorer and its tests:
 - **Packing by hand before the rack goes down is allowed.** The scored skill is the enclosure, the lift-off without
   moving any ball over 3 mm, and the hands-off and rack-away rules after the rise; how the balls got tight while the
   rack was down is not prescribed.
-- **Measurable on the real rig without disturbing anything.** The 10 mm distance comes from the robot's logged joint
-  angles (forward kinematics of the pads) against ball centres in the calibrated overhead video, both good to a few
-  millimetres, and contact is also visible in that video. The feeler gauge is used only after the trial has ended.
+- **Measurable on the real rig without disturbing anything.** On a real table the rule is simply that no part of
+  either gripper touches a ball from the rise to the end of the trial, judged from the overhead video and a low side
+  video (a touch is visible, and it moves the ball). The sim cannot sense every finger surface, so it applies the
+  same rule conservatively as a 10 mm standoff of the sampled pad and TCP points. The feeler gauge is used only after
+  the trial has ended.
 - **The submitted demo is unchanged and still scores 1.0** (re-scored offline below). Every other threshold is
   unchanged.
 
@@ -272,16 +274,17 @@ The table's long axis runs along x; the head of the table and its head string ar
   within 0.5 mm, the head is within 5 mm, all balls are still (under 5 mm/s) and no gripper point (both TCPs, all
   four pad tips and pad middles) is within 30 mm of any ball. Held 1 s. Every earlier threshold is unchanged; the
   rise-time copies of the tightness, head and orientation checks were removed.
-- **Hands off after the rise.** From the valid 2 mm rise to the end of the trial, any gripper point within 10 mm of
-  any ball surface caps the score at 0.25. Packing needs contact, so this is what prevents tightening the pack after
+- **Hands off after the rise.** From the valid 2 mm rise to the end of the trial, any gripper touching a ball caps
+  the score at 0.25; the sim tests this as any sampled gripper point (TCPs, pad tips, pad middles) within 10 mm of
+  any ball surface. Packing needs contact, so this is what prevents tightening the pack after
   the rack has been removed. A full retry (rack back flat around the pack) starts a new removal and clears it.
 - **Rack stays away.** After its clear set-down, any rack part coming within 50 mm (horizontally) of any ball, before
   the trial ends, caps the score at 0.25.
 - Real rig: continuous calibrated overhead video shows the rack enclosing every ball before the final rise, passing
   above the pack, and set down clear. Compare the frame just before rise with the frames up to set-down; the trial
-  fails (0) if any ball centre moved more than 3 mm. The robot logs its joint angles at 20 Hz; forward kinematics of
-  the pads against the ball centres in the synchronized overhead video (both to a few mm) gives the hands-off
-  distance, and any visible contact after the rise also breaks it. The final frame gives collection count, the head
+  fails (0) if any ball centre moved more than 3 mm. Hands off: the overhead video and a low side video show whether
+  any gripper part touches a ball from the rise to the end; any touch caps the score at 0.25 (the sim's 10 mm
+  standoff of sampled pad points is its conservative stand-in for touch). The final frame gives collection count, the head
   ball's distance from the spot, the rack's horizontal clearance from the pack and both orientation angles. Only
   after the trial has ended and the final photo is taken (the gauge can nudge a ball) are the 30 touching pairs
   checked with a 0.5 mm feeler gauge; because the hands were kept off since the rise, these final gaps are the gaps
