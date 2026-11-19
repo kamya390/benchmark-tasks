@@ -7,6 +7,14 @@ self-test), `mechkit.py` (helper), `README.md`.
 
 ## Response to review
 
+**TK-36Y8Z5 — make the pre-seat failure observable.** The old gate inferred bolt rotation from a marker on the
+wrench head while the socket was unseated; that inference has been removed. The revised gate measures the marker
+itself: after the socket first overlaps the head by 1.0 mm (axis within 12 degrees and 3 mm), the wrench head may
+not rotate 1.0 degree before the full 2.8 mm / 8 degree / 1 mm seat has held for five frames. Synchronized side
+and top video show the partial/full engagement and the wrench-head marker independently of the bolt. The simulator
+uses those same wrench-head and socket poses. A half-seated control now holds the bolt fixed while rotating only
+the wrench head and must latch 0, so the test no longer relies on observing bolt motion through an unseated tool.
+
 **TK-VCSWCB — "Robot should be responsible for seating the torque wrench."** Done; the wrench no longer starts
 on the bolt. It stands socket-down on the bench 8.5 cm from the joint, its grip on a rest block, and the robot
 does the whole job: both hands lift the wrench off its rest (the left at the neck, the right on the grip),
@@ -17,10 +25,10 @@ inside an 8.2 mm 6-point socket cavity built from convex meshes, 0.16 mm clearan
 mouth chamfer, steel-on-steel friction 0.3 per part). The scorer gates on it: "seated" is measured from the two
 bodies' poses (at least 2.8 mm of the head's 3.5 mm engaged, within 8 degrees of square and 1 mm of coaxial,
 held 5 control steps), the click only counts if the socket is seated when the detent breaks over, and **any
-bolt movement of 1 degree or more while the socket is not seated is a latched 0** (half-seated torquing, camming
-the socket, dragging the head). A control run ("half" variant: the hands set the
+wrench-head rotation of 1 degree or more after partial engagement but before that seat latch is a latched 0**.
+A control run ("half" variant: the hands set the
 socket down 2.5 mm off the bolt's axis, cocked on the head and never seated, and the right pulls anyway)
-scores 0 with its clicks uncredited; the UNSEATED-TURN and LOOSENED latches themselves are asserted case by
+scores 0 with its clicks uncredited; the PRESEAT-TURN and LOOSENED latches themselves are asserted case by
 case in the offline self-test. Seating credit alone is 0.1.
 
 **TK-NP6A85 — scoring and specification** (kept from the first revision, unchanged here): full credit now
@@ -89,10 +97,11 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
   physically keys the head to the bolt, maximum head yaw is the bolt's maximum turn past snug. Zero the markers
   after snugging. This supplies the angle channel without buying a torque-angle transducer.
 - **Sim drive calibration** (sim only): the pipeline's realised angular stiffness is super-linear in its
-  command, so the detent was bracketed directly against the full-force joint. A command of 1.15 N*m/rad
-  clicked early at 2.64 degrees past snug; 1.35 did not click before the 110 % limit. The selected
-  `DETENT_DRIVE_CMD = 1.25` clicked at 4.22 degrees / 93 % of set torque in the validation run. The designed
-  detent stiffness, the 14 N grip load and the scored 1.5-degree physical breakover threshold are unchanged.
+  command, so the detent was bracketed directly against the full-force joint on the current Box 1 PhysX build.
+  Commands up to 1.20 N*m/rad broke over early, while 1.21 N*m/rad did not break over before the 110 % limit.
+  The selected `DETENT_DRIVE_CMD = 1.205` produced one seated click and a 4.22-degree / 93 % peak in the stored-
+  frame validation run. The designed detent stiffness, 14 N grip load and scored 1.5-degree physical breakover
+  threshold are unchanged; this command only compensates for the backend's realised stiffness mapping.
 - **Snug (the zero for every angle):** run the bolt down by hand, then tighten until the digital adapter reads
   1.5 N*m (half the marked torque). Align the wrench-head and busbar camera markers at zero. The sim starts here:
   the bolt turns on at half the set torque.
@@ -106,13 +115,15 @@ The simulated joint is this real one, at full size (sizes as in `setup`):
     straight line of 3.27 deg per N*m above snug). On that line 3.3 N*m (110 %) is at 5.9 deg. A class 8.8 M5 starts
     to yield under tightening at about 7 kN of preload (640 MPa on 14.2 mm2, less the share taken by thread torsion),
     about 6.9 N*m or 230 % of the set torque, which the same line puts at 17.7 deg, as in the sim.
-- **Angle in a real trial:** track the maximum relative yaw of the wrench-head and busbar markers in the existing
-  top-camera video. The camera angle is an independent cross-check on the adapter's peak torque and is also used
-  for the backed-off and unseated-turn gates.
-- **Seating in a real trial:** "seated" and "bolt moved while unseated" are geometry (engagement depth, squareness,
-  coaxiality, head angle), read in the sim from the two bodies' poses; on a real rig the same gates come from the
-  video (socket rim flush on the washer, no visible ride-up) and the camera-marker track: any driven rotation before
-  the socket is flush is the unseated-turn fail.
+- **Angle in a real trial:** track relative yaw of the wrench-head and busbar markers in synchronized top-camera
+  video. Before seating this is explicitly wrench motion, not bolt motion. After seating, the keyed hex makes the
+  maximum head yaw the bolt's turn past snug; it cross-checks peak torque and measures back-off.
+- **Seating before tightening in a real trial:** synchronized side video measures engagement and tilt while the top
+  view measures coaxial offset and marker yaw. Start the gate when at least 1.0 mm of the head is inside the socket,
+  with tilt at most 12 degrees and coaxial error at most 3 mm. From that frame until the full seat (at least 2.8 mm,
+  at most 8 degrees and 1 mm) has held for five 20 Hz frames, 1.0 degree or more of wrench-head marker rotation is
+  the latched PRESEAT-TURN fail. Thus the check verifies seating before tightening without claiming that an
+  unseated wrench marker reveals bolt motion.
 - **Peak torque in a real trial:** the digital adapter stays in the drive line for every trial, and its peak-hold
   reading is the trial's peak torque P: 2.7-3.3 N*m with the click is in tolerance (1.0); over 3.3 N*m, as when the
   hand pulls on through the click, scores 0. The video shows the click (the handle's kink) and supplies the angle.
@@ -183,7 +194,8 @@ Set `VARIANT` at the top of the task file:
 
 - `"half"`: the socket is set down 2.5 mm off the bolt's axis, cocked on the head and never seated (coax
   over the 1 mm gate), and the right pulls anyway: no seating credit, any click uncredited, score 0.
-  The bolt is dragged or the socket cams out: the UNSEATED-TURN latch fires and the trial scores 0.
+  Once physical overlap begins, its wrench-head marker turns before the full seat latch: PRESEAT-TURN fires and
+  the trial scores 0. The offline negative control holds the bolt fixed while turning only the half-seated wrench.
 - `"through"`: the naive pull straight on through the click to 45 deg: OVER-TORQUED latches, score 0.
 - `"short"`: stops before the click: under-torqued, at most 0.25.
 - `"sweep"`: a sim-calibration probe, not an ablation: a slow pull while the breakover drive steps

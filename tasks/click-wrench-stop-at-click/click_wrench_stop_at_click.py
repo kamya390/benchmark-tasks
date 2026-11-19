@@ -15,8 +15,9 @@ The bolt: its turning torque rises with every degree past snug (the joint clampi
 left (thread friction). At the set torque it is about 5 deg past snug. Pulled on to twice the set torque, about
 15 deg past snug, it yields (the stud stretches): it then turns on under a steady pull and is ruined. Backing it
 off undoes the torque. The socket drives the bolt only through the physical hex contact: it must be seated (at
-least 2.8 mm of the head's 3.5 mm engaged, in line) to transmit the torque cleanly; a half-seated socket cams
-out or rounds the head, and any bolt turn without the socket seated scores 0 (latched).
+least 2.8 mm of the head's 3.5 mm engaged, in line) to transmit the torque cleanly. Once the socket has entered
+the head by 1 mm, rotating the visible wrench-head marker by 1 deg before the full seat holds for five frames
+scores 0 (latched): the tool must be seated before tightening motion begins.
 
 The job: seat the wrench on the bolt, tighten the bolt to its torque, then let go. Nothing about the bolt says
 when to stop; the wrench does, once, and pulling on is still possible. Full credit needs the click with the
@@ -51,7 +52,7 @@ from yam_arena.task_file import TABLE_TOP, Box  # noqa: E402
 
 SCENE = "station"
 TOP = TABLE_TOP[SCENE]
-DEBUG = False  # sim only: print the wrench's events and a readout every control step while it is loaded
+DEBUG = False
 VARIANT = "demo"  # sim runs: "demo"; "half" (the socket set down cocked, off the axis, never seated);
 # "through" (pulls on to 45 deg); "short" (stops at 6 deg)
 
@@ -104,7 +105,14 @@ ENG_MAX = HEAD_K  # 3.5 mm: rim on the washer, 2.5 mm of cavity wall above the h
 TILT_MAX = 8.0  # deg, socket axis off vertical
 COAX_MAX = 0.001  # m, socket axis off the bolt axis at the head
 SEAT_STEPS = 5  # seated held this many consecutive control steps to latch SEATED
-UNSEAT_TURN_DEG = 1.0  # the bolt turned this far while the socket was not seated: latched fail
+# Observable seat-before-load gate.  Once the socket has actually entered the head, the wrench-head marker must
+# stay within this angle until the full seating geometry has held for SEAT_STEPS.  This measures wrench motion,
+# not bolt motion: the same quantity is visible against the fixed busbar marker in a real trial even when the
+# socket is not yet keyed to the bolt.
+PRESEAT_ENG = 0.0010  # start the gate after 1 mm engagement (past the 0.8 mm mouth chamfer)
+PRESEAT_TILT_MAX = 12.0  # broad contact envelope; full seating still requires TILT_MAX
+PRESEAT_COAX_MAX = 0.003  # m; broad contact envelope catches the 2.5 mm half-seated control
+PRESEAT_TURN_DEG = 1.0  # any head rotation this large before the five-step seat latch is a latched fail
 # -- the mechanism (full force at the grip for the real 3 N*m joint) ---------------------------------------------
 F0, F_CLICK, F_OVER = 7.0, 14.0, 32.2  # N at grip: bolt starts to turn; wrench set torque; joint yields
 T0, T_CLICK, T_OVER = F0 * R_GRIP, F_CLICK * R_GRIP, F_OVER * R_GRIP  # N*m
@@ -116,7 +124,7 @@ K_RETURN = 0.3  # N*m/rad, the reset spring once it has broken over
 # 0.59 N*m/rad; scaling that command by seven made the 14 N detent about eight times too stiff and prevented a
 # click.  This command is calibrated directly against the restored 14 N joint; K_DETENT and the scored 1.5-deg
 # physical breakover threshold remain unchanged.
-DETENT_DRIVE_CMD = 1.25  # N*m/rad; clicks at 4.22 deg / 93 % in the validated full-force demo
+DETENT_DRIVE_CMD = 1.205  # N*m/rad; validated on the current Box 1 PhysX build (93% peak, one click)
 BREAKOVER_DRIVE = K_DETENT / DETENT_DRIVE_CMD
 SWEEP_CMDS = (0.20, 0.481, 0.80, 1.30)  # VARIANT "sweep": commanded breakover stiffness per 6 s window of a
 # slow pull (soft to stiff as the torque rises), to characterise the backend's super-linear stiffness mapping
@@ -272,7 +280,7 @@ def _mem() -> dict:
         m = mk.MEMORY[M] = {"n": 0, "init": False, "armed": True, "clicks": 0, "t_click": None, "peak": 0.0,
                             "over": False, "yielded": False, "loose": False, "still": True, "prev": None,
                             "k_bolt": None, "seat_steps": 0, "seated": False, "seated_now": False,
-                            "click_seated": False, "th0_unseat": None, "unseated_turn": False}
+                            "click_seated": False, "preseat_yaw0": None, "preseat_turn": False}
     return m
 
 
@@ -284,6 +292,16 @@ def bolt_deg(objects) -> float:
 def _cw_deg(r) -> float:
     """Clockwise turn (deg, seen from above) of a rotation matrix about the vertical."""
     return -math.degrees(math.atan2(float(r[1, 0]), float(r[0, 0])))
+
+
+def wrench_yaw_deg(objects) -> float:
+    """Clockwise yaw of the visible wrench-head marker against the fixed busbar/camera frame."""
+    return _cw_deg(kit._pose_T(objects, "wrench_head")[:3, :3])
+
+
+def _angle_delta_deg(a: float, b: float) -> float:
+    """Shortest signed angular difference, robust across the +/-180 degree wrap."""
+    return (a - b + 180.0) % 360.0 - 180.0
 
 
 def break_deg(objects) -> float:
@@ -376,24 +394,33 @@ def _rules(objects) -> None:
             _set_drive("breakover", target=0.0, stiffness=cmd)
             _say(f"SWEEP window {w_i}: commanded breakover stiffness {cmd:.3f} N*m/rad")
     th, d = bolt_deg(objects), break_deg(objects)
+    head_yaw = wrench_yaw_deg(objects)
     eng, tilt, coax = seat_geom(objects)
     s_now = bool(eng >= ENG_SEAT and tilt <= TILT_MAX and coax <= COAX_MAX)
     m["seated_now"] = s_now
+    # Begin at actual socket/head overlap, not during the free-space carry.  From first overlap until the full
+    # seat has held for five frames, the independently visible wrench-head marker may not be turned.  Unlike the
+    # old bolt-angle gate, this remains observable while the socket is only partly engaged.
+    contact_envelope = bool(eng >= PRESEAT_ENG and tilt <= PRESEAT_TILT_MAX and coax <= PRESEAT_COAX_MAX)
+    if not m["seated"]:
+        if m["preseat_yaw0"] is None and contact_envelope:
+            m["preseat_yaw0"] = head_yaw
+        if (m["preseat_yaw0"] is not None
+                and abs(_angle_delta_deg(head_yaw, m["preseat_yaw0"])) >= PRESEAT_TURN_DEG
+                and not m["preseat_turn"]):
+            m["preseat_turn"] = True
+            _say(f"PRESEAT-TURN: wrench head moved "
+                 f"{_angle_delta_deg(head_yaw, m['preseat_yaw0']):+.2f} deg before seating held "
+                 f"{SEAT_STEPS} steps (engagement {eng * 1000:.2f} mm, tilt {tilt:.2f} deg, "
+                 f"coax {coax * 1000:.2f} mm)")
     if s_now:
         m["seat_steps"] += 1
-        m["th0_unseat"] = None
         if m["seat_steps"] >= SEAT_STEPS and not m["seated"]:
             m["seated"] = True
             _say(f"SEATED: engagement {eng * 1000:.2f} mm, tilt {tilt:.2f} deg, coax {coax * 1000:.2f} mm, "
                  f"held {SEAT_STEPS} steps")
     else:
         m["seat_steps"] = 0
-        if m["th0_unseat"] is None:
-            m["th0_unseat"] = th
-        elif abs(th - m["th0_unseat"]) >= UNSEAT_TURN_DEG and not m["unseated_turn"]:
-            m["unseated_turn"] = True
-            _say(f"UNSEATED-TURN: bolt moved {th - m['th0_unseat']:+.2f} deg with the socket not seated "
-                 f"(engagement {eng * 1000:.2f} mm, tilt {tilt:.2f} deg, coax {coax * 1000:.2f} mm)")
     # the bolt: thread friction rising with the turn (the kit's friction hinge, its limit set from the angle)
     k = bolt_torque(th) / _STICK
     if m["k_bolt"] is None or abs(k - m["k_bolt"]) > 0.002 * k:
@@ -441,7 +468,8 @@ def _rules(objects) -> None:
             _say(f"R tcp ({t[0]:.4f},{t[1]:.4f},{t[2] - ZH:.4f}) lead {lead * 1000:.1f} mm; bolt {th:.2f} deg, "
                  f"handle {d:.2f} deg, eng {eng * 1000:.1f} mm tilt {tilt:.1f} coax {coax * 1000:.1f} mm "
                  f"seated {s_now}/{m['seated']}, armed {m['armed']}, clicks {m['clicks']}, peak {m['peak']:.2f} "
-                 f"({peak_pct(m['peak']):.0f} %), over {m['over']} loose {m['loose']} unseat {m['unseated_turn']} "
+                 f"({peak_pct(m['peak']):.0f} %), over {m['over']} loose {m['loose']} "
+                 f"preseat-turn {m['preseat_turn']} "
                  f"still {m['still']}")
 
 
@@ -457,8 +485,8 @@ def torqued(objects) -> bool:
 
 
 def score(objects) -> float:
-    """0 (latched) if the bolt ever moved 1 deg or more while the socket was not seated (engagement under 2.8 mm,
-    tilt over 8 deg or 1 mm off axis), if the peak torque went over 110 % of the set torque (the bolt more than
+    """0 (latched) if the wrench head ever moved 1 deg or more after partial engagement but before the full seat
+    held for five steps, if the peak torque went over 110 % of the set torque (the bolt more than
     5.9 deg past snug), or if the bolt was turned back more than 3 deg from its tightest. Otherwise 1.0 for
     torqued (clicked while seated, peak 90-110 %, the bolt still within 1 deg of its tightest), else 0.25 for
     turned on at least 1.5 deg (under-torqued), else 0.1 for the socket seated (5 steps) but the bolt not turned.
@@ -467,7 +495,7 @@ def score(objects) -> float:
         _mem()["last"] = objects  # per-step rule has already run
         _rules(objects)
     m = _mem()
-    if m["over"] or m["loose"] or m["unseated_turn"] or bolt_deg(objects) <= -BACKOFF_DEG:
+    if m["over"] or m["loose"] or m["preseat_turn"] or bolt_deg(objects) <= -BACKOFF_DEG:
         return 0.0
     th = bolt_deg(objects)
     base = 1.0 if torqued(objects) else (0.25 if th >= TURNED_DEG else (0.1 if m["seated"] else 0.0))
@@ -483,7 +511,7 @@ def success(objects) -> bool:
 def distance(objects) -> float:
     """3 on a latched fail; else the seating, the click and the turn still missing."""
     m = _mem()
-    if m["over"] or m["loose"] or m["unseated_turn"] or bolt_deg(objects) <= -BACKOFF_DEG:
+    if m["over"] or m["loose"] or m["preseat_turn"] or bolt_deg(objects) <= -BACKOFF_DEG:
         return 3.0
     return float((not m["seated"]) + (m["clicks"] == 0)
                  + max(0.0, TOL_LO_DEG - bolt_deg(objects)) / TOL_LO_DEG)
@@ -669,10 +697,11 @@ def self_test():
     global _TEST_TCPS
     on = (*_grip_xy(0.0), ZH - PAD_DOWN + TIP)  # a gripper still round the grip
 
-    def state(th, d, eng=0.0034, tilt=0.0, coax=0.0):
+    def state(th, d, eng=0.0034, tilt=0.0, coax=0.0, head_deg=None):
         """The wrench posed on (or over) the bolt with ``eng`` engagement, turned with the bolt to ``th``."""
         rim_z = ZLUG + HEAD_TOP - eng
-        r = mk.axis_angle((1, 0, 0), math.radians(tilt)) @ mk.axis_angle((0, 0, -1), math.radians(th))
+        head_deg = th if head_deg is None else head_deg
+        r = mk.axis_angle((1, 0, 0), math.radians(tilt)) @ mk.axis_angle((0, 0, -1), math.radians(head_deg))
         pos = (BX + coax, BY, rim_z - SOCK_BOT)
         return kit.fake_states(q={"bolt": math.radians(th), "breakover": math.radians(d)},
                                moved={"wrench_head": (np.array(pos), mk.mat_to_quat(r))})
@@ -714,12 +743,12 @@ def self_test():
         "the same, the open hand 5 cm above the grip": (good, [(on[0], on[1], on[2] + 0.05)], 0.5),
         "the same, the grip still swinging back at the end": (frames(pull(0.0, s) + click(s + 0.1)
                                                                      + [(s + 0.1, 3.0)]), [], 0.5),
-        "half-seated (1.5 mm): the pull drags the bolt 2 deg": (APPROACH[:4] + [("seat", t, 0.5, 0.0015)
-                                                                                for t in lin(0.0, 2.0)], [], 0.0),
-        "socket 5 mm off axis, pushed and twisted 1.5 deg": (APPROACH[:3] + [("miss", t, 0.0, 0.003, 0.0, 0.005)
-                                                                             for t in lin(0.0, 1.5)], [], 0.0),
-        "seated but tilted 10 deg, bolt dragged 1.5 deg": (APPROACH[:3] + [("tilt", t, 0.0, 0.0030, 10.0)
-                                                                           for t in lin(0.0, 1.5)], [], 0.0),
+        "half-seated (1.5 mm): wrench turns 2 deg before the bolt moves": (
+            APPROACH[:4] + [("seat", 0.0, 0.5, 0.0015, 0.0, 0.0, t) for t in lin(0.0, 2.0)], [], 0.0),
+        "socket 1.5 mm off axis, pushed and twisted 1.5 deg": (
+            APPROACH[:3] + [("miss", 0.0, 0.0, 0.003, 0.0, 0.0015, t) for t in lin(0.0, 1.5)], [], 0.0),
+        "socket tilted 10 deg, wrench twisted 1.5 deg before seating": (
+            APPROACH[:3] + [("tilt", 0.0, 0.0, 0.0030, 10.0, 0.0, t) for t in lin(0.0, 1.5)], [], 0.0),
         "stopped short: bolt 3.5 deg on, no click (under-torqued)": (frames(pull(0.0, 3.5)
                                                                             + let_go(3.5, load(3.5))), [], 0.25),
         "pulled on through the click to 20 deg (yielded)": (frames(pull(0.0, s) + click(s + 0.1)
@@ -769,7 +798,8 @@ def self_test():
             return bench(th, d)
         tilt = f[4] if len(f) > 4 else 0.0
         coax = f[5] if len(f) > 5 else 0.0
-        return state(th, d, eng=eng, tilt=tilt, coax=coax)
+        head_deg = f[6] if len(f) > 6 else None
+        return state(th, d, eng=eng, tilt=tilt, coax=coax, head_deg=head_deg)
 
     def norm(fr):  # frames may be (tag, th, d, eng[, tilt[, coax]]) or plain torque frames (th, d)
         return [f if isinstance(f[0], str) else ("seat", f[0], f[1], 0.0034) for f in fr]
