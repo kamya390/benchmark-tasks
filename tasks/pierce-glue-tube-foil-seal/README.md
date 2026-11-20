@@ -39,6 +39,70 @@ re-gripped from above and tilted pin-down, the pin is driven through the foil an
 its side on the bench with the gripper clear. The foil's 3 N break force, the thread release and the squeeze margin
 are uncalibrated estimates; a real tube should be used to measure them.
 
+## Real trial
+
+The simulator's glue-style tube is reproduced with a cheap, sealed, inert stand-in. No glue is used on the rig.
+
+- **Tube (one fresh per trial):** an empty collapsible aluminium squeeze tube with a blind nozzle (closed by an
+  aluminium membrane) and its own screw cap carrying a piercing pin. These are sold in packs as "empty aluminium
+  toothpaste / paint tubes with needle cap", open at the tail for filling: for example the Natural Pigments
+  fez-cap collapsible tubes (<https://www.naturalpigments.com/collapsible-aluminum-tube.html>), multi-packs of
+  5 ml to 100 ml needle-cap tubes on eBay (e.g. <https://www.ebay.com/itm/225493165655>, 200 x 5 ml for about
+  US$42), and 30 ml five-packs (ELYSAID). Cost is well under US$1 per trial. Sizes (body diameter, cap size,
+  thread, membrane tear force) vary by seller and are UNVERIFIED; measure the tube you buy (see below).
+- **Inert fill:** 10 ml of plain petroleum jelly, injected through the open tail with a syringe; the tail is folded
+  three times with flat pliers. It does not cure, is not an adhesive and wipes off with a dry paper towel. The fill
+  makes the tube behave like a full one; it is never exposed unless the seal is pierced.
+- **Fresh seal:** every tube arrives with its own intact membrane, so a new seal is just a new tube. Preparing one
+  takes about 3 minutes and can be done in a batch before the session.
+- **Reference marks (paint marker):** a straight line across the cap skirt and the shoulder, so turns can be
+  counted; a ring around the pin 2 mm from its tip.
+- **Cameras:** two phones on fixed stands, one in front and one at the side, both level with the nozzle, with a
+  1 mm grid card behind the nozzle in each view. Lighting and positions stay fixed for the session.
+
+How each scored item is checked on a real trial (same thresholds as `scoring.py`):
+
+| Simulator check | Real-trial check |
+|---|---|
+| 1.5 turns counter-clockwise (530+ degrees) | the paint line on the cap passes the shoulder line at least 1.5 times in the video |
+| cap lifted 25 mm | cap rim 25 mm above the neck on the grid card |
+| pin within 5 degrees of vertical, tip within 1.5 mm of the nozzle axis | in both camera views, the pin lies along the grid's vertical line through the nozzle, within 1.5 mm (1.5 grid squares) and 5 degrees |
+| tip 2 mm past the seal face, seal broken | the 2 mm pin ring reaches the nozzle lip in the side view, and a post-trial loupe photo (10x, from above) shows a hole in the membrane inside the nozzle bore (an outcome check that does not depend on reading the grid) |
+| pin driven at more than 10 degrees tilt (fail) | pin more than 10 degrees off the vertical grid line while touching the nozzle |
+| seal breached without the pin (fail) | a hole in the membrane but no frame showing the pin entering it |
+| gripper within 5 mm of the soft body (fail) | any gripper contact with the tube body in either view, or a new dent in the aluminium body in before/after photos from the fixed stands |
+| withdrawn 30 mm, both TCPs 4 cm clear, 1 s still | read from the grid card and the video timestamps |
+| cap dropped off the bench (fail) | cap on the floor |
+
+**Shared-rig hygiene:** the grippers only hold the cap. The fill is sealed inside the tube until the pin opens it,
+and a squeeze already scores 0. After each trial, wipe the pads with a dry paper towel and check them in the camera
+view before the next trial.
+
+**Sim-to-real differences (not re-run):** the simulator's body (42 x 14 x 80 mm flat block), neck (14 mm, 1.5 mm
+pitch), cap (18 x 22 mm, 3 mm pin), 9 mm foil disc and 3 N tear force are estimates for a large gel-glue tube. They
+have not been matched to a purchased needle-cap tube. Matching them would mean changing `BODY_HALF`, `BODY_Z`,
+`NECK_R`, `PITCH`, the cap and foil shapes and the foil break force in the task file, and re-recording the runs. The
+scored thresholds would stay as they are, except that the 1.5-turn release must be checked against the real
+thread.
+
+## Response to review
+
+**TK-M6HR4B (2026-11-20), not accepted.** The feedback and what changed:
+
+- *Scoring:* "The specified 2 mm penetration and 1.5 mm pin-to-axis checks are hidden inside the nozzle and lack a
+  practical real-trial measurement method." Each scored item now has a visible real-trial check (table above):
+  a 2 mm paint ring on the pin, two fixed camera views against a 1 mm grid card, and a post-trial membrane photo.
+- *Clarity and reproducibility:* "The unspecified glue-style tube and replacement foil lack a repeatable source or
+  preparation procedure for the threaded cap, seal, and piercing force." The real station now uses commercially
+  sold membrane-sealed aluminium tubes with their own needle caps, one new tube per trial, prepared in about 3
+  minutes.
+- *Feasibility:* "The described glue can contaminate the shared grippers, and no inert substitute or pad protection
+  is specified." There is no glue: the fill is petroleum jelly sealed inside the tube, and pads are wiped and
+  checked between trials.
+
+`setup`, `scoring`, `reset_notes` and `fidelity` in `task.json` carry the same protocol. The instruction, simulation,
+scorer and recorded media are unchanged.
+
 ## Assets and licence
 
 All geometry is procedural primitives built in this folder (`bodykit.py` is our own helper code). No third-party meshes, textures, scans or other assets are used.
