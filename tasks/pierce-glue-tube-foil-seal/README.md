@@ -51,14 +51,15 @@ The simulator's glue-style tube is reproduced with a cheap, sealed, inert stand-
   US$42), and 30 ml five-packs (ELYSAID). Use the 30 ml size. Cost is well under US$1 per trial. Sizes (body diameter, cap size,
   thread, membrane tear force) vary by seller, so every pack is checked once before use (pack check below).
 - **Pack check (once per pack, about 10 minutes, on one spare tube that is then discarded):**
-  1. Measure with calipers: cap outer diameter and height, pin length, neck diameter, body width, and the
+  1. Measure with calipers: cap outer diameter and height, pin length, neck diameter, body diameter and length
+     (typically about 22-28 mm and 100-130 mm for 30 ml), and the
      membrane's depth below the nozzle tip (depth rod).
   2. Unscrew the cap and count the turns until it comes free, using the paint line.
   3. Stand the spare tube nozzle-up on a kitchen scale (1 g resolution) and tare it. Push the cap's pin slowly and
      straight down into the membrane by hand, filming the display with a phone. The peak reading at the moment the
      membrane gives is the piercing force (grams x 0.0098 = N).
   4. Use the pack only if the piercing force is 2 to 5 N (about 200 to 510 g), which brackets the simulator's 3 N.
-     The cap must also need 1.5 to 2.5 turns to come free, be 12 to 22 mm across, and have a pin longer than 2.5 mm.
+     The cap must also need 1.5 to 2.5 turns to come free, be 12 to 22 mm across, and have a pin longer than 2 mm plus the membrane depth.
      Otherwise use another pack or seller.
   5. Record all values with the pack's lot or order number in the trial log.
 - **Dry fill:** about 25 ml of dry uncooked rice poured into the open tail, which is then folded three times with flat
@@ -72,8 +73,8 @@ The simulator's glue-style tube is reproduced with a cheap, sealed, inert stand-
   counted; a ring around the pin at 2 mm plus the measured membrane depth from its tip, so the ring is level with
   the nozzle tip exactly when the pin tip is 2 mm past the membrane.
 - **Cameras:** two phones on fixed stands 40 cm from the nozzle, one in front and one at the side, both level with
-  the nozzle tip, each with a 1 mm grid card standing 20 mm behind the nozzle axis. At these distances parallax
-  scales the grid by about 5%, under 0.1 mm at the 1.5 mm threshold. Lighting and positions stay fixed for the
+  the nozzle tip, each with a 1 mm grid card standing 60 mm behind the nozzle axis, outside the gripper sweep. At these
+  distances parallax scales the grid by about 13%, under 0.2 mm at the 1.5 mm threshold. Lighting and positions stay fixed for the
   session.
 
 How each scored item is checked on a real trial (same thresholds as `scoring.py`):
