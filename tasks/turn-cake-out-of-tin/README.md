@@ -43,13 +43,22 @@ not hold, guide or turn anything.
 | Score | Condition |
 |---|---|
 | 0.25 | plate face-down on the upright tin's rim (within 5 mm), centre within 2 cm of the tin's axis, cake still in the tin |
-| 0.5 | then: pair turned over and at rest, plate underneath, level, face-up and set down (underside at most 15 cm above the bench), tin upside-down over the cake, cake on the plate |
+| 0.5 | plate and tin stayed together throughout inversion; pair now at rest, plate underneath, level, face-up and supported on the bench or a stand, tin upside-down over the cake, cake resting on the plate |
 | 0.75 | at the end: tin clear of the cake (2 cm above or 2 cm apart) and the cake resting on the set-down plate |
 | 1.0 | also: cake centre within 2 cm of the plate centre, cake flat within 5 degrees with its parchment base up, tin resting on the free stand with its centre within 3 cm of the stand's (either way up; upside-down it sits over the stand like a cap), every finger 3 cm from tin, plate and cake, all still for 1 s |
 | 0 | the cake ever touches the bench top, or anything falls off the bench |
 
-The first two rows are latched milestones; the rest is read from the final state. `scoring.py` holds all of it and
-`test_scoring.py` checks every tier, every full-score condition and both failure latches.
+The first two rows are latched milestones. The inversion milestone requires an observed continuous turn
+from the covered upright tin through a sideways orientation. At every 20 Hz frame the plate's eating face
+must stay within 5 mm of the tin-rim plane, its centre within 20 mm of the tin axis, and the normals
+opposite within 10 degrees. Axis changes above 15 degrees between frames invalidate that attempt.
+A broken attempt retains 0.25 and can retry by covering the upright tin again.
+
+At the 0.5 milestone, the cake-to-plate surface gap must be -2 to +5 mm, its axis parallel within 10 degrees,
+and its footprint inside the plate. The plate's underside must be within -2 to +5 mm of the bench or a
+140 mm stand top, with the whole 55 mm radius stand top beneath the plate's footprint. These tests reject
+an unsupported pair. The remaining tiers use the final state. `scoring.py` holds the tracker and ladder.
+`test_scoring.py` checks every tier, every full-score condition, both failure latches and continuous-turn shortcuts.
 
 ## Fidelity
 
@@ -62,14 +71,39 @@ past about 128 degrees from upright). Until then the cake cannot move in the tin
 
 ## Validation
 
-The scripted `demo()` reaches 1.0 in YAM Arena (Isaac Sim, 20 Hz, seed 0, no jitter) in about 1,330 steps. Both
-grippers stay horizontal and face each other the whole time: they pinch the plate's edge on both sides and roll it
-face-down onto the tin; clamp plate and tin with one finger over the plate and one under the tin, carry the pair
-between the stands and roll both wrists half a turn in step (the cake lets go of the tin about two-thirds of the way
-round and settles on the plate); set the pair down; then press two fingertips on each side of the tin, lift it off
-the cake and lower it over the free stand. The squeeze uses the arms' own compliance (about 40 mm of commanded
-overlap at the far stand); the finger friction is the simulator default. In the demo the cake ends 7 mm from the
-plate's centre.
+A complete replay from the standard start scored **1.0 under the revised scorer** at step 1320 of the 2400-step
+limit (66 seconds, Isaac Sim, 20 Hz, no object jitter). Its log ends with `task_score: 1` and `DONE rc=0`. The command requested CLI seed 0;
+the Isaac environment log reports seed 42.
+
+| Replay milestone | First logged step |
+|---|---|
+| Plate placed on upright tin, 0.25 | 440 |
+| Continuous inversion and supported set-down, 0.5 | 880 |
+| Tin clear, cake on supported plate, 0.75 | 1220 |
+| Full released and settled result, 1.0 | 1320 |
+
+The existing demo video shows the original recorded trial, which scored 1.0 under the original scorer.
+The revised-scorer replay used the same scene geometry, mass, scripted motion and cake-release rule.
+It stored no frames. The video supplies visual evidence of the motion, while the replay log establishes
+that the complete motion also passes the revised sequence and support checks. These are separate trials.
+The replay's cake finished 6.9 mm from the plate centre.
+
+The existing Dream-1 video scored 0.0 under the original scorer and shows the scene untouched. An untouched
+scene also scores 0.0 under the revised scorer, covered by the untouched-scene regression test. Dream-1
+was not rerun for this revision. The original recording command gave Dream-1 the instruction
+"Turn the cake out of its tin onto the plate." This matches `task.json`, `INSTRUCTION` and the run command.
+The scripted validation replay received the equivalent expanded wording "Lay the plate face-down on the
+tin, turn the two over together, set them down and lift the tin off, leaving the cake on the plate."
+The scripted policy follows `demo()` independently of instruction wording.
+
+Both grippers pinch the plate's edge, roll it face-down onto the tin, clamp the pair, turn it over together,
+set it down and squeeze the tin's sides to lift it off. The squeeze uses the arms' compliance, with about
+40 mm of commanded overlap at the far stand. Finger friction is the simulator default. Physical transfer
+of this grip force has not been measured.
+
+`CAKE_STAGE=clamp` and `CAKE_STAGE=lift` are debugging starts. The lift start seeds the earlier milestones
+to isolate tin removal. Both recorded media and the full validation replay use the standard start with
+`CAKE_STAGE` unset. Only that start supplies full-task evidence.
 
 ## Real trial and reset
 
@@ -81,8 +115,19 @@ plate's centre.
   until it does.
 - Reset: cake back in the tin parchment-side down and pressed onto the putty; tin on the far stand; plate face-up on
   the near stand; both centred on pencil rings drawn on the stand tops. Nothing is consumed.
-- Checks: ruler for the rim-to-rim gaps on four sides (centre offsets), a phone inclinometer app on the plate and the
-  cake (level, flat), two fixed phone videos (front and side) for the milestones, the bench-touch rule and stillness.
+- Record fixed front and side phone videos, preferably at 60 fps. Put millimetre scale cards next to the rim
+  and a printed 10-degree angle guide behind the rotation plane. Keep the supports and both plate edges visible.
+  Inspect the footage frame by frame to verify that the plate stays against the tin while both turn together
+  through the sideways pose. A gap above 5 mm, centre offset above 20 mm or relative-axis error above 10 degrees
+  breaks that attempt. Covering the upright tin again allows a retry. A robot turning only the tin onto a
+  stationary face-up plate cannot earn 0.5.
+- At set-down, use the side view and a ruler to verify plate contact with the bench or stand within 5 mm,
+  the stand top fully beneath the plate, and the cake resting on the plate within the same gap tolerance.
+  The simulator permits 2 mm of numerical interpenetration at these contacts.
+- Use a ruler for rim-to-rim gaps on four sides (centre offsets), a phone inclinometer on the supported plate
+  and cake (level and flatness), and both videos for release, bench contact and the one-second stillness check.
+  The simulator's 15-degree per-step axis-jump guard detects a discontinuous sampled trajectory. In a real
+  trial the continuous video supplies the corresponding continuity evidence.
 
 ## Layout
 
@@ -93,3 +138,15 @@ plate's centre.
 
 All geometry is procedural primitives built in this folder (`bodykit.py` is our own helper code). No third-party
 meshes, textures, scans or other assets are used.
+
+## Response to review of TK-SWG72E
+
+The tracker now follows uninterrupted plate-to-tin contact through inversion and permits a fresh attempt
+after separation. It verifies support beneath the plate and cake-to-plate contact before granting 0.5.
+Regression controls cover a stationary plate, detached intermediate plate, endpoint-only pose jump,
+unsupported low pair, missing stand, hovering cake, a successful retry, and reset between episodes.
+The revised scorer passes 32 offline tests. The stationary-plate control moves the plate away smoothly,
+sets it down face-up, then turns only the tin over in small angular increments and lowers it onto the
+stationary plate. Each angular increment is below the continuity guard, isolating the missing joint turn.
+That sequence remains at 0.25. A valid continuous paired turn followed by release scores 1.0, including
+a successful retry after a broken attempt. The full simulation replay also scored 1.0 at step 1320.

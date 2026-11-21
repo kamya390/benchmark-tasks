@@ -31,6 +31,7 @@ CAKE_R = 0.0976          # widest step (the baked top)
 CAKE_MASS = 0.50
 PLATE_R = 0.125
 PLATE_T = 0.008
+STAND_R = 0.055
 STAND_H = 0.140
 
 # The cake's light sticking to the tin: it lets go once the pull of its own weight along the tin axis, out of the
@@ -43,7 +44,6 @@ PLATE_ON_TIN_RADIAL = 0.020
 PLATE_ON_TIN_GAP = 0.005
 UPRIGHT_DEG = 10.0
 INVERTED_DEG = 15.0
-SET_DOWN_Z = STAND_H + 0.010      # plate underside no higher than this above the bench
 CAKE_ON_PLATE_GAP = 0.005
 CAKE_FLAT_DEG = 5.0
 CAKE_CENTRE = 0.020
@@ -52,6 +52,8 @@ TIN_ON_STAND = 0.030
 TIN_ON_STAND_Z = STAND_H + 0.008
 TABLE_TOUCH = 0.004
 RELEASE_M = 0.030
+PAIR_STEP_DEG = 15.0             # maximum observed axis change per 20 Hz frame
+SUPPORT_GAP = 0.005
 HOLD_STEPS = 20                   # 1.0 s at 20 Hz
 
 
@@ -131,13 +133,17 @@ def _dist_to_cylinder(p, centre, axis, radius: float, half: float) -> float:
 class Tracker:
     """Accumulates one episode.  ``mat_xy`` is the centre of the stand the empty tin goes on, ``table_top`` the bench height."""
 
-    def __init__(self, mat_xy, table_top: float):
+    def __init__(self, mat_xy, table_top: float, stand_xy=(0.450, 0.0)):
         self.mat = np.asarray(mat_xy, float)[:2]
         self.top = float(table_top)
+        self.supports = (self.mat, np.asarray(stand_xy, float)[:2])
         self.reset()
 
     def reset(self, stuck: bool = True, plate_on_tin: bool = False, pair_inverted: bool = False):
         self.flags = dict(plate_on_tin=plate_on_tin, pair_inverted=pair_inverted, cake_on_table=False, dropped=False)
+        self.inversion_active = False
+        self.saw_sideways = False
+        self.previous_axes = None
         self.stuck = stuck
         self.still_steps = 0
         self.evidence = Evidence(plate_on_tin=plate_on_tin, pair_inverted=pair_inverted)
@@ -173,20 +179,45 @@ class Tracker:
         cake_on_plate = (float(pa[2]) >= _cos(UPRIGHT_DEG) and -0.002 <= cake_gap <= CAKE_ON_PLATE_GAP
                          and over_radial <= PLATE_R - CAKE_R and tilt_on_plate >= _cos(UPRIGHT_DEG))
         plate_low, _ = _z_range(plate_c, pa, PLATE_R, PLATE_T / 2)
-        plate_down = float(pa[2]) >= _cos(CAKE_FLAT_DEG) and plate_low <= self.top + SET_DOWN_Z
+        # A level plate must touch a real support plane with its footprint over
+        # that support. A height ceiling alone also accepts a hovering plate.
+        on_table = -0.002 <= plate_low - self.top <= SUPPORT_GAP
+        on_stand = (-0.002 <= plate_low - self.top - STAND_H <= SUPPORT_GAP
+                    and any(np.linalg.norm(plate[:2] - xy) <= PLATE_R - STAND_R
+                            for xy in self.supports))
+        plate_down = float(pa[2]) >= _cos(CAKE_FLAT_DEG) and (on_table or on_stand)
 
         # 0.25: the plate lies face-down on the upright tin's rim, centred, with the cake still in the tin.
         r = face - rim
         r_axial = float(r @ ta)
         r_radial = float(np.linalg.norm(r - r_axial * ta))
-        if (float(ta[2]) >= _cos(UPRIGHT_DEG) and float(pa[2]) <= -_cos(UPRIGHT_DEG) and cake_in_tin
-                and r_radial <= PLATE_ON_TIN_RADIAL and abs(r_axial) <= PLATE_ON_TIN_GAP):
+        pair_contact = (r_radial <= PLATE_ON_TIN_RADIAL and abs(r_axial) <= PLATE_ON_TIN_GAP
+                        and float(ta @ pa) <= -_cos(UPRIGHT_DEG))
+        covered = (float(ta[2]) >= _cos(UPRIGHT_DEG)
+                   and float(pa[2]) <= -_cos(UPRIGHT_DEG) and cake_in_tin and pair_contact)
+        if covered:
             fl["plate_on_tin"] = True
 
-        # 0.5: the pair has been turned over and set down, plate underneath, the cake still under the tin.
-        if (fl["plate_on_tin"] and float(ta[2]) <= -_cos(INVERTED_DEG) and plate_down and cake_under_tin
-                and over_radial <= PLATE_R - CAKE_R and -0.002 <= cake_gap <= TIN_H and f.still):
-            fl["pair_inverted"] = True
+        # The 0.25 milestone survives a broken attempt. A new qualifying cover
+        # starts another attempt. Higher credit needs an unbroken observed turn.
+        if not fl["pair_inverted"]:
+            continuous = pair_contact
+            if self.previous_axes is not None:
+                continuous = continuous and all(
+                    float(old @ new) >= _cos(PAIR_STEP_DEG)
+                    for old, new in zip(self.previous_axes, (ta, pa)))
+            if not continuous:
+                self.inversion_active = False
+                self.saw_sideways = False
+            if covered and not self.inversion_active:
+                self.inversion_active = True
+                self.saw_sideways = False
+            if self.inversion_active:
+                self.saw_sideways |= abs(float(ta[2])) <= 0.5
+                if (self.saw_sideways and float(ta[2]) <= -_cos(INVERTED_DEG)
+                        and plate_down and cake_under_tin and cake_on_plate and f.still):
+                    fl["pair_inverted"] = True
+        self.previous_axes = (ta.copy(), pa.copy())
 
         # 0.75: the tin is clear of the cake, which rests on the set-down plate.
         tin_low, _ = _z_range(tin_c, ta, TIN_R_OUT, TIN_H / 2)
@@ -220,7 +251,9 @@ class Tracker:
         self.detail = dict(plate_rim_mm=(round(r_radial * 1000, 1), round(r_axial * 1000, 1)),
                            cake_in_tin_mm=(round(in_tin_radial * 1000, 1), round(in_tin_axial * 1000, 1)),
                            cake_plate_mm=(round(over_radial * 1000, 1), round(cake_gap * 1000, 1)),
-                           clearance_mm=round(clearance * 1000, 1), stuck=self.stuck, still=self.still_steps)
+                           clearance_mm=round(clearance * 1000, 1), stuck=self.stuck, still=self.still_steps,
+                           inversion_active=self.inversion_active, saw_sideways=self.saw_sideways,
+                           pair_contact=pair_contact, plate_supported=plate_down)
         return command
 
     def score(self) -> float:

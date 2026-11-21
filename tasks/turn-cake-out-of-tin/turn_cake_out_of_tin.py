@@ -109,13 +109,13 @@ else:
 
 OBJECTS = [_stand("tin_stand", MAIN), _stand("plate_stand", SIDE), TIN, CAKE, PLATE]
 
-TRACKER = scoring.Tracker(SIDE, TOP)
+TRACKER = scoring.Tracker(SIDE, TOP, stand_xy=MAIN)
 _DBG = [0]
 
 
 @on_reset
 def _reset_episode():
-    TRACKER.reset(stuck=STAGE != "lift", plate_on_tin=STAGE == "lift")
+    TRACKER.reset(stuck=STAGE != "lift", plate_on_tin=STAGE == "lift", pair_inverted=STAGE == "lift")
     _DBG[0] = 0
 
 
