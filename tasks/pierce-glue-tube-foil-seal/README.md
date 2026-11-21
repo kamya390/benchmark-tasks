@@ -49,7 +49,17 @@ The simulator's glue-style tube is reproduced with a cheap, sealed, inert stand-
   fez-cap collapsible tubes (<https://www.naturalpigments.com/collapsible-aluminum-tube.html>), multi-packs of
   5 ml to 100 ml needle-cap tubes on eBay (e.g. <https://www.ebay.com/itm/225493165655>, 200 x 5 ml for about
   US$42), and 30 ml five-packs (ELYSAID). Cost is well under US$1 per trial. Sizes (body diameter, cap size,
-  thread, membrane tear force) vary by seller and are UNVERIFIED; measure the tube you buy (see below).
+  thread, membrane tear force) vary by seller, so every pack is checked once before use (pack check below).
+- **Pack check (once per pack, about 10 minutes, on one spare tube that is then discarded):**
+  1. Measure with calipers: cap outer diameter and height, pin length, neck diameter, body width.
+  2. Unscrew the cap and count the turns until it comes free, using the paint line.
+  3. Stand the spare tube nozzle-up on a kitchen scale (1 g resolution) and tare it. Push the cap's pin slowly and
+     straight down into the membrane by hand, filming the display with a phone. The peak reading at the moment the
+     membrane gives is the piercing force (grams x 0.0098 = N).
+  4. Use the pack only if the piercing force is 2 to 5 N (about 200 to 510 g), which brackets the simulator's 3 N.
+     The cap must also need 1.5 to 2.5 turns to come free, be 12 to 22 mm across, and have a pin longer than 2.5 mm.
+     Otherwise use another pack or seller.
+  5. Record all five values with the pack's lot or order number in the trial log.
 - **Inert fill:** 10 ml of plain petroleum jelly, injected through the open tail with a syringe; the tail is folded
   three times with flat pliers. It does not cure, is not an adhesive and wipes off with a dry paper towel. The fill
   makes the tube behave like a full one; it is never exposed unless the seal is pierced.
@@ -95,7 +105,8 @@ thread.
 - *Clarity and reproducibility:* "The unspecified glue-style tube and replacement foil lack a repeatable source or
   preparation procedure for the threaded cap, seal, and piercing force." The real station now uses commercially
   sold membrane-sealed aluminium tubes with their own needle caps, one new tube per trial, prepared in about 3
-  minutes.
+  minutes. The piercing force is controlled by a once-per-pack kitchen-scale check (2 to 5 N accepted), which also
+  checks the cap's turns to release (1.5 to 2.5), cap size and pin length.
 - *Feasibility:* "The described glue can contaminate the shared grippers, and no inert substitute or pad protection
   is specified." There is no glue: the fill is petroleum jelly sealed inside the tube, and pads are wiped and
   checked between trials.
