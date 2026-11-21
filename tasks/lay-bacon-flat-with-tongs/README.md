@@ -13,14 +13,11 @@ while it comes down. The robot does this through tongs: its gripper squeezes two
 tips hold the rasher, so grip force, tip position and tip pitch all reach the food second-hand. There are no
 clips, pegs, slots or guides: the pan is a bare flat floor.
 
-Panning bacon for the oven is everyday prep for restaurant cooks, food preparation workers and fast food
-cooks. O*NET lists "Bake, roast, broil, and steam meats, fish, vegetables, and other foods" for Cooks,
-Restaurant (<https://www.onetonline.org/link/summary/35-2014.00>) and "Prepare a variety of foods, such as
-meats, vegetables, or desserts, according to customers' orders or supervisors' instructions" for Food
-Preparation Workers (<https://www.onetonline.org/link/summary/35-2021.00>). Gisslen's *Professional Cooking*
-gives the method for bacon in quantity: "lay out the bacon strips on sheet pans in a single layer"
-(<https://app.ckbk.com/reference/prof90208c25s004ss001e001/bacon>); Saveur's oven-bacon guide likewise calls
-for a single layer without overlap (<https://www.saveur.com/food/how-to-cook-bacon-in-oven/>).
+Laying bacon strips side by side on a sheet pan is a recognizable home-cooking task when preparing bacon in
+the oven. The category is Societal relatability. Folded or overlapping strips cook unevenly, so each limp
+strip must be laid out flat. The physical challenge is preserved with dry silicone stand-ins and spring
+tongs. Saveur's oven-bacon guide describes laying the strips in a single layer without overlap.
+[Oven-bacon preparation](https://www.saveur.com/food/how-to-cook-bacon-in-oven/)
 
 ## Run
 
@@ -134,3 +131,8 @@ rig.
 
 Procedural primitives and our own code only (`bodykit.py` is our helper). No third-party meshes, textures or
 scans.
+
+## Response to review of TK-7L9VHX
+
+Changed the category to Societal relatability and explained the recognizable home-cooking operation.
+Removed the occupation-count argument from the context and README.
