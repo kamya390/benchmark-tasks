@@ -25,25 +25,31 @@ SCENE = "station"
 TOP = TABLE_TOP[SCENE]
 
 # World frame: x away from the arms, y left, z up.  The chuck spindle points along x and its face points toward -x.
-CHUCK = np.array((0.315, 0.310, TOP + 0.055))
-CHUCK_R = 0.050
-CHUCK_DEPTH = 0.050
+# The machine is a PROXXON PD 250/E tabletop lathe (NO 24 002 / 34 002): 560 x 270 x 170 mm, about 12 kg, centre
+# height 70 mm over the bed, 70 mm DIN 8386 three-jaw chuck with a square-drive key supplied.  Its spindle axis sits
+# about 105 mm above the bench.  Bed, headstock and carriage are approximate boxes; the chuck, key and socket are
+# dimensioned to the real parts.
+SPINDLE_Z = 0.105
+CHUCK = np.array((0.280, 0.310, TOP + SPINDLE_Z))
+CHUCK_R = 0.035
+CHUCK_DEPTH = 0.040
 FACE_X = CHUCK[0] - CHUCK_DEPTH / 2
 SOCKET = np.array((CHUCK[0], CHUCK[1], CHUCK[2] + CHUCK_R + 0.004))  # cavity bottom
-SOCKET_GAP = 0.012
-SOCKET_H = 0.016
+SOCKET_GAP = 0.010
+SOCKET_H = 0.012
 
-KEY_SHAFT = (0.010, 0.010, 0.045)
-KEY_BAR = (0.010, 0.090, 0.010)
-KEY_HUB = (0.020, 0.020, 0.012)
-# A broad forged centre boss gives the parallel gripper two full-height flats to pinch.  The earlier 16 mm boss let
+# Small square-drive T-key as supplied with a 70 mm chuck: 8 mm square shaft, 70 mm crossbar.
+KEY_SHAFT = (0.008, 0.008, 0.030)
+KEY_BAR = (0.008, 0.070, 0.008)
+KEY_HUB = (0.018, 0.018, 0.010)
+# A broad centre boss gives the parallel gripper two full-height flats to pinch.  The earlier 16 mm boss let
 # the key slide sideways until a finger caught an end of the T-bar, turning the shaft almost horizontal in transit.
-KEY_KNOB = (0.024, 0.024, 0.036)
-KEY_MASS = 0.18
+KEY_KNOB = (0.024, 0.024, 0.024)
+KEY_MASS = 0.12
 KEY_ORIGIN = tuple(SOCKET)
 
 HOLDER_XY = (0.200, 0.430)
-HOLDER_OPEN = (0.016, 0.016)
+HOLDER_OPEN = (0.020, 0.020)
 HOLDER_WALL = 0.005
 HOLDER_H = 0.030
 
@@ -69,11 +75,16 @@ def _qx(angle: float) -> tuple[float, float, float, float]:
 
 
 def _lathe_boxes():
+    # PD 250/E silhouette, positions relative to the chuck centre (spindle axis 105 mm above the bench):
+    # cast-iron bed 560 x 100 x 30 mm on 5 mm feet (bed ways 35 mm up, so the 105 mm axis gives the real 70 mm centre
+    # height), die-cast headstock 140 x 110 x 135 mm reaching the 170 mm machine height, and a carriage with cross
+    # slide further along the bed.
+    bed_top = 0.035
     boxes = [
-        # Bed and headstock establish the unmistakable machine silhouette.
-        mk.box((0.330, 0.105, 0.032), at=(0.075, 0.0, -0.039), color=MACHINE),
-        mk.box((0.155, 0.160, 0.190), at=(0.090, 0.0, 0.040), color=MACHINE),
-        mk.box((0.125, 0.135, 0.035), at=(0.205, 0.0, -0.005), color=STEEL),
+        mk.box((0.560, 0.100, 0.030), at=(0.270, 0.0, -SPINDLE_Z + 0.005 + 0.015), color=MACHINE),
+        mk.box((0.560, 0.100, 0.005), at=(0.270, 0.0, -SPINDLE_Z + 0.0025), color=DARK_STEEL),
+        mk.box((0.140, 0.110, 0.135), at=(0.090, 0.0, -SPINDLE_Z + bed_top + 0.0675), color=MACHINE),  # top at 170 mm
+        mk.box((0.110, 0.130, 0.035), at=(0.300, 0.0, -SPINDLE_Z + bed_top + 0.0175), color=STEEL),
     ]
     # Twelve tangential plates make a horizontal cylindrical chuck without a mesh asset.
     n = 12
@@ -82,7 +93,7 @@ def _lathe_boxes():
         a = 2 * math.pi * i / n
         boxes.append(
             mk.box(
-                (CHUCK_DEPTH, chord + 0.002, 0.012),
+                (CHUCK_DEPTH, chord + 0.002, 0.010),
                 at=(0.0, CHUCK_R * math.sin(a), CHUCK_R * math.cos(a)),
                 color=DARK_STEEL,
                 quat=_qx(a),
@@ -91,16 +102,16 @@ def _lathe_boxes():
     # Three jaws on the face, 120 degrees apart.  Their tips stop around a visible central work opening.
     for i in range(3):
         a = 2 * math.pi * i / 3
-        cy, cz = 0.030 * math.sin(a), 0.030 * math.cos(a)
+        cy, cz = 0.021 * math.sin(a), 0.021 * math.cos(a)
         boxes.append(
             mk.box(
-                (0.018, 0.018, 0.044),
-                at=(-CHUCK_DEPTH / 2 - 0.010, cy, cz),
+                (0.014, 0.014, 0.030),
+                at=(-CHUCK_DEPTH / 2 - 0.008, cy, cz),
                 color=STEEL,
                 quat=_qx(a),
             )
         )
-    # Four non-overlapping walls round a genuine 12 x 12 mm cavity guide the key shaft upward.
+    # Four non-overlapping walls round a genuine 10 x 10 mm cavity guide the key shaft upward.
     sw, gap, sh = 0.004, SOCKET_GAP, SOCKET_H
     z = CHUCK_R + 0.004 + sh / 2
     boxes.extend(
@@ -142,7 +153,7 @@ kit.slider(
     lower=-BUTTON_TRAVEL,
     upper=0.0,
     start=0.0,
-    # About 1.2 N at full stroke, in the range of a light industrial momentary pushbutton and reachable by YAM.
+    # About 1.5 N at full stroke, in the range of a light industrial momentary pushbutton and reachable by YAM.
     stiffness=100.0,
     rest=0.003,
     damping=1.0,
@@ -195,7 +206,7 @@ def _inserted(objects) -> bool:
     """True while any of the key shaft's centreline remains inside the socket cavity.
 
     Sampling the physical shaft, rather than thresholding the key origin and tilt, makes a partly lifted or tilted
-    but still engaged key hazardous.  The 1 mm lateral margin is half the clearance around the 10 mm shaft.
+    but still engaged key hazardous.  The 1 mm lateral margin equals the clearance around the 8 mm shaft.
     """
     origin, quat = kit.pose(objects, "chuck_key")
     r = mk.quat_to_mat(quat)
@@ -277,9 +288,10 @@ kit.on_step(_probe_diagnostics)
 
 # Scripted feasibility plan.  It uses ordinary grasps and button contact; no object pose is teleported or edited.
 TIP = 0.013
-TRAVEL = TOP + 0.245
-# A raised 16 mm square grip boss above the T-bar gives a top-down parallel gripper a vertical feature to pinch.
-# The compact 55 mm spindle centre leaves 21 mm extraction travel above the 16 mm socket before transit.
+TRAVEL = TOP + 0.235
+# A raised 24 mm square grip boss above the T-bar gives a top-down parallel gripper a vertical feature to pinch.
+# TRAVEL sits 26 mm above the grip height, so the 30 mm shaft clears the 12 mm socket before any lateral transit.
+# The arms track a gripper-down TCP accurately only up to about 0.21 m above the table, which fixes these heights.
 KEY_GRIP_ABOVE_BASE = KEY_SHAFT[2] + KEY_BAR[2] + KEY_KNOB[2] / 2
 KEY_GRIP_Z = SOCKET[2] + KEY_GRIP_ABOVE_BASE + 0.002  # observed key settles 2 mm above nominal
 KEY_OPEN = -(KEY_KNOB[0] + 0.012) / 2
@@ -293,9 +305,10 @@ RIGHT_TRAVEL = TOP + 0.100
 def demo():
     kx, ky = SOCKET[:2]
     hx, hy = HOLDER_XY
-    # Once the socket is cleared vertically the key stays nearly upright.  Pre-compensate the measured live carry
-    # offset so the 10 mm shaft is centred in the unchanged 16 mm holder mouth with 3 mm clearance on every side.
-    holder_grip_xy = (hx + 0.014, hy + 0.018)
+    # Once the socket is cleared vertically the key stays nearly upright.  Pre-compensate the measured arm tracking
+    # and key swing at holder height (key lands 14 mm short in x and 11 mm short in y of the commanded TCP) so the
+    # 8 mm shaft is centred in the 20 mm holder mouth with 6 mm clearance on every side.
+    holder_grip_xy = (hx + 0.014, hy + 0.011)
     button_top = BUTTON_Z + BUTTON_SIZE[2] / 2
     left = [
         Waypoint(1.8, (kx, ky, TRAVEL), KEY_OPEN, "notice key; move over raised grip boss", math.pi / 2),
@@ -324,7 +337,7 @@ def self_test() -> None:
     key_stowed = ((*HOLDER_XY, TOP), (0.0, 0.0, 0.0, 1.0))
     key_clear = ((0.230, 0.380, TOP), (0.0, 0.0, 0.0, 1.0))
     key_tilted_engaged = (KEY_ORIGIN, _qx(math.radians(21.0)))
-    key_lifted_13mm = ((SOCKET[0], SOCKET[1], SOCKET[2] + 0.013), (0.0, 0.0, 0.0, 1.0))
+    key_lifted_10mm = ((SOCKET[0], SOCKET[1], SOCKET[2] + 0.010), (0.0, 0.0, 0.0, 1.0))
     key_extracted_30mm = ((SOCKET[0], SOCKET[1], SOCKET[2] + 0.030), (0.0, 0.0, 0.0, 1.0))
 
     def states(q, key=None):
@@ -343,7 +356,7 @@ def self_test() -> None:
         "stow then start": ([states(q0), states(q0, key_stowed), states(qp, key_stowed)], (1.0, True, False)),
         "unsafe start": ([states(q0), states(qp)], (0.0, False, True)),
         "21 degree tilt remains engaged": ([states(q0), states(qp, key_tilted_engaged)], (0.0, False, True)),
-        "13 mm lift remains engaged": ([states(q0), states(qp, key_lifted_13mm)], (0.0, False, True)),
+        "10 mm lift remains engaged": ([states(q0), states(qp, key_lifted_10mm)], (0.0, False, True)),
         "30 mm extraction is clear": ([states(q0), states(qp, key_extracted_30mm)], (0.5, False, False)),
         "unsafe start cannot be repaired": ([states(q0), states(qp), states(q0, key_stowed), states(qp, key_stowed)],
                                              (0.0, False, True)),
